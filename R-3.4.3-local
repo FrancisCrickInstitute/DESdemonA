@@ -1,0 +1,10 @@
+#!/bin/sh
+ml use /camp/apps/testfolder/eb/modules/all/
+module_array=(R/3.4.3-foss-2016b)
+for i in "${module_array[@]}"
+do
+	module load $i
+done
+[[ $0 != '-bash' ]] && [[ $0 != '/bin/sh' ]] && R "$@"
+
+
