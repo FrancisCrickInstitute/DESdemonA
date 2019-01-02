@@ -32,7 +32,12 @@ applySubset <- function(dds, subs) {
   colData(tmp) <- droplevels(colData(tmp))
   tmp
 }
-ddsList <-map(datasetList, ~ applySubset(dds_all,.))
+
+## Set the design model
+applyDesign <- function(dds, mdl) {
+  design(dds) <- mdl
+  DESeq(dds, test="Wald")
+}
 ## Do likelihood ratio test, and classify in order of effect size
 ## Doesn't work for interactions, obviously
 applyLRT <- function(dds, mdl) {
@@ -54,9 +59,9 @@ applyLRT <- function(dds, mdl) {
   dds
 }
 ## apply contrast, and transfer across interesting mcols from the dds
-applyResults <- function(dds, ...) {
+applyResults <- function(dds, mcols=c("symbol"),...) {
   r <- results(dds, ...)
-  r$symbol <- mcols(dds)$symbol
+  r[mcols] <- mcols(dds)[mcols]
   if ("LRTPvalue" %in% names(mcols(dds))) {
     r$class <- mcols(dds)$class
     r$class[is.na(r$padj) | is.na(r$pvalue) | r$baseMean==0] <- NA
@@ -74,8 +79,6 @@ applyResults <- function(dds, ...) {
 }
 
 set.seed(seed=params()$seed)
-dirs <- derivedDirs(publish=NA,
-                   subResults=params()$fVersion)
 
 
 align_settings <- readLines("align.yml")
@@ -83,7 +86,7 @@ organism <- list(genus = grep("genus: .*", align_settings, value=TRUE),
                 species = grep("species: .*", align_settings, value=TRUE))
 organism <- map(organism, ~ gsub(".*: ", "", .))
 organism$Gs <- paste0(toupper(substr(organism$genus, 1, 1)), tolower(substr(organism$species, 1, 1)))
-organism$org <-  grep(paste0("org\\.",organism$Gs),row.names(installed.packages()),  value=TRUE)
+organism$org <-  unique(grep(paste0("org\\.",organism$Gs),row.names(installed.packages()),  value=TRUE))
 if (length(organism$org)!=1) {
   stop(paste("Can't find annotation for", organism$genus, organism$species))
 }
@@ -91,15 +94,16 @@ library(organism$org, character.only=TRUE)
 
                
 ## ** Read in Data
-design <- read.csv("design.csv", as.is=TRUE) %>%
-  mutate(id=sample, sample=gsub(".*(PER.*)_S.*", "\\1", file1)) %>%
-  dplyr::select(sample, id)
+design <- read.csv("design.csv", as.is=TRUE) 
 
-samples <- read.table("data/sample_sheet.txt", header=TRUE, sep="\t", as.is=TRUE) %>%
-  left_join(design) %>%
-  separate(name, into=c("Irrelevant", "Condition","Replicate"), sep="\\.") %>%
-  dplyr::select(-Irrelevant)
-txi <- tximport(sprintf("results_fp0/star/%s.genes.results", samples$id), type="none", txIn = FALSE, geneIdCol = "gene_id",  abundanceCol = "TPM", countsCol = "expected_count", lengthCol = "effective_length", importer=read_tsv)
+samples <- read.xlsx("data/{{ASF_XL_FILE}}",sheetIndex=1, check.names=FALSE) %>%
+  select_if( ~ length(unique(.x)) !=1) %>%
+  dplyr::select(-`Sample TS/BA/Gel File Name`) %>%
+  rename("Sample limsid"="sample", "Sample Name"="name") %>%
+  separate(name, into=c("{{EXPERIMENTAL_CONDITIONS}}"), sep="_") %>%
+  dplyr::select(-treatment, -num, -si)
+
+txi <- tximport(sprintf("results/star/%s.genes.results", samples$id), type="rsem")
 txi$length[txi$length==0] <- 1
 dat <- DESeqDataSetFromTximport(txi, samples, ~ Time)
 ind <- rowSums(counts(dat)!=0) > 0
@@ -119,10 +123,6 @@ ddsList <- list(all=DESeq(dat))
 
 
 ## ** QC Visualisation
-## tmp <- tmp[,tmp$sample!="RM08"]
-## tmp$VD <- droplevels(tmp$VD)
-## tmp$D3 <- droplevels(tmp$D3)
-## ddsList$omit_11_8=DESeq(tmp)
 
 exprList <- lapply(ddsList, . %>% vst %>% assay)
 
@@ -140,16 +140,7 @@ for (i in names(exprList)) {
            annotation_col=colDat,
            show_rownames=FALSE, show_colnames=TRUE,
            silent=TRUE);dev.off()
-  pl <- ph$gtable
-  clst <- cutree(ph$tree_row, 4)
-  inds <- map(1:4, ~ which(clst==.))
-  inds <- inds[sapply(inds, length)!=1]
   
-  pl_sub <- map(inds, ~ pheatmap(plotDat[.,],
-           annotation_col=colDat,
-           show_rownames=FALSE, show_colnames=TRUE,
-           silent=TRUE)$gtable);dev.off()
-
   poisd <- PoissonDistance(t(counts(ddsList[[i]], normalized=TRUE)))
   samplePoisDistMatrix <- as.matrix( poisd$dd )
   rownames(samplePoisDistMatrix) <-
@@ -162,27 +153,23 @@ for (i in names(exprList)) {
            annotation_col=colDat,
            silent=TRUE)$gtable;dev.off()
   vDevice(pdf, paste0("heatmap_", i))
-  grid::grid.newpage(); grid::grid.draw(pl) 
+  grid::grid.newpage(); grid::grid.draw(ph) 
   grid::grid.newpage();grid::grid.draw(sq)
-  lapply(pl_sub, function(x) {grid::grid.newpage(); grid::grid.draw(x)})
   dev.off()#
 
   pc <- prcomp(t(exprList[[i]][top[[i]],]), scale=FALSE)
   percentVar <- pc$sdev^2/sum(pc$sdev^2)
-  loadings <- data.frame(symbol=mcols(ddsList[[1]])$symbol[top[[i]]],pc$rotation)
-  vDevice(txt, paste0("loadings_", i), loadings)
 
   
   colDat <- as.data.frame(colData(ddsList[[i]]))
   pc.df <- data.frame(PC1=pc$x[,1], PC2=pc$x[2,], colDat)
   vDevice(pdf, paste0("pca_", i))
-  gg <- ggplot(pc.df, aes(x=PC1, y=PC2, col=Time))  + geom_point() +
+  gg <- ggplot(pc.df, aes(x=PC1, y=PC2, col="{{MAIN_CONDITION}}"))  + geom_point() +
     geom_text_repel(aes(label=sample)) +
     xlab(paste0("PC1: ", round(percentVar[1] * 100), "% variance")) +
     ylab(paste0("PC2: ", round(percentVar[2] * 100), "% variance")) +
     coord_fixed()
   print(gg)
-  print(gg+aes(y=Concentration))
   dev.off()
 }
 
@@ -190,12 +177,6 @@ for (i in names(exprList)) {
 
 
 
-tpm <- txi$abundance
-colnames(tpm) <- paste(ddsList$all$Time, ddsList$all$Replicate, sep="_")
-vDevice(txt, "tpm", tpm)
-nrc <- counts(ddsList[[1]], normalized=TRUE)
-colnames(nrc) <- colnames(tpm)
-vDevice(txt, "Normalised_counts", nrc)
 
 
 ## ** Find differential genes
@@ -203,45 +184,41 @@ vDevice(txt, "Normalised_counts", nrc)
 summaries <- list()
 res <- list()
 
-## *** New approach
+
 ## *** LRT template
-fitted_list <- list(dds=ddsList, mdl=modelList) %>%
+mdlList <- list("Pooled" = list(full = ~ {{CONDITION}},
+                                reduced = ~ 1),
+                "Normed" = list(full = ~ {{CONDITION}} + {{BATCH}},
+                                reduced = ~ {{BATCH}})
+ddsByDesign <- list(dds=ddsList, mdl=mdlList) %>%
   cross %>%
   map(lift(applyLRT))
-names(fitted_list) <-list(names(ddsList), names(modelList)) %>%
+names(ddsByDesign) <-list(names(ddsList), names(mdlList)) %>%
   cross %>%
   map(paste, collapse="_")
-res[[analysis]] <- lapply(fitted_list, applyResults, alpha=params("alpha"))
+resultList <- lapply(ddsByDesign, applyResults, alpha=params("alpha"))
+
 ## *** Wald template
-contrSpecific <- list()
-res[[analysis]] <- lapply(contrSpecific,  function(x) applyResults(dds, contrast=x, alpha=params("alpha")))
+mdlList <- list("Pooled" = ~ {{CONDITION}}, "Normed" = ~ {{CONDITION}} + {{BATCH}})
+ddsByDesign <- list(dds=ddsList, mdl=mdlList) %>%
+  cross %>%
+  map(lift(applyDesign))
+names(ddsByDesign) <-list(names(ddsList), names(mdlList)) %>%
+  cross %>%
+  map(paste, collapse="\t")
+contrList <- list("KO v WT"=c("CONDITION","KO","WT")
+                  )
+resultList <- list(dds=ddsByDesign, contrast=contrList) %>%
+  cross %>%
+  map(lift(applyResults, alpha=params("alpha")))
+names(resultList) <- list(dds=ddsByDesign, contrast=contrList) %>%
+  map(names) %>%
+  cross %>%
+  map(paste, collapse="\t")
 
+## *** Summarise Results
 
-
-## *** First analysis approach
-analysis <- params("analysis" = "Across_time")
-mdlList <- list(dat=list(AP=~AP, VD=~VD, D3=~D3),
-               omit_11=list(AP=~AP, D3=~D3))
-desList <- map(ddsList, ~DESeq(., reduced=~1, test="LRT"))
-
-resultList <- map(desList, results)
-coefList <- map(desList, coef)
-
-ord <- function(m) {
-  m[,1] <- 0
-  id <- sub("[A-Z].*?_(.*)_vs.*", "\\1", colnames(m))
-  id[1] <- sub(".*_vs_", "", colnames(m)[2])
-  apply(m, 1, function(x) paste(id[order(x)], collapse="<"))
-}
-
-resultList <- imap(resultList, function(r,i) {
-  r$symbol <- mcols(desList[[i]])$symbol
-  r$group <- ord(coefList[[i]])
-  r$tpm5 <- rowSums(tpm>5)
-  r[!(names(r) %in% c("log2FoldChange", "lfcSE"))] 
-})
-
-tab <- map(resultList, ~table(Group=.$group, Significant=.$padj<params()$alpha))
+tab <- map(resultList, ~table(Group=sub("\\*$","",.$class), Significant=grepl("\\*$",.$class)))
 tab <- imap(tab,~ cbind(as.data.frame(.x), dataset=.y)) %>%
   bind_rows %>%
   spread(Significant, Freq) %>%
@@ -249,22 +226,12 @@ tab <- imap(tab,~ cbind(as.data.frame(.x), dataset=.y)) %>%
   mutate(Total=not+Significant) %>%
   dplyr::select(-not) %>%
   arrange(desc(Significant/Total))
+tab <- tab %>%
+  separate(dataset, into=c("Samples","Design","Comparison"), sep="\\t")
 
+res$standard <- resultList
+summaries$standard <- tab
 
-
-res[[analysis]] <- resultList
-summaries[[analysis]] <- tab
-
-
-vDevice(pdf,"barchart_behaviours")
-tab2 <- map(resultList, ~table(Group=.$group, Significant=.$padj<params()$alpha)) %>%
-  imap(~ cbind(as.data.frame(.x), dataset=.y)) %>%
-  bind_rows
-tab2$Group <- factor(tab2$Group, levels=tab$Group)
-ggplot(tab2 , aes(x=Group, y=Freq, fill=Significant)) +
-  geom_bar(stat="identity") +
-  theme(axis.text.x=element_text(angle = 45, hjust = 1))
-dev.off()
 
 
 
