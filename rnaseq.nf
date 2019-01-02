@@ -768,7 +768,7 @@ process fastq_screen {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir fscreen_dir.toString(),
@@ -817,7 +817,7 @@ process rsem_star {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir star_dir.toString(),
@@ -966,7 +966,7 @@ process rsem_star_mbscreen {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir star_mbscreen_dir.toString(),
@@ -1043,7 +1043,7 @@ process sort_index_star {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir star_dir.toString(),
@@ -1093,7 +1093,7 @@ process picard_group {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir picard_dir.toString(),
@@ -1145,7 +1145,7 @@ process picard_duplicates {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir picard_dir.toString(),
@@ -1231,7 +1231,7 @@ process index_picard {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir picard_dir.toString(),
@@ -1281,7 +1281,7 @@ process picard_complexity {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir picard_dir.toString(),
@@ -1324,7 +1324,7 @@ process picard_rnaseqmetrics {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir picard_dir.toString(),
@@ -1371,7 +1371,7 @@ process picard_multimetrics {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir picard_dir.toString(),
@@ -1424,7 +1424,7 @@ process infer_experiment {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir rseqc_dir.toString(),
@@ -1463,7 +1463,7 @@ process junction_annotation {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir rseqc_dir.toString(),
@@ -1502,7 +1502,7 @@ process junction_saturation {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir rseqc_dir.toString(),
@@ -1541,7 +1541,7 @@ process mismatch_profile {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir rseqc_dir.toString(),
@@ -1580,7 +1580,7 @@ process read_distribution {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir rseqc_dir.toString(),
@@ -1619,7 +1619,7 @@ process transcript_integrity_number {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir rseqc_dir.toString(),
@@ -1662,7 +1662,7 @@ process rnaseqc {
 	// HPC
 	cpus 4
 	executor "slurm"
-	memory "6 GB"
+	memory "32 GB"
 
 	// output directory
 	publishDir rnaseqc_dir.toString(),
