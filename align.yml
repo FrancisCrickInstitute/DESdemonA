@@ -1,7 +1,7 @@
 ### DESIGN
 # the path of the experiment design file wich associates samples IDs to their
 # experimentals conditions (treatment, time, patient...)
-design: design.csv
+design: data/design.csv
 
 ### OUTPUT DIRECTORY
 # this will be the name of the directory so no spaces, no special
