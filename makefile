@@ -32,7 +32,7 @@ rnaseq:
 	module load nextflow/0.30.0 ;\
 	nohup nextflow run -w scratch/work -resume rnaseq.nf -params-file align.yml &
 
-analysis: init_R =  $(lastword $(sort $(wildcard R-*-local)))# highest version number.
+analysis: init_R = $(lastword $(sort $(wildcard R-*-local)))# highest version number.
 analysis: analyse.r
 	[[ -z "$(init_R)" ]] || source "$(init_R)" ;\
 ifeq ($(executor),slurm)
