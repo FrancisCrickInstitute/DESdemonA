@@ -94,7 +94,7 @@ library(organism$org, character.only=TRUE)
 
                
 ## ** Read in Data
-design <- read.csv("design.csv", as.is=TRUE) 
+design <- read.csv("data/design.csv", as.is=TRUE) 
 
 samples <- read.xlsx("data/{{ASF_XL_FILE}}",sheetIndex=1, check.names=FALSE) %>%
   select_if( ~ length(unique(.x)) !=1) %>%
@@ -133,25 +133,26 @@ top <- lapply(exprList,
 for (i in names(exprList)) {
   plotDat <- exprList[[i]][top[[i]],]
   plotDat <- plotDat-rowMeans(plotDat)
+  vars <- all.vars(design(ddsList[[i]]))
   colDat <- as.data.frame(colData(ddsList[[i]])) %>%
-    dplyr::select(Time, Replicate, Concentration)
+    dplyr::select(!!vars) %>%
+    as.data.frame
   rownames(colDat) <- colnames(plotDat) <- ddsList[[i]]$sample
   ph <- pheatmap(plotDat,
            annotation_col=colDat,
            show_rownames=FALSE, show_colnames=TRUE,
-           silent=TRUE);dev.off()
+           silent=TRUE)
   
   poisd <- PoissonDistance(t(counts(ddsList[[i]], normalized=TRUE)))
   samplePoisDistMatrix <- as.matrix( poisd$dd )
-  rownames(samplePoisDistMatrix) <-
-    with(colData(ddsList[[i]]), paste(Time, Replicate,  sep=" - "))
+  rownames(samplePoisDistMatrix) <-unite(colDat, col="exp_group", !!vars, remove=FALSE)[[1]]
   colnames(samplePoisDistMatrix) <- row.names(colDat)
   
   sq <- pheatmap(samplePoisDistMatrix,
            clustering_distance_rows = poisd$dd,
            clustering_distance_cols = poisd$dd,
            annotation_col=colDat,
-           silent=TRUE)$gtable;dev.off()
+           silent=TRUE)$gtable
   vDevice(pdf, paste0("heatmap_", i))
   grid::grid.newpage(); grid::grid.draw(ph) 
   grid::grid.newpage();grid::grid.draw(sq)
@@ -161,17 +162,16 @@ for (i in names(exprList)) {
   percentVar <- pc$sdev^2/sum(pc$sdev^2)
 
   
-  colDat <- as.data.frame(colData(ddsList[[i]]))
-  pc.df <- data.frame(PC1=pc$x[,1], PC2=pc$x[2,], colDat)
+  pc.df <- data.frame(PC1=pc$x[,1], PC2=pc$x[2,], colDat, sample=row.names(colDat))
   vDevice(pdf, paste0("pca_", i))
-  gg <- ggplot(pc.df, aes(x=PC1, y=PC2, col="{{MAIN_CONDITION}}"))  + geom_point() +
+  gg <- ggplot(pc.df, aes(x=PC1, y=PC2, col=Treatment))  + geom_point() +
     geom_text_repel(aes(label=sample)) +
     xlab(paste0("PC1: ", round(percentVar[1] * 100), "% variance")) +
-    ylab(paste0("PC2: ", round(percentVar[2] * 100), "% variance")) +
-    coord_fixed()
+    ylab(paste0("PC2: ", round(percentVar[2] * 100), "% variance"))
   print(gg)
   dev.off()
 }
+
 
 
 
