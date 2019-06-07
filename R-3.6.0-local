@@ -1,6 +1,6 @@
 #!/bin/sh
 ml use /camp/apps/misc/stp/babs/manual/modules/all
-module_array=(R/3.5.1-foss-2016b-BABS)
+module_array=(R/3.6.0-foss-2016b-BABS)
 for i in "${module_array[@]}"
 do
 	module load $i
