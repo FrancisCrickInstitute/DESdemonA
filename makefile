@@ -1,10 +1,16 @@
-include ../generic/makefile
+################################################################
+#### RNASeq recipes
+################################################################
 
 .PHONY:   rnaseq analysis
 
 rnaseq:
-	module load nextflow/0.30.0 ;\
-	nohup nextflow run -w scratch/work -resume rnaseq.nf -params-file align.yml &
+	module load nextflow/0.30.2 ;\
+	nohup nextflow run -w scratch/work \
+		-params-file params.yml \
+		-r v0.1.0 \
+		--results_dir data \
+		http://github.com/crickbabs/BABS-RNASeq  &
 
 analysis: init_R = $(lastword $(sort $(wildcard R-*-local)))# highest version number.
 analysis: analyse.r
@@ -15,11 +21,12 @@ else
         Rscript $<
 endif
 
-data/design.csv: paired = $(shell ls fastq/*_R2_* | wc -l)
-data/design.csv: fastq
-ifeq ($paired, 0)
-	ls fastq | grep "_R1_" | awk 'BEGIN { FS = "_" ; OFS="," ; print "file,sample,id,lane" } { print "fastq/"$$0, $$1, $$2, $$3 }' > data/design.csv
-else
-	ls fastq | grep "_R1_" | awk 'BEGIN { FS = "_" ; OFS="," ; print "file1,file2,sample,id,lane" } { r2=$$0; gsub("_R1_","_R2_",r2); print "fastq/"$$0,"fastq/" r2 , $$1, $$2, $$3 }' > data/design.csv
-endif
 
+fastq_folder = /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(asf)/primary_data/
+paired = $(shell find -L ${fastq_folder} -path "*/fastq/*" -name "*_R2_*.fastq.gz" | wc -l)
+extdata/design.csv:
+ifeq (${paired}, 0)
+	find -L ${fastq_folder} -path "*/fastq/*" -name "*_R1_*.fastq.gz" -printf "%P\n" | awk 'BEGIN { FS = "[_/]" ; OFS="," ; print "file,date,machine,run,sample,id,lane" } { print "${fastq_folder}"$$0, $$1, $$2, $$3, $$6, $$7, $$8 }' > $@
+else
+	find -L ${fastq_folder} -path "*/fastq/*" -name "*_R1_*.fastq.gz" -printf "%P\n" | awk 'BEGIN { FS = "[_/]" ; OFS="," ; print "file1,file2,date,machine,run,sample,id,lane" } {r2=$$0; gsub("_R1_","_R2_",r2); print "${fastq_folder}"$$0, ${fastq_folder} r2,$$1, $$2, $$3, $$6, $$7, $$8}' >@
+endif
