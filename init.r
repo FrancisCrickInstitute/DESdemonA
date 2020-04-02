@@ -50,7 +50,7 @@ if (length(organism$org)!=1) {
   stop(paste("Can't find annotation for", organism$genus, organism$species))
 }
 
-mcols(rsem_dds)$organism <- organism
+metadata(rsem_dds)$organism <- organism
 library(organism$org, character.only=TRUE)
 mcols(rsem_dds)symbol <- mapIds(
   eval(parse(text = organism$org)) 
@@ -68,6 +68,7 @@ mcols(rsem_dds)$entrez <- mapIds(
 
 
 metadata(rsem_dds)$labels <- c("Treatment", "Lympho", "Group", "Mouse")
+
 
 usethis::use_data(rsem_dds, overwrite=TRUE)
 

@@ -1,6 +1,6 @@
 #' ---
 #' title: "{{title}}"
-#' author: "Gavin Kelly"
+#' author: "{{author}}"
 #' output:
 #'   html_document2:
 #'     toc: true
@@ -46,20 +46,21 @@ knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
                       dev=c("png","pdf"), out.width="80%",
                       results='asis')
 
-               
-##  Read in Data
+#+ read,results='hide', warning=FALSE, error=FALSE, message=FALSE
 data(rsem_dds)
-library(metadata(rsem_dds, "organism"))$org, character.only=TRUE)
+library(metadata(rsem_dds)$organism$org, character.only=TRUE)
+
 
 ddsList <- list(
-  all = DESeq(rsem_dds),
-  no_outlier = subset_samples(rsem_dds, -4)
+  all = rsem_dds
 )
 
-ddsList <- c(
-  ddsList,
-  subset_samples(ddsList$all, ~Batch)
-)
+#Which features are zero across all samples in all datasets
+all_zero <- Reduce(`&`, lapply(ddsList, function(x) apply(counts(x)==0,1, all)))
+ddsList <- lapply(ddsList, `[`, !all_zero)
+
+
+ddsList <- lapply(ddsList, estimateSizeFactors)
 
 
 #'
@@ -105,21 +106,19 @@ cat("\n\n## Summary Tables {.tabset}\n\n")
 
 mdlList <- list(
   "Standard" = list(
-    design = ~ CONDITION,
+    design = ~ treatment,
     comparison = list(
-      "KO1 v WT" = c("CONDITION","KO1","WT"),
-      "CONDITION" = ~1
-    )
+      "DPN" = c("treatment","DPN","Control"),
+      "OHT" = c("treatment","OHT","Control")
+      )
   ),
-  "Normed" = list(
-    design = ~ CONDITION + BATCH,
+  "Patient Adjusted" = list(
+    design = ~ patient + treatment, 
     comparison = list(
-      "KO1 v WT" = c("CONDITION","KO1","WT"),
-      "KO2 v WT" = c("CONDITION","KO2","WT"),
-      "KO v WT" = list(c("KO1", "KO2"), c("WT"), listValues=c(.5, -1)),
-      "B2 v B1" = list(c("BATCH.B2"), c("BATCH.B1")),
-      "CONDITION" = ~BATCH,
-      "BATCH" = ~CONDITION
+      "Treated" = list(c("treatment_DPN_vs_Control", "treatment_OHT_vs_Control"), listValues=c(.5, -1)),
+      "DPN" = c("treatment","DPN","Control"),
+      "OHT" = c("treatment","OHT","Control"),
+      "Patient" = ~treatment
     )
   )
 )
@@ -161,9 +160,9 @@ param$set("showCategory", 25, "Only show top {} enriched categories in plots")
 #' ## Reactome Enrichment {.tabset} 
 #'
 #+ enrich_reactome, fig.cap=caption()
-enrich_plots <- map_depth(resultList, 2, ~babsRNASeq::enrichment(
+enrich_plots <- map_depth(dds_model_comp, 2, babsRNASeq::enrichment,
   fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
-  )
+
 for (dataset in names(enrich_plots)) {
     cat("### ", dataset, " {.tabset} \n", sep="") 
     for (mdl in names(enrich_plots[[dataset]])) {
@@ -182,9 +181,9 @@ for (dataset in names(enrich_plots)) {
 #' ## GO MF Enrichment {.tabset} 
 #'
 #+ enrich_reactome, fig.cap=caption()
-enrich_plots <- map_depth(resultList, 2, ~babsRNASeq::enrichment(
+enrich_plots <- map_depth(dds_model_comp, 2, babsRNASeq::enrichment,
   fun="enrichGO", showCategory = param$get("showCategory"), max_width=30)
-  )
+
 for (dataset in names(enrich_plots)) {
     cat("### ", dataset, " {.tabset} \n", sep="") 
     for (mdl in names(enrich_plots[[dataset]])) {
@@ -229,6 +228,7 @@ for (dataset in names(dds_model_comp)) {
 
 #+ differential-heatmap, fig.cap=caption()
 
+if (FALSE) {
 differential_heatmap(dds_model_comp$all$Pooled,
                      . %>% group_by(Mouse) %>%
                        mutate(.value=.value - (.value[Group=="1"])) %>%
@@ -236,11 +236,11 @@ differential_heatmap(dds_model_comp$all$Pooled,
                        group_by(Group) %>%
                        arrange(Mouse),
                      title="All Samples")
-
+}
 
 
 ## *** Output filtered results
 
-babsRNASeq::write_results(dds_model_comp)
+babsRNASeq::write_results(dds_model_comp, param)
 
 #babsRNASeq::write_all_results(dds_model_comp)
