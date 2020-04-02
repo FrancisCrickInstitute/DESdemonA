@@ -1,0 +1,17 @@
+Version 0.1.0
+ - Implement sensible fold-changes for LRT and add library files to vc
+ - Refactor to include results in dds mcols
+ - Update R version
+ - Functions separated out into own scripts
+ - Generic recipes now included
+ - Automate colData from design variables
+ - Typo
+ - Tidy up analysis script
+ - Point workflow to correct design-file
+ - Add design-file generator
+ - Increase memory in workflow
+ - Make link dirs a bit neater
+ - Add tidy approach to loops
+ - Update R Version
+ - Initial RNASeq template
+
