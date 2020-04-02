@@ -2,7 +2,7 @@
 #' title: "{{title}}"
 #' author: "{{author}}"
 #' output:
-#'   html_document2:
+#'   bookdown::html_document2:
 #'     toc: true
 #'     code_folding: hide
 #'     css: styles.css
@@ -36,7 +36,7 @@ devtools::load_all()
 
 
 param <- babsRNASeq::ParamList$new(
-  title="{{title}}",
+  title="title",
   script="analyse.r",
   seed = 1)
 set.seed(param$get("seed"))
@@ -46,7 +46,7 @@ knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
                       dev=c("png","pdf"), out.width="80%",
                       results='asis')
 
-#+ read,results='hide', warning=FALSE, error=FALSE, message=FALSE
+#+ read
 data(rsem_dds)
 library(metadata(rsem_dds)$organism$org, character.only=TRUE)
 
@@ -71,7 +71,6 @@ param$set("top_n_variable", 500, "Only use {} genes for unsupervised clustering 
 
 
 for (dataset in names(ddsList)) {
-  cat("## ", dataset, " \n", sep="") 
   babsRNASeq::qc_heatmap(
     ddsList[[dataset]], title=dataset,
     n=param$get("top_n_variable"),
@@ -142,9 +141,17 @@ dds_model_comp <- map_depth(
 ## Summarise results
 summaries <- map_depth(dds_model_comp, 3, babsRNASeq::summarise_results)
 
-babsRNASeq::rbind_summary(summaries)
-map(summaries, babsRNASeq::rbind_summary,
+
+per_dataset <- map(summaries, babsRNASeq::rbind_summary,
     levels=c("Design","Comparison"))
+for (dataset in names(per_dataset)) {
+  cat("### ", dataset, " \n", sep="")
+  print(knitr::kable(per_dataset[[dataset]],
+                     options=list(dom="t"),
+                     caption=paste0("Size of differential gene-lists for ", dataset),
+                     label=klabel(paste0("summary", dataset))))
+}
+
 
 
 
@@ -154,15 +161,16 @@ map(summaries, babsRNASeq::rbind_summary,
 #' Here we look at which [Reactome](https://reactome.org/) and [GO molecular functions](http://geneontology.org/)
 #' are enriched in the various genelists we have created.
 #'
-#+ enrich_init, fig.cap=caption()
+#+ enrich-init, fig.cap=caption()
 param$set("showCategory", 25, "Only show top {} enriched categories in plots")
 
 #' ## Reactome Enrichment {.tabset} 
 #'
-#+ enrich_reactome, fig.cap=caption()
+#+ enrich-reactome, fig.cap=caption()
 enrich_plots <- map_depth(dds_model_comp, 2, babsRNASeq::enrichment,
   fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
 
+enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
 for (dataset in names(enrich_plots)) {
     cat("### ", dataset, " {.tabset} \n", sep="") 
     for (mdl in names(enrich_plots[[dataset]])) {
@@ -170,19 +178,22 @@ for (dataset in names(enrich_plots)) {
       print(enrich_plots[[dataset]][[mdl]]$plot)
       lbl <- paste("Reactome for", mdl, dataset)
       caption(lbl)
-      knitr::kable(enrich_plots[[dataset]][[mdl]]$table,
-                   options=list(dom="t"),
-                   caption=lbl
-                   label=klabel(paste("REACTOME", dataset, mdl))
-                   )
+      print(
+        knitr::kable(enrich_plots[[dataset]][[mdl]]$table,
+                     options=list(dom="t"),
+                     caption=lbl,
+                     label=klabel(paste("REACTOME", dataset, mdl))
+                     )
+      )
     }
 }
 
 #' ## GO MF Enrichment {.tabset} 
 #'
-#+ enrich_reactome, fig.cap=caption()
+#+ enrich-GO, fig.cap=caption()
 enrich_plots <- map_depth(dds_model_comp, 2, babsRNASeq::enrichment,
   fun="enrichGO", showCategory = param$get("showCategory"), max_width=30)
+enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
 
 for (dataset in names(enrich_plots)) {
     cat("### ", dataset, " {.tabset} \n", sep="") 
@@ -191,11 +202,13 @@ for (dataset in names(enrich_plots)) {
       print(enrich_plots[[dataset]][[mdl]]$plot)
       lbl <- paste("GO MF for", mdl, dataset)
       caption(lbl)
-      knitr::kable(enrich_plots[[dataset]][[mdl]]$table,
-                   options=list(dom="t"),
-                   caption=lbl
-                   label=klabel(paste("GO MF", dataset, mdl))
-                   )
+      print(
+        knitr::kable(enrich_plots[[dataset]][[mdl]]$table,
+                     options=list(dom="t"),
+                     caption=lbl,
+                     label=klabel(paste("GO MF", dataset, mdl))
+                     )
+        )
     }
 }
 
@@ -241,6 +254,8 @@ differential_heatmap(dds_model_comp$all$Pooled,
 
 ## *** Output filtered results
 
-babsRNASeq::write_results(dds_model_comp, param)
-
+xl_files <- babsRNASeq::write_results(dds_model_comp, param)
+iwalk(xl_files,
+     ~cat("\n\n[Download Spreadsheet '", .y,"'](", .x, ")\n\n", sep="")
+     )
 #babsRNASeq::write_all_results(dds_model_comp)

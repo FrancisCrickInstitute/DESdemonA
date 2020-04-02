@@ -22,6 +22,6 @@ my_bib <- function(cite) {
   bib
 }
 write(my_bib("base"), file="R.bib")
-for (i in .packages()) {
+for (i in setdiff(.packages(), "babsRNASeq")) {
   write(my_bib(i), file="R.bib", append=TRUE)
 }
