@@ -5,7 +5,8 @@
 #'   bookdown::html_document2:
 #'     toc: true
 #'     code_folding: hide
-#'     css: styles.css
+#'     includes:
+#'       in_header: styles.html
 #' bibliography: R.bib
 #' link-citations: yes
 #' ---
@@ -88,17 +89,16 @@ for (dataset in names(ddsList)) {
 #' We want to account for any differences in individual mouse
 #' backgrounds when testing for differential expression between
 #' groups.  We include terms for _both_ Group and Mouse in our model
-#' to enable this.  We use [DESeq2 @pkg_DESeq2] to find differential
+#' to enable this.  We use DESeq2 [@pkg_DESeq2] to find differential
 #' genes using the negative binomial distribution to model counts,
-#' with [IHW @pkg_IHW] for multiple-testing correction with greater
-#' power than Benjamini-Hochberg, and [ashr @pkg_ashr] for effect-size
+#' with IHW [@pkg_IHW] for multiple-testing correction with greater
+#' power than Benjamini-Hochberg, and ashr [@pkg_ashr] for effect-size
 #' shrinkage to ensure reported fold-changes are more robust.
 #'
-#' #+ differential, fig.cap=caption()
+#+ differential, fig.cap=caption()
 
 param$set("alpha", 0.05)
 param$set("lfcThreshold", 0)
-cat("\n\n## Summary Tables {.tabset}\n\n")
 
 
 ## Example set of designs and their comparisons.
@@ -137,8 +137,18 @@ dds_model_comp <- map_depth(
   dds_model_comp, 3, babsRNASeq::get_result,
   alpha=param$get("alpha"))
 
+xl_files <- babsRNASeq::write_results(dds_model_comp, param)
+iwalk(xl_files,
+     ~cat("\n\n<a class=\"download-excel btn btn-primary\" href=\"", sub("^[^/]+_files/", "", .x), "\"> Open Spreadsheet '", .y,"'</a>")
+     )
+#babsRNASeq::write_all_results(dds_model_comp)
 
-## Summarise results
+
+#'
+#' ## Summary Tables {.tabset}
+#' 
+#+ summary, fig.cap=caption()
+
 summaries <- map_depth(dds_model_comp, 3, babsRNASeq::summarise_results)
 
 
@@ -252,10 +262,3 @@ differential_heatmap(dds_model_comp$all$Pooled,
 }
 
 
-## *** Output filtered results
-
-xl_files <- babsRNASeq::write_results(dds_model_comp, param)
-iwalk(xl_files,
-     ~cat("\n\n[Download Spreadsheet '", .y,"'](", .x, ")\n\n", sep="")
-     )
-#babsRNASeq::write_all_results(dds_model_comp)
