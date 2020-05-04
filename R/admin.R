@@ -61,9 +61,10 @@ vDevice <- function(dev=list, file=NA, ..., dir="results") {
     file <- paste0(file, ".", devstr)
   }
   if (isTRUE(getOption('knitr.in.progress'))) {
-    dir <- file.path(sub("/.*", "", knitr::fig_path()), dir)
+    dName <- file.path(sub("/.*", "", knitr::fig_path()))
+  } else {
+    dName <- file.path(dir, g)
   }
-  dName <- file.path(dir, g)
   if (!dir.exists(dName)) {
     dir.create(dName, recursive=TRUE)
   }

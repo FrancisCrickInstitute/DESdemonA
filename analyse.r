@@ -176,7 +176,7 @@ param$set("showCategory", 25, "Only show top {} enriched categories in plots")
 
 #' ## Reactome Enrichment {.tabset} 
 #'
-#+ enrich-reactome, fig.cap=caption()
+#+ enrich-reactome, fig.cap=caption(), eval=FALSE
 enrich_plots <- map_depth(dds_model_comp, 2, babsRNASeq::enrichment,
   fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
 
@@ -200,7 +200,7 @@ for (dataset in names(enrich_plots)) {
 
 #' ## GO MF Enrichment {.tabset} 
 #'
-#+ enrich-GO, fig.cap=caption()
+#+ enrich-GO, fig.cap=caption(), eval=FALSE
 enrich_plots <- map_depth(dds_model_comp, 2, babsRNASeq::enrichment,
   fun="enrichGO", showCategory = param$get("showCategory"), max_width=30)
 enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
@@ -246,12 +246,12 @@ for (dataset in names(dds_model_comp)) {
 #'
 #' Here we present heatmaps of the differential genelists.  Note
 #' that these will, by definition, divide the samples along lines
-#' of the exprimental groups, so should be interpreted differently
+#' of the experimental groups, so should be interpreted differently
 #' from the QC heatmaps which were blind to the experimental design.
 
 #+ differential-heatmap, fig.cap=caption()
 
-if (FALSE) {
+
 differential_heatmap(dds_model_comp$all$Pooled,
                      . %>% group_by(Mouse) %>%
                        mutate(.value=.value - (.value[Group=="1"])) %>%
@@ -259,6 +259,20 @@ differential_heatmap(dds_model_comp$all$Pooled,
                        group_by(Group) %>%
                        arrange(Mouse),
                      title="All Samples")
-}
 
 
+
+#' # Terms Of Use
+#'
+#' The Crick has a [publication
+#' policy](https://intranet.crick.ac.uk/our-crick/library-information-services/pages/guidelines-publication)
+#' and we expect to be included on publications, regardless of funding
+#' arrangements. Any use of these results in publication must be
+#' discussed with BABS regarding authorship. If not authorship then
+#' the BABS analyst must receive a named acknowledgement. Please also
+#' cite the following sources which have enabled the analysis to be
+#' carried out.
+#'
+#' # Bibliography
+#'
+#' 

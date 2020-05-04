@@ -161,12 +161,13 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, title="QC Visualisation", 
   vars <- metadata(dds)$labels
   colDat <- as.data.frame(colData(dds))[vars]
   colnames(plotDat) <- rownames(colDat)
-  qc_vis$heatmap <- Heatmap(plotDat, name="Mean Centred", column_title="Samples", row_title="Genes", 
+  qc_vis$heatmap <- Heatmap(plotDat, name="Mean Centred", column_title="Samples", row_title="Genes",
+                           heatmap_legend_param = list(direction = "horizontal" ),
                            col=colorspace::diverging_hcl(5, palette="Blue-Red"),
                            top_annotation=HeatmapAnnotation(df=colDat,
                                                             col = df2colorspace(colDat)),
                            show_row_names=FALSE, show_column_names=TRUE)
-  print(qc_vis$heatmap)
+  draw(qc_vis$heatmap, heatmap_legend_side="top")
   caption("Heatmap of variable genes")
 
   cat(header, "# Heatmap of sample distances", "\n", sep="") 
@@ -176,12 +177,14 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, title="QC Visualisation", 
   colnames(samplePoisDistMatrix) <- row.names(colDat)
   qc_vis$sample_dist <- Heatmap(
     samplePoisDistMatrix,
+    name="Poisson Distance", 
     clustering_distance_rows = function(x) {poisd$dd},
     clustering_distance_columns = function(x) {poisd$dd},
+    heatmap_legend_param = list(direction = "horizontal" ),
     top_annotation=HeatmapAnnotation(df=colDat,
                                      col = df2colorspace(colDat))
     )
-  print(qc_vis$sample_dist)
+  draw(qc_vis$sample_dist, heatmap_legend_side="top")
   caption("Heatmap of sample distances")
   
   ### PCA
@@ -304,12 +307,14 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, title="Differential heat
     name <- sub(".*\\t", "", i)
     ha <- HeatmapAnnotation(df=pdat, col=colList)
     pl <- Heatmap(tidied_data$mat,
+                 heatmap_legend_param = list(direction = "horizontal" ),
                  name=sub(".*\\t", "", i),
                  cluster_columns = FALSE, show_column_names = FALSE,
                  column_split = column_split,
                  top_annotation = ha,
-                 show_row_names = FALSE)
-    draw(pl)
+                 row_names_gp = gpar(fontsize = 6),
+                 show_row_names = nrow(tidied_data$mat)<100)
+    draw(pl, heatmap_legend_side="top")
     caption(paste0("Heatmap of differential genes ", name))
   }
 }
@@ -345,9 +350,8 @@ differential_MA <- function(ddsList, caption) {
       scale_x_log10() + scale_colour_manual(values=cols) + scale_size_identity() +
       theme(legend.position=lpos) +
       labs(x="Mean of normalised counts", y=yax)
-    if (sum(!(res$class %in% c("Not","None")))<30) {
-      pl <- pl+ggrepel::geom_text_repel(size=4)
-    }
+    ind <- order(res$shrunkLFC)[c(1:5, nrow(res)-(0:4))]
+    pl <- pl+ggrepel::geom_text_repel(size=4, data=res[ind,])
     print(pl)
     caption(paste0("MA plot of differential genes ", sub(".*\\t", "", i)))
   }
@@ -393,7 +397,11 @@ write_results <- function(ddsList, param) {
           dplyr::filter(padj<param$get("alpha")) %>%
           dplyr::arrange(desc(shrunkLFC)) %>%
           dplyr::select(-pvalue, -padj)
-        sn <- paste0(contrast_name, ", ", names(ddsList[[dataset]])[design_ind])
+        if (length(ddsList[[dataset]])==1) {
+          sn <- contrast_name
+        } else {
+          sn <- paste0(contrast_name, ", ", names(ddsList[[dataset]])[design_ind])
+        }
         addWorksheet(wb, sn, tabColour=crick_colours$secondary[[design_ind]])
         writeData(wb, sn, dframe, headerStyle=hs1)
       }
