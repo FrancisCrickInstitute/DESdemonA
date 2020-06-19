@@ -1,4 +1,42 @@
 ## *** Useful Functions
+
+
+##' Adjust a confounded batch effect
+##'
+##' When one covariate entirely predicts another, then including both in a
+##' linear model will result in an unspecified model.  This can happen if we
+##' have e.g. groups of cell-lines that represent a genotype.  If each of those
+##' cell-lines receives a treatment, then we need both the group-level information to
+##' test the interesting treatment x genotype interaction, but also the cell-line information
+##' to remove any batch effect they represent.  To achieve this, we can recode the batch effect
+##' so that each genotype has an arbitrary cell-line that is labelled the same. Then the differences
+##' between the cell-lines that have been reallocated to this baseline batch are captured in the 'genotype',
+##' and the differences within the batch are captured by the new factor, and the model should be full rank.
+##' @title Adjust a confounded batch effect
+##' @param inner A factor representing the variable to be recoded, e.g. the cell-line
+##' @param within The parent factor that 'inner' is inside, e.g. the genotype of the cell-line
+##' @param set_to The arbitrary label that will be common for one cell-line per genotype. It doesn't need to be set to anything meaningful.
+##' @return A recoded factor that can now replace the inner (cell-line) variable in your model
+##' @author Gavin Kelly
+nest_batch <- function(inner, within, set_to=".") {
+  n_instances <- apply(table(inner, within)==0, 1, sum)
+  if (any(n_instances)>1) {
+    stop(paste(names(n_instances)[n_instances>1], collapse=", "), " appear in multiple parents")
+  }
+  levels_in <- levels(inner)
+  # each inner level has in a unique group, find it
+  corresponding_group <-within[match(levels_in, inner)]
+  # for each group, find index of first inner level
+  which_inner <- match(levels(within), corresponding_group)
+  # and set it to the common value
+  if (any(levels(inner)[-which_inner]==set_to )) { # we're going to duplicate an existing level so best stop
+    stop("One of the batches is already called ", set_to, ". Please use a non-existing level")
+  }
+  levels(inner)[which_inner] <- set_to
+  inner
+  }
+
+
 ## Only use certain samples
 subsample <- function(dds, subs) {
   if (is_formula(subs)) {
