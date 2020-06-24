@@ -19,8 +19,8 @@
 ##' @return A recoded factor that can now replace the inner (cell-line) variable in your model
 ##' @author Gavin Kelly
 nest_batch <- function(inner, within, set_to=".") {
-  n_instances <- apply(table(inner, within)==0, 1, sum)
-  if (any(n_instances)>1) {
+  n_instances <- apply(table(inner, within)!=0, 1, sum)
+  if (any(n_instances>1)) {
     stop(paste(names(n_instances)[n_instances>1], collapse=", "), " appear in multiple parents")
   }
   levels_in <- levels(inner)
