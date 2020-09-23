@@ -69,8 +69,40 @@ ddsList <- lapply(ddsList, estimateSizeFactors)
 #'
 #' # QC Visualisation {.tabset}
 #'
+#' These visualisations are carried out blind to the experimental
+#' design. For the heatmaps, we select a subset of genes removing the
+#' (assumed uninformative) genes with flat expression levels across
+#' the whole sample set. We'd expect samples from the same
+#' experimental group to cluster together, in the sense that they are
+#' on the same branch of the tree. But this is a transcriptome-wide
+#' picture, and even if the clustering is not perfect, there will
+#' still be genes that are consistent with the expected expression
+#' profiles, and they will be revealed in the differential analysis.
+#'
+#' The second heatmap focuses on the pairwise similarity of samples,
+#' using a slightly different metric than the first, to emphasise that
+#' there's not one way of calculating how similar two samples are,
+#' transcriptome-wide.  The colours in the first heatmap are a gene's
+#' expression in a sample, relative to its average expression.  The
+#' second heatmap represents the similarity of each pair of samples.
+#'
+#' In the third plot, we attempt to give meta-genes (principal
+#' components) a meaning in terms of the experimental factors. The
+#' principal components are expression profiles that best summarise
+#' the overall behaviour, the first being the best single 'gene'
+#' summary.  And the plot shows which of these components relate to
+#' which experimental factors - this should be taken fairly loosely,
+#' and primarily guides which other plots we should generate to look
+#' at how samples associate with each other.
+#'
+#' The remaining plots examine these components in the context of the
+#' various experimental factors, either looking at the first two
+#' components (which account for the largest sample:sample variation)
+#' or the components selected to have the greatest association with
+#' the factor.
+#'
 #+ qc-visualisation, fig.cap=caption()
-param$set("top_n_variable", 500, "Only use {} genes for unsupervised clustering and PCA")
+param$set("top_n_variable", 500, "Only use {} genes for unsupervised clustering")
 
 
 for (dataset in names(ddsList)) {
@@ -82,7 +114,6 @@ for (dataset in names(ddsList)) {
     caption=caption
     )
 }
-
 
 
 #' 
@@ -117,8 +148,7 @@ mdlList <- list(
     design = ~ patient + treatment, 
     comparison = list(
       "Treated" = list(c("treatment_DPN_vs_Control", "treatment_OHT_vs_Control"), listValues=c(.5, -1)),
-      "DPN" = c("treatment","DPN","Control"),
-      "OHT" = c("treatment","OHT","Control"),
+      mult_comp(revpairwise~treatment),
       "Patient" = ~treatment
     )
   )
@@ -174,7 +204,17 @@ summaries <- map_depth(dds_model_comp, 3, babsrnaseq::summarise_results)
 
 
 per_dataset <- map(summaries, babsrnaseq::rbind_summary,
-    levels=c("Design","Comparison"))
+                  levels=c("Design","Comparison")) %>%
+  map(function(x) {
+    levels(x$Group) <- sub(".*<(.+<.+<0)$", "\\1", levels(x$Group))
+    levels(x$Group) <- sub("^(0<.+?<.+?)<.*$", "\\1", levels(x$Group))
+    levels(x$Group) <- sub("(.*?<)(.*0.*)(<.*)", "\\10\\3", levels(x$Group))
+    droplevels(subset(x, Group!="Zero Count" & Group!="Low Count"))
+  }
+  )
+
+    
+
 for (dataset in names(per_dataset)) {
   cat("### ", dataset, " \n", sep="")
   print(knitr::kable(per_dataset[[dataset]],
@@ -184,7 +224,75 @@ for (dataset in names(per_dataset)) {
 }
 
 
+#' # Scatterplot of differential genes {.tabset}
+#'
+#' Here we plot the fold-change across all genes on the vertical axis,
+#' against their overall expression on the horizontal. Statistically
+#' significant genes are highlighted in colour, and we attempt to
+#' auto-label as many gene symbols as might be legible.
+#'
+#' The fold-changes are regularised ('shrunk') to reflect their
+#' reliability: genes with large variability between replicates are
+#' moved towards the horizontal axis, to de-emphasise them and to
+#' provide a more reliable prediction of behaviour in future
+#' replications.
+#'
+#' Again, select the dataset you wish to examine via the tabs - there are
+#' sub-tabs for different experimental designs, if any (e.g. removing/ignoring
+#' batch effects).
+#'
+#+ differential-MA, fig.cap=caption()
 
+for (dataset in names(dds_model_comp)) {
+  cat("## ", dataset, " {.tabset} \n", sep="") 
+  for (mdl in names(dds_model_comp[[dataset]])) {
+    cat("### ", mdl, "\n", sep="") 
+    differential_MA(dds_model_comp[[dataset]][[mdl]], caption=caption)
+  }
+}
+
+
+
+
+#'
+#' # Differential Heatmaps {.tabset}
+#'
+#' Here we present heatmaps of the differential genelists.  Note
+#' that these will, by definition, divide the samples along lines
+#' of the experimental groups, so should be interpreted differently
+#' from the QC heatmaps which were blind to the experimental design.
+
+#+ differential-heatmap, fig.cap=caption()
+for (dataset in names(dds_model_comp)) {
+  cat("## ", dataset, " {.tabset} \n", sep="") 
+  for (mdl in names(dds_model_comp[[dataset]])) {
+    cat("### ", mdl, "\n", sep="")
+    babsrnaseq::differential_heatmap(dds_model_comp[[dataset]][[mdl]],
+                         . %>% rownames_to_column() %>%
+                           mutate(.value=.value - mean((.value[Diagnosis=="CONTROL"]))) %>%
+                           dplyr::select(Diagnosis, .value, rowname) %>%
+                           column_to_rownames(),
+                         caption=caption
+                         )
+  }
+}
+
+
+#' # Terms Of Use
+#'
+#' The Crick has a [publication
+#' policy](https://intranet.crick.ac.uk/our-crick/library-information-services/pages/guidelines-publication)
+#' and we expect to be included on publications, regardless of funding
+#' arrangements. Any use of these results in publication must be
+#' discussed with BABS regarding authorship. If not authorship then
+#' the BABS analyst must receive a named acknowledgement. Please also
+#' cite the following sources which have enabled the analysis to be
+#' carried out.
+#'
+#' # Bibliography
+#'
+#' 
+knitr::knit_exit()
 
 #'
 #' # Enrichment Analysis
@@ -245,41 +353,6 @@ for (dataset in names(enrich_plots)) {
 
             
   
-
-#' # Scatterplot of differential genes {.tabset}
-#'
-#+ differential-MA, fig.cap=caption()
-
-for (dataset in names(dds_model_comp)) {
-  cat("## ", dataset, " {.tabset} \n", sep="") 
-  for (mdl in names(dds_model_comp[[dataset]])) {
-    cat("### ", mdl, "\n", sep="") 
-    differential_MA(dds_model_comp[[dataset]][[mdl]], caption=caption)
-  }
-}
-
-
-
-# This section very sketchy, not yet abstracted?
-
-#'
-#' # Differential Heatmaps
-#'
-#' Here we present heatmaps of the differential genelists.  Note
-#' that these will, by definition, divide the samples along lines
-#' of the experimental groups, so should be interpreted differently
-#' from the QC heatmaps which were blind to the experimental design.
-
-#+ differential-heatmap, fig.cap=caption()
-
-
-differential_heatmap(dds_model_comp$all$Pooled,
-                     . %>% group_by(Mouse) %>%
-                       mutate(.value=.value - (.value[Group=="1"])) %>%
-                       dplyr::select(Group, Treatment, Lympho, Mouse, .value) %>%
-                       group_by(Group) %>%
-                       arrange(Mouse),
-                     title="All Samples")
 
 
 
