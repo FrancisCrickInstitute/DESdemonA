@@ -36,13 +36,13 @@ library("IHW")
 devtools::load_all()
 
 
-param <- babsRNASeq::ParamList$new(
+param <- babsrnaseq::ParamList$new(
   title="title",
   script="analyse.r",
   seed = 1)
 set.seed(param$get("seed"))
 
-caption <- babsRNASeq::captioner()
+caption <- babsrnaseq::captioner()
 knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
                       dev=c("png","pdf"), out.width="80%",
                       results='asis')
@@ -72,7 +72,7 @@ param$set("top_n_variable", 500, "Only use {} genes for unsupervised clustering 
 
 
 for (dataset in names(ddsList)) {
-  babsRNASeq::qc_heatmap(
+  babsrnaseq::qc_heatmap(
     ddsList[[dataset]], title=dataset,
     n=param$get("top_n_variable"),
     pc_x=1, pc_y=2,
@@ -131,17 +131,17 @@ ddsList <- map(ddsList, function(dds) {
 # models to each dataset separately
 
 ## For each dataset, fit all its models
-dds_model_comp <- map(ddsList, babsRNASeq::fit_models)
+dds_model_comp <- map(ddsList, babsrnaseq::fit_models)
 ## Now put results in each 3rd level mcols(dds)$results
 dds_model_comp <- map_depth(
-  dds_model_comp, 3, babsRNASeq::get_result,
+  dds_model_comp, 3, babsrnaseq::get_result,
   alpha=param$get("alpha"))
 
-xl_files <- babsRNASeq::write_results(dds_model_comp, param)
+xl_files <- babsrnaseq::write_results(dds_model_comp, param)
 iwalk(xl_files,
      ~cat("\n\n<a class=\"download-excel btn btn-primary\" href=\"", sub("^[^/]+_files/", "", .x), "\"> Open Spreadsheet '", .y,"'</a>")
      )
-#babsRNASeq::write_all_results(dds_model_comp)
+#babsrnaseq::write_all_results(dds_model_comp)
 
 
 #'
@@ -149,10 +149,10 @@ iwalk(xl_files,
 #' 
 #+ summary, fig.cap=caption()
 
-summaries <- map_depth(dds_model_comp, 3, babsRNASeq::summarise_results)
+summaries <- map_depth(dds_model_comp, 3, babsrnaseq::summarise_results)
 
 
-per_dataset <- map(summaries, babsRNASeq::rbind_summary,
+per_dataset <- map(summaries, babsrnaseq::rbind_summary,
     levels=c("Design","Comparison"))
 for (dataset in names(per_dataset)) {
   cat("### ", dataset, " \n", sep="")
@@ -177,7 +177,7 @@ param$set("showCategory", 25, "Only show top {} enriched categories in plots")
 #' ## Reactome Enrichment {.tabset} 
 #'
 #+ enrich-reactome, fig.cap=caption(), eval=FALSE
-enrich_plots <- map_depth(dds_model_comp, 2, babsRNASeq::enrichment,
+enrich_plots <- map_depth(dds_model_comp, 2, babsrnaseq::enrichment,
   fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
 
 enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
@@ -201,7 +201,7 @@ for (dataset in names(enrich_plots)) {
 #' ## GO MF Enrichment {.tabset} 
 #'
 #+ enrich-GO, fig.cap=caption(), eval=FALSE
-enrich_plots <- map_depth(dds_model_comp, 2, babsRNASeq::enrichment,
+enrich_plots <- map_depth(dds_model_comp, 2, babsrnaseq::enrichment,
   fun="enrichGO", showCategory = param$get("showCategory"), max_width=30)
 enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
 

@@ -1,4 +1,4 @@
-Package: babsRNASeq
+Package: babsrnaseq
 Title: babsRNASeq workflow
 Version: 0.2.0
 Authors@R: person("bioinformatics", email = "bioinformatics@crick.ac.uk",

@@ -405,7 +405,7 @@ write_results <- function(ddsList, param) {
                     border = "Bottom")
   hs2 <- createStyle(fgFill = crick_colours$secondary$blue, textDecoration = "italic",
                     border = "Bottom")
-  summaries <- map_depth(ddsList, 3, babsRNASeq::summarise_results)
+  summaries <- map_depth(ddsList, 3, babsrnaseq::summarise_results)
   out <- lapply(ddsList, function(x) "")
   for (dataset in names(ddsList)) {
     wb <- openxlsx::createWorkbook(title=param$get("title"),
@@ -422,7 +422,7 @@ write_results <- function(ddsList, param) {
     writeData(wb, sn, samples_used, headerStyle=hs2)
     sn <- "Class Sizes"
     addWorksheet(wb, sn)
-    dframe <- babsRNASeq::rbind_summary(
+    dframe <- babsrnaseq::rbind_summary(
       summaries[[dataset]],
       levels=c("Design","Comparison")
     )
