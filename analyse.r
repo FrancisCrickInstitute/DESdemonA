@@ -1,6 +1,8 @@
 #' ---
 #' title: "{{title}}"
-#' author: "{{author}}"
+#' author: "Gavin Kelly"
+#' params:
+#'   res_dir: "results"
 #' output:
 #'   bookdown::html_document2:
 #'     toc: true
@@ -127,25 +129,44 @@ ddsList <- map(ddsList, function(dds) {
   metadata(dds)$model <- mdlList
   dds
 })
+
 # or you could explicitly allocate a different set of
 # models to each dataset separately
 
 ## For each dataset, fit all its models
-dds_model_comp <- map(ddsList, babsrnaseq::fit_models)
+dds_model_comp <- map(ddsList, babsrnaseq::fit_models, minReplicatesForReplace = Inf)
+
 ## Now put results in each 3rd level mcols(dds)$results
 dds_model_comp <- map_depth(
   dds_model_comp, 3, babsrnaseq::get_result,
+#  filterFun=NULL, # reinstate if we get IHR working
   alpha=param$get("alpha"))
 
-xl_files <- babsrnaseq::write_results(dds_model_comp, param)
+xl_files <- babsrnaseq::write_results(dds_model_comp, param, dir=params$res_dir)
 iwalk(xl_files,
-     ~cat("\n\n<a class=\"download-excel btn btn-primary\" href=\"", sub("^[^/]+_files/", "", .x), "\"> Open Spreadsheet '", .y,"'</a>")
+     ~cat("\n\n<a class=\"download-excel btn btn-primary\" href=\"", sub(paste0("^", params$res_dir, "/?"), "", .x), "\"> Open Spreadsheet '", .y,"'</a>", sep="")
      )
-#babsrnaseq::write_all_results(dds_model_comp)
+#babsrnaseq::write_all_results(dds_model_comp, dir=params$res_dir)
 
 
 #'
 #' ## Summary Tables {.tabset}
+#'
+#' Here we summarise the results of the differential testing. As
+#' mentioned above, there is only one design strategy, but we have a
+#' choice as to which samples we use (determined by which tab we
+#' select below), and which null hypothesis we test against (described
+#' in the 'Comparison' column.)
+#'
+#' In the 'Significant' column we tally the number of significant
+#' genes (for pairwise comparisons, separated into up or down, where
+#' A-B being labelled up means expression is higher in A; for omnibus
+#' comparisons, a broad categorisation of the most extreme groups, as
+#' described above.) We also tally the total number of genes
+#' exhibiting that behaviour (ie not necessarily statistically
+#' signficant) - these might not always add up to the same value, as
+#' there is an independent filter of low-signal genes whose effect
+#' varies from comparison to comparison.
 #' 
 #+ summary, fig.cap=caption()
 
