@@ -1,7 +1,7 @@
 ## *** Useful Functions
 
 
-##' Adjust a confounded batch effect
+##' Adjust a nested batch effect
 ##'
 ##' When one covariate entirely predicts another, then including both in a
 ##' linear model will result in an unspecified model.  This can happen if we
@@ -9,13 +9,14 @@
 ##' cell-lines receives a treatment, then we need both the group-level information to
 ##' test the interesting treatment x genotype interaction, but also the cell-line information
 ##' to remove any batch effect they represent.  To achieve this, we can recode the batch effect
-##' so that each genotype has an arbitrary cell-line that is labelled the same. Then the differences
-##' between the cell-lines that have been reallocated to this baseline batch are captured in the 'genotype',
-##' and the differences within the batch are captured by the new factor, and the model should be full rank.
+##' so that each genotype has a common set of levels, and then we can include that batch effect
+##' in interaction with the grouping factor.
+##'
+##' If one group has a larger number of sub-treatments, then it will be necessary to remove
+##' the columns of the design matrix that are all zero separately
 ##' @title Adjust a confounded batch effect
 ##' @param inner A factor representing the variable to be recoded, e.g. the cell-line
 ##' @param within The parent factor that 'inner' is inside, e.g. the genotype of the cell-line
-##' @param set_to The arbitrary label that will be common for one cell-line per genotype. It doesn't need to be set to anything meaningful.
 ##' @return A recoded factor that can now replace the inner (cell-line) variable in your model
 ##' @author Gavin Kelly
 nest_batch <- function(inner, within, set_to=".") {
@@ -36,6 +37,21 @@ nest_batch <- function(inner, within, set_to=".") {
   inner
   }
 
+recode_within <- function(inner, within) {
+  tab <- table(inner, within)!=0 # which batches are in which nest
+  if (any(rowSums(tab)>1)) {
+    stop("Some inner levels appear in multiple outer groups.")
+  }
+  factor(apply(tab, 2, cumsum)[cbind(inner,within)]) # cumsum to get incrementing index within group.
+  }
+
+clean_nested_imbalance <- function(dds) {
+  mm <- model.matrix(design(dds), colData(dds))
+  mm <- mm[,!apply(mm==0, 2, all)] # remove zeroed columns
+  design(dds) <- mm
+  dds
+}
+
 
 ## Only use certain samples
 subsample <- function(dds, subs) {
@@ -51,6 +67,35 @@ subsample <- function(dds, subs) {
   out
 }
 
+mult_comp <- function(spec, ...) {
+  obj <- list(spec=spec,...)
+  class(obj) <- "post_hoc"
+  obj
+}
+
+emcontrasts <- function(dds, spec, design=design(dds), ...) {
+  df <- as.data.frame(colData(dds))
+  df$.x <- counts(dds, norm=TRUE)[1,]
+  if (is.formula(design)) {
+    fml <- as.formula(paste0(".x ~ ", as.character(design[2])))
+    fit <- lm(fml, data=df)
+    dds_ind <- seq_along(resultsNames(dds))
+  } else {
+    mm <- design
+    ind <- colnames(mm) == "(Intercept)"
+    colnames(mm)[ind] <- "Intercept"
+    colnames(mm) <- make.names(colnames(mm))
+    fit <- lm(df$.x ~ . -1, data.frame(mm))
+    ddsNames <- match(resultsNames(dds), names(coef(fit)))
+  }
+  emfit <- emmeans(fit, spec,...)
+  contr_frame <- as.data.frame(summary(emfit$contrasts))
+  contr_frame <- contr_frame[1:(which(names(contr_frame)=="estimate")-1)]
+  contr <- lapply(seq_len(nrow(contr_frame)), function(i) emfit$contrast@linfct[i,])
+  names(contr) <- do.call(paste, c(contr_frame,sep= "|"))
+  contr
+}
+
 
 fit_models <- function(dds, ...) {
   lapply(metadata(dds)$model,
@@ -60,9 +105,17 @@ fit_models <- function(dds, ...) {
            if (any(!is_lrt)) {
              wald <- dds
              design(wald) <- mdl$design
+             comps <- mdl$comparison[!is_lrt]
+             is_post_hoc <- sapply(comps, class)=="post_hoc"
+             if (any(is_post_hoc)) {
+               comps[is_post_hoc] <- lapply(comps[is_post_hoc], function(ph) {
+                 do.call(emcontrasts, list(dds=wald, spec=ph$spec, ph[-1]))
+               })
+               comps <- unlist(comps, recursive=FALSE)
+             }
              wald <- DESeq(wald, test="Wald", ...)
              metadata(wald)$model <- mdl$design
-             out <- lapply(mdl$comparison[!is_lrt], function(cntr) {
+             out <- lapply(comps, function(cntr) {
                metadata(wald)$comparison <- cntr
                wald})
            }
@@ -106,6 +159,7 @@ fitLRT <- function(dds, full, reduced, ...) {
 ## apply contrast, and transfer across interesting mcols from the dds
 
 get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, ...) {
+  if (is.null(filterFun)) filterFun <- rlang::missing_arg()
   comp <- metadata(dds)$comparison
   if (!is_formula(comp)) {
     if (is.character(comp) && length(comp)==1) { #  it's a name
@@ -226,19 +280,19 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, title="QC Visualisation", 
   caption("Heatmap of sample distances")
   
   ### PCA
-  pc <- prcomp(t(var_stab[top,]), scale=FALSE)
+  pc <- prcomp(t(var_stab), scale=FALSE)
   percentVar <- round(100 * pc$sdev^2 / sum( pc$sdev^2 ))
   fml <- as.formula(paste0("~", paste(metadata(dds)$labels, collapse="+")))
   covvar_PC <- matrix(NA_real_, length(all.vars(fml)), ncol(pc$x),
                      dimnames=list(all.vars(fml), paste0("", 1:ncol(pc$x))))
   for (ipc in 1:ncol(pc$x)) {
     fit0 <- lm(pc$x[,ipc]  ~ 1, data=colData(dds))
-    fit1 <- add1(fit0, fml, test="Chisq")[-1,"Pr(>Chi)", drop=FALSE]
-    covvar_PC[rownames(fit1),ipc] <- as.vector(fit1[,1])
+    fit1 <- add1(fit0, fml, test="Chisq")
+    covvar_PC[rownames(fit1)[-1],ipc] <- -log10(fit1$`Pr(>Chi)`[-1])
   }
   plotFrame <- expand.grid(Covariate=dimnames(covvar_PC)[[1]], PC=dimnames(covvar_PC)[[2]])
-  plotFrame$p <- as.vector(covvar_PC)
-  qc_vis$PC_phenotype <- ggplot(plotFrame, aes(x=PC, y=Covariate, fill=-log10(p))) +
+  plotFrame$Assoc <- as.vector(covvar_PC)
+  qc_vis$PC_phenotype <- ggplot(plotFrame, aes(x=PC, y=Covariate, fill=Assoc)) +
     geom_raster() +
     scale_fill_gradient(low="grey90", high="red") +
     theme_classic() + coord_fixed()
@@ -257,6 +311,22 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, title="QC Visualisation", 
     print(qc_vis$PC[[j]])
     caption(paste0("Coloured by ", j))
   }
+  qc_vis$PC_assoc <- list()
+  cat(header, "# Visualisation of associated PCs coloured by covariate", "\n", sep="") 
+  for (j in vars) {
+    tmp <- order(covvar_PC[j,], decreasing=TRUE)
+    pc_x <- tmp[1]
+    pc_y <- tmp[2]
+    pc.df <- data.frame(PC1=pc$x[,pc_x], PC2=pc$x[,pc_y], col=colDat[[j]], sample=rownames(colDat))
+    qc_vis$PC[[j]] <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
+      geom_text_repel(aes(label=sample)) +
+      xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
+      ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
+      labs(colour=j) + coord_fixed()
+    print(qc_vis$PC[[j]])
+    caption(paste0("Coloured by ", j))
+  }
+
   invisible(qc_vis)
 }
 
@@ -327,8 +397,7 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
 
 
 
-differential_heatmap <- function(ddsList, tidy_fn=NULL, title="Differential heatmap", header="\n\n##") {
-  cat(header, " ", title, "\n", sep="")
+differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
   pal <- RColorBrewer::brewer.pal(12, "Set3")
   for (i in names(ddsList)) {
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, tidy_fn)
