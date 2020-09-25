@@ -73,22 +73,22 @@ mult_comp <- function(spec, ...) {
   obj
 }
 
-emcontrasts <- function(dds, spec, design=design(dds), ...) {
+emcontrasts <- function(dds, spec, ...) {
   df <- as.data.frame(colData(dds))
   df$.x <- counts(dds, norm=TRUE)[1,]
-  if (is.formula(design)) {
-    fml <- as.formula(paste0(".x ~ ", as.character(design[2])))
+  if (is_formula(design(dds))) {
+    fml <- as.formula(paste0(".x ~ ", as.character(design(dds)[2])))
     fit <- lm(fml, data=df)
     dds_ind <- seq_along(resultsNames(dds))
   } else {
-    mm <- design
+    mm <- design(dds)
     ind <- colnames(mm) == "(Intercept)"
     colnames(mm)[ind] <- "Intercept"
     colnames(mm) <- make.names(colnames(mm))
     fit <- lm(df$.x ~ . -1, data.frame(mm))
     ddsNames <- match(resultsNames(dds), names(coef(fit)))
   }
-  emfit <- emmeans(fit, spec,...)
+  emfit <- emmeans::emmeans(fit, spec,...)
   contr_frame <- as.data.frame(summary(emfit$contrasts))
   contr_frame <- contr_frame[1:(which(names(contr_frame)=="estimate")-1)]
   contr <- lapply(seq_len(nrow(contr_frame)), function(i) emfit$contrast@linfct[i,])
@@ -111,6 +111,7 @@ fit_models <- function(dds, ...) {
                comps[is_post_hoc] <- lapply(comps[is_post_hoc], function(ph) {
                  do.call(emcontrasts, list(dds=wald, spec=ph$spec, ph[-1]))
                })
+               comps[!is_post_hoc] <- lapply(comps[!is_post_hoc], list) # protect existing lists from unlist
                comps <- unlist(comps, recursive=FALSE)
              }
              wald <- DESeq(wald, test="Wald", ...)
@@ -196,6 +197,7 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, ...
     r$lfcSE <- fit$result$PosteriorSD
     effect_matrix <- cbind(0, effect_matrix)
     colnames(effect_matrix)[1] <- "0"
+    colnames(effect_matrix) <- sub(paste0("(", paste0( all.vars(metadata(dds)$model), "_", collapse="|"),")"),  "", colnames(effect_matrix))
     ind <- apply(effect_matrix, 1, order)
     r$class <- apply(ind, 2, function(x) paste(colnames(effect_matrix)[x], collapse="<"))
   }  else {
@@ -288,7 +290,8 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, title="QC Visualisation", 
   for (ipc in 1:ncol(pc$x)) {
     fit0 <- lm(pc$x[,ipc]  ~ 1, data=colData(dds))
     fit1 <- add1(fit0, fml, test="Chisq")
-    covvar_PC[rownames(fit1)[-1],ipc] <- -log10(fit1$`Pr(>Chi)`[-1])
+#    covvar_PC[rownames(fit1)[-1],ipc] <- -log10(fit1$`Pr(>Chi)`[-1])
+    covvar_PC[rownames(fit1)[-1],ipc] <- 1-fit1$RSS[2]/fit1$RSS[1]
   }
   plotFrame <- expand.grid(Covariate=dimnames(covvar_PC)[[1]], PC=dimnames(covvar_PC)[[2]])
   plotFrame$Assoc <- as.vector(covvar_PC)
@@ -408,21 +411,23 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
       } else {
         column_split=NULL
       }
-      pdat <- mutate_if(as.data.frame(pdat), is.character, as.factor)
+      pdat[sapply(pdat, is.character)] <- lapply(pdat[sapply(pdat, is.character)], 
+                                                as.factor)
       colList <- df2colorspace(pdat)
     }
+    colnames(tidied_data$mat) <- rownames(pdat)
     name <- sub(".*\\t", "", i)
     ha <- HeatmapAnnotation(df=pdat, col=colList)
     pl <- Heatmap(tidied_data$mat,
                  heatmap_legend_param = list(direction = "horizontal" ),
                  name=sub(".*\\t", "", i),
-                 cluster_columns = FALSE, show_column_names = FALSE,
+                 cluster_columns = is.null(column_split), show_column_names = TRUE,
                  column_split = column_split,
                  top_annotation = ha,
                  row_names_gp = gpar(fontsize = 6),
                  show_row_names = nrow(tidied_data$mat)<100)
     draw(pl, heatmap_legend_side="top")
-    caption(paste0("Heatmap of differential genes ", name))
+    caption(paste0("Heatmap on differential genes ", name))
   }
 }
 
@@ -464,7 +469,7 @@ differential_MA <- function(ddsList, caption) {
   }
 }
 
-write_results <- function(ddsList, param) {
+write_results <- function(ddsList, param, dir=".") {
   si <- session_info()
   crick_colours <-list(
     primary=list(red="#e3001a",yellow="#ffe608",blue="#4066aa",green="#7ab51d",purple="#bb90bd"),
@@ -525,7 +530,7 @@ write_results <- function(ddsList, param) {
                                  value = unlist(si$platform),
                                  stringsAsFactors = FALSE),
               headerStyle=hs2)
-    out[[dataset]] <- vDevice(file= paste0("differential_genelists_", dataset, ".xlsx"))
+    out[[dataset]] <- file.path(dir, paste0("differential_genelists_", dataset, ".xlsx"))
     saveWorkbook(wb, out[[dataset]], overwrite=TRUE)
   }
   out
@@ -533,11 +538,13 @@ write_results <- function(ddsList, param) {
 
 
 
-write_all_results <- function(ddsList) {
+write_all_results <- function(ddsList, dir=".") {
   for (i in names(ddsList)) {
     for (j in names(ddsList[[i]])) { 
       for (k in names(ddsList[[i]][[k]])) { 
-        vDevice(txt, file=paste(i,j,k, sep="-"), x=as.data.frame(mcols(ddsList[[i]][[j]][[k]])$results) %>% dplyr::select(log2FoldChange, stat, symbol, class))
+        readr::write_excel_csv(
+          path=file.path(dir, sprintf("allgenes_%s_%s_%s.csv", i, j, k)),
+          x=as.data.frame(mcols(ddsList[[i]][[j]][[k]])$results) %>% dplyr::select(log2FoldChange, stat, symbol, class))
       }
     }
   }
