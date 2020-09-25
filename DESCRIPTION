@@ -1,9 +1,9 @@
 Package: babsrnaseq
-Title: babsRNASeq workflow
-Version: 0.2.0
-Authors@R: person("bioinformatics", email = "bioinformatics@crick.ac.uk",
+Title: {{project}}
+Version: {{version}}
+Authors@R: person({{person}}, email = "{{email}}",
                   role = c("aut", "cre"))
-Description: Standard approach to analysing RSEM-quantified data via DESeq2 to produce markdown reports and excel spreadsheets
+Description: {{descript}}
 Depends: R (>= 3.1.0)
 License: GPL-3
 LazyData: true

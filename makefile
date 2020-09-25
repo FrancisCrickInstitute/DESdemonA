@@ -1,32 +1,70 @@
-################################################################
-#### RNASeq recipes
-################################################################
+TAG := $(shell git describe --tags --dirty --always --long)
+VERSION := $(shell git describe --tags --abbrev=0)
+R := R-3.6.0-local
 
-.PHONY:   rnaseq analysis
+analysis : contained := FALSE
+analysis: analyse.r  data/rsem_dds.rda version_dir
+	$(R) -e "rmarkdown::render('analyse.r',\
+	  output_file='output_$(TAG).html',\
+	  output_options = list(self_contained=$(contained)),\
+	  params=list(res_dir='results/$(VERSION)'))"
+	mv output_$(TAG).html results/$(VERSION)/
+	[ ! -d output_$(TAG)_files ]  || mv output_$(TAG)_files results/$(VERSION)/
 
-rnaseq:
+data/rsem_dds.rda: init.r $(wildcard inst/extdata/rsem/*.genes.results)
+	$(R) -e "source('init.r')"
+
+version_dir:
+	mkdir -p results/$(VERSION)
+
+design.csv:
+	ls asf/fastq/*_R1_*fastq.gz |
+	awk  'BEGIN {FS = "[_/]"; print "sample,file1,file2"} ; {r2=$$0;  sub(/_R1_/, "_R2_", r2); print $$3","$$0","r2}' > design.csv
+
+alignment: params.yml
 	module load nextflow/0.30.2 ;\
 	nohup nextflow run -w scratch/work \
-		-params-file params.yml \
-		-r v0.1.0 \
-		--results_dir data \
-		http://github.com/crickbabs/BABS-RNASeq  &
-
-analysis: init_R = $(lastword $(sort $(wildcard R-*-local)))# highest version number.
-analysis: analyse.r
-	[[ -z "$(init_R)" ]] || source "$(init_R)" ;\
-ifeq ($(executor),slurm)
-	sbatch --wrap="Rscript $<" -J "$(sci)_$<" -e "$<.err.log"  -o "$<.out.log"
-else
-        Rscript $<
-endif
+	-params-file params.yml \
+	-resume \
+	-latest \
+	-r 9e35296 \
+	--results_dir data \
+	http://github.com/crickbabs/BABS-RNASeq  &
 
 
-fastq_folder = /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(asf)/primary_data/
-paired = $(shell find -L ${fastq_folder} -path "*/fastq/*" -name "*_R2_*.fastq.gz" | wc -l)
-extdata/design.csv:
-ifeq (${paired}, 0)
-	find -L ${fastq_folder} -path "*/fastq/*" -name "*_R1_*.fastq.gz" -printf "%P\n" | awk 'BEGIN { FS = "[_/]" ; OFS="," ; print "file,date,machine,run,sample,id,lane" } { print "${fastq_folder}"$$0, $$1, $$2, $$3, $$6, $$7, $$8 }' > $@
-else
-	find -L ${fastq_folder} -path "*/fastq/*" -name "*_R1_*.fastq.gz" -printf "%P\n" | awk 'BEGIN { FS = "[_/]" ; OFS="," ; print "file1,file2,date,machine,run,sample,id,lane" } {r2=$$0; gsub("_R1_","_R2_",r2); print "${fastq_folder}"$$0, ${fastq_folder} r2,$$1, $$2, $$3, $$6, $$7, $$8}' >@
-endif
+#### Remainder is to initialise projects in a Crick-specific way
+#### There should be no need to run this again
+# EMAIL environment variable should be set, so we can work out correct 'outputs' directory.
+me := $(firstword $(subst @, ,${EMAIL}))
+babsfield = $(shell awk '$$1 == "$(1):"{for (i=2; i<=NF; i++) print $$i}' .babs)
+lab := $(call babsfield,Lab)
+sci := $(shell echo $(firstword $(subst @, ,$(call babsfield,Scientist))) | tr A-Z a-z)
+type := $(call babsfield,Type)
+lims := $(call babsfield,Lims)
+# albert.einstein => Albert Einstein
+scientist := $(shell echo $(sci) | sed --expression="s/\b\(.\)/\u\1/g; s/\./ /")
+# for R package author albert.einstein => "Albert","Einstein note no final quote - it's added explicitly
+person := $(shell echo $(me) | sed --expression="s/\b\(.\)/\"\u\1/g; s/\./,/")
+strproject := $(call babsfield,Project)
+project := $(shell echo $(strproject) | sed --expression="s/[^a-zA-Z0-9]/_/g")
+www := /camp/stp/babs/www/${USER}/public_html/LIVE/projects/$(lab)/$(sci)/$(project)
+scratch := /camp/stp/babs/scratch/${USER}/$(lab)/$(sci)/$(project)
+outputs := /camp/stp/babs/outputs/$(lab)/$(sci)/$(me)/$(project)
+
+config:
+	mkdir -p data objects results inst/extdata
+	mkdir -p $(www) $(scratch) $(outputs)
+	ln -sfn $(www) www
+	ln -sfn $(scratch) scratch
+	ln -sfn $(outputs) outputs
+	ln -sfn /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(lims)/primary_data/ asf
+	cp -n /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(lims)/$(lims)_design.csv inst/extdata/design.csv
+	sed -i 's/{{project}}/$(strproject)/g' DESCRIPTION
+	sed -i 's/{{descrip}}/RNASeq Analysis for $(scientist) in $(lab) lab/g' DESCRIPTION
+	sed -i 's/{{version}}/$(VERSION)/g' DESCRIPTION
+	sed -i 's/{{email}}/${EMAIL}/g' DESCRIPTION
+	sed -i 's/{{person}}/${person}"/g' DESCRIPTION
+	git add DESCRIPTION
+	git commit -m "Standard starting point"
+	git tag v0.0.1
+
