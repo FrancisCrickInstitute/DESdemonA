@@ -42,7 +42,7 @@ recode_within <- function(inner, within) {
   if (any(rowSums(tab)>1)) {
     stop("Some inner levels appear in multiple outer groups.")
   }
-  factor(apply(tab, 2, cumsum)[cbind(inner,within)]) # cumsum to get incrementing index within group.
+  factor(apply(tab, 2, cumsum)[cbind(as.character(inner),as.character(within))]) # cumsum to get incrementing index within group.
   }
 
 clean_nested_imbalance <- function(dds) {
