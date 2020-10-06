@@ -17,6 +17,12 @@ data/rsem_dds.rda: init.r $(wildcard inst/extdata/rsem/*.genes.results)
 version_dir:
 	mkdir -p results/$(VERSION)
 
+R.bib: analyse.r
+	$(R) -e "pd <- getParseData(parse('analyse.r', keep.source=TRUE));\
+	libreq <- pd\$$text[pd\$$line1 %in% pd\$$line1[pd\$$text=='library' | pd\$$text=='require'] & pd\$$token=='SYMBOL'];\
+	libreq <- unique(c('base', libreq, pd\$$text[pd\$$token=='SYMBOL_PACKAGE']));\
+	knitr::write_bib(libreq, file='$@')"
+
 design.csv:
 	ls asf/fastq/*_R1_*fastq.gz |
 	awk  'BEGIN {FS = "[_/]"; print "sample,file1,file2"} ; {r2=$$0;  sub(/_R1_/, "_R2_", r2); print $$3","$$0","r2}' > design.csv
