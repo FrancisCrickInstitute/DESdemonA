@@ -1,0 +1,7 @@
+#!/bin/sh
+ml use /camp/apps/misc/stp/babs/manual/modules/all
+ml use /camp/apps/misc/stp/babs/easybuild/modules/all
+module -q load R/3.6.0-foss-2016b-BABS
+[[ $0 != '-bash' ]] && [[ $0 != '/bin/sh' ]] && R "$@"
+
+

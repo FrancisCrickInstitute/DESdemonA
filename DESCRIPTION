@@ -1,4 +1,4 @@
-Package: babsrnaseq
+Package: {{package}}
 Title: {{project}}
 Version: {{version}}
 Authors@R: person({{person}}, email = "{{email}}",

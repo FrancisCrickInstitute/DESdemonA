@@ -51,6 +51,7 @@ lims := $(call babsfield,Lims)
 scientist := $(shell echo $(sci) | sed --expression="s/\b\(.\)/\u\1/g; s/\./ /")
 # for R package author albert.einstein => "Albert","Einstein note no final quote - it's added explicitly
 person := $(shell echo $(me) | sed --expression="s/\b\(.\)/\"\u\1/g; s/\./,/")
+Me := $(shell echo $(me) | sed --expression="s/\b\(.\)/\u\1/g; s/\./ /")
 strproject := $(call babsfield,Project)
 project := $(shell echo $(strproject) | sed --expression="s/[^a-zA-Z0-9]/_/g")
 www := /camp/stp/babs/www/${USER}/public_html/LIVE/projects/$(lab)/$(sci)/$(project)
@@ -63,14 +64,19 @@ config:
 	ln -sfn $(www) www
 	ln -sfn $(scratch) scratch
 	ln -sfn $(outputs) outputs
+ifneq ($(lims),{{lims}})
 	ln -sfn /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(lims)/primary_data/ asf
 	cp -n /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(lims)/$(lims)_design.csv inst/extdata/design.csv
-	sed -i 's/{{project}}/$(strproject)/g' DESCRIPTION
-	sed -i 's/{{descrip}}/RNASeq Analysis for $(scientist) in $(lab) lab/g' DESCRIPTION
+endif
+	sed -i 's/{{descrip}}/Analysis for $(scientist) in $(lab) lab/g' DESCRIPTION
 	sed -i 's/{{version}}/$(VERSION)/g' DESCRIPTION
 	sed -i 's/{{email}}/${EMAIL}/g' DESCRIPTION
 	sed -i 's/{{person}}/${person}"/g' DESCRIPTION
-	git add DESCRIPTION
-	git commit -m "Standard starting point"
+	for r in *.{r,R,rmd,Rmd} DESCRIPTION ; do \
+	sed -i 's/{{project}}/$(strproject)/g' $$r ; \
+	sed -i 's/{{package}}/babs$(type)/g' $$r ; \
+	sed -i 's/{{author}}/$(Me)/g' $$r ; \
+	done
+	git commit -a -m "Standard starting point"
 	git tag v0.0.1
 
