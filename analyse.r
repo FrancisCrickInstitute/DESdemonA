@@ -50,8 +50,15 @@ knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
                       results='asis')
 
 #+ read
+
 data(rsem_dds)
 library(metadata(rsem_dds)$organism$org, character.only=TRUE)
+
+if (file.exists("specify.r")) {
+  e <- as.environment(as.data.frame(colData(rsem_dds)))
+  parent.env(e) <- environment()
+  specs <- source("specify.r", local=e)$value
+}
 
 
 ddsList <- list(

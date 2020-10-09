@@ -1,7 +1,7 @@
 list(
   sample_sets =  list(
-    all = ~ TRUE,
-    no_cancer = ~ fraction != tumour
+    all = TRUE,
+    no_cancer = fraction != "tumour"
   ),
   
   models = list(
