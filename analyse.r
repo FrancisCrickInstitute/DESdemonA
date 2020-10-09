@@ -58,6 +58,7 @@ if (file.exists("specify.r")) {
   e <- as.environment(as.data.frame(colData(rsem_dds)))
   parent.env(e) <- environment()
   specs <- source("specify.r", local=e)$value
+  rm(list=ls(envir=e), envir=e)
 }
 
 
