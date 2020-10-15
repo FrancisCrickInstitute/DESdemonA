@@ -291,7 +291,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, title="QC Visualisation", 
     fit0 <- lm(pc$x[,ipc]  ~ 1, data=colData(dds))
     fit1 <- add1(fit0, fml, test="Chisq")
 #    covvar_PC[rownames(fit1)[-1],ipc] <- -log10(fit1$`Pr(>Chi)`[-1])
-    covvar_PC[rownames(fit1)[-1],ipc] <- 1-fit1$RSS[2]/fit1$RSS[1]
+    covvar_PC[rownames(fit1)[-1],ipc] <- 1-fit1$RSS[-1]/fit1$RSS[1]
   }
   plotFrame <- expand.grid(Covariate=dimnames(covvar_PC)[[1]], PC=dimnames(covvar_PC)[[2]])
   plotFrame$Assoc <- as.vector(covvar_PC)
