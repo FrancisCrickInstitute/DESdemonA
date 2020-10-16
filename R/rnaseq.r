@@ -308,7 +308,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     fit0 <- lm(pc$x[,ipc]  ~ 1, data=colData(dds))
     fit1 <- add1(fit0, fml, test="Chisq")
 #    covvar_PC[rownames(fit1)[-1],ipc] <- -log10(fit1$`Pr(>Chi)`[-1])
-    covvar_PC[rownames(fit1)[-1],ipc] <- 1-fit1$RSS[-1]/fit1$RSS[1]
+#    covvar_PC[rownames(fit1)[-1],ipc] <- 1-fit1$RSS[-1]/fit1$RSS[1]
     ind <- plotFrame$PC==ipc
     ind_fit <- match(plotFrame$Covariate[ind], row.names(fit1)[-1])
     aic <-  ifelse(fit1$RSS[1] > fit1$RSS[-1], 1, -1)[ind_fit]
