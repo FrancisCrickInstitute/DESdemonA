@@ -59,12 +59,32 @@ if (file.exists("specify.r")) {
   parent.env(e) <- environment()
   specs <- source("specify.r", local=e)$value
   rm(list=ls(envir=e), envir=e)
+} else {
+  fml <- paste("~", names(colData(rsem_dds))[ncol(colData(rsem_dds))])
+  specs <- list(
+    sample_sets = list(all=TRUE),
+    models=list(
+      "Naive" = list(
+        design = as.formula(fml)
+        comparison = mult_comp(as.formula(paste("pairwise", fml)))
+      )
+    ),
+    plot_scale = function(y) {
+      y/mean(y)
+    }
+  )
 }
 
 
-ddsList <- list(
-  all = rsem_dds
-)
+
+
+
+ddsList <- lapply(specs$sample_sets, function(sample_ind) {
+  obj <- rsem_dds[,sample_ind]
+  colData(obj) <- droplevels(colData(obj))
+  obj
+}
+
 
 #Which features are zero across all samples in all datasets
 all_zero <- Reduce(`&`, lapply(ddsList, function(x) apply(counts(x)==0,1, all)))
@@ -161,6 +181,8 @@ mdlList <- list(
     )
   )
 )
+
+mdlList <- spec$models
 
 ## Each dataset gets the same set of models
 ddsList <- map(ddsList, function(dds) {
