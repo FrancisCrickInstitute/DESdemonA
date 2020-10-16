@@ -238,7 +238,7 @@ summarise_results <- function(dds) {
 # sigNot <- function(r) ifelse(grepl("\\*", r$class), "Sig","-")
 
 
-qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, title="QC Visualisation", header="\n\n##", n=500, caption=print) {
+qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC Visualisation", header="\n\n##", n=500, caption=print) {
   cat(header, " ", title, "\n", sep="")
   qc_vis <- list()
   
@@ -246,7 +246,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, title="QC Visualisation", 
   if (batch != ~1) {
     var_stab <- residuals(limma::lmFit(var_stab, model.matrix(batch, as.data.frame(colData(dds)))), var_stab)
   }
-  top <- order(apply(var_stab, 1, sd), decreasing=TRUE)[1:n]
+  top <- order(apply(var_stab, 1, sd), decreasing=TRUE)[1:n] 
 
   ### Heatmap
   cat(header, "# Heatmap of variable genes", "\n", sep="") 
@@ -282,22 +282,42 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, title="QC Visualisation", 
   caption("Heatmap of sample distances")
   
   ### PCA
-  pc <- prcomp(t(var_stab), scale=FALSE)
-  percentVar <- round(100 * pc$sdev^2 / sum( pc$sdev^2 ))
+  if (family=="norm") {
+    pc <- prcomp(t(var_stab), scale=FALSE)
+    percentVar <- round(100 * pc$sdev^2 / sum( pc$sdev^2 ))
+  } else {
+    co <- counts(dds, norm=FALSE)
+    pc_glm <- glmpca::glmpca(Y=co[rowSums(co)!=0,],
+                    L=ncol(co),
+                    fam=family,
+                    X=if(batch == ~1) 
+                      NULL
+                    else
+                      model.matrix(batch, as.data.frame(colData(dds)))
+                    )
+
+    pc <- list(x=pc_glm$factors)
+    percentVar <- rep(0, ncol(co))
+  }
   fml <- as.formula(paste0("~", paste(metadata(dds)$labels, collapse="+")))
-  covvar_PC <- matrix(NA_real_, length(all.vars(fml)), ncol(pc$x),
-                     dimnames=list(all.vars(fml), paste0("", 1:ncol(pc$x))))
+  plotFrame <- expand.grid(Covariate=all.vars(fml),
+                          PC=1:ncol(pc$x))
+  plotFrame$Assoc <- 0.0
+  plotFrame$AIC <- 0.0
   for (ipc in 1:ncol(pc$x)) {
     fit0 <- lm(pc$x[,ipc]  ~ 1, data=colData(dds))
     fit1 <- add1(fit0, fml, test="Chisq")
 #    covvar_PC[rownames(fit1)[-1],ipc] <- -log10(fit1$`Pr(>Chi)`[-1])
     covvar_PC[rownames(fit1)[-1],ipc] <- 1-fit1$RSS[-1]/fit1$RSS[1]
+    ind <- plotFrame$PC==ipc
+    ind_fit <- match(plotFrame$Covariate[ind], row.names(fit1)[-1])
+    aic <-  ifelse(fit1$RSS[1] > fit1$RSS[-1], 1, -1)[ind_fit]
+    plotFrame$Assoc[ind] <- (1-(fit1$RSS[-1])/(fit1$RSS[1]))[ind_fit] * aic
   }
-  plotFrame <- expand.grid(Covariate=dimnames(covvar_PC)[[1]], PC=dimnames(covvar_PC)[[2]])
-  plotFrame$Assoc <- as.vector(covvar_PC)
+  plotFrame$PC <- sprintf("%02d", plotFrame$PC)
   qc_vis$PC_phenotype <- ggplot(plotFrame, aes(x=PC, y=Covariate, fill=Assoc)) +
     geom_raster() +
-    scale_fill_gradient(low="grey90", high="red") +
+    scale_fill_gradient2(low="#4575b4", mid="grey90", high="#d73027") +
     theme_classic() + coord_fixed()
 
   print(qc_vis$PC_phenotype)
