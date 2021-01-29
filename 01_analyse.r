@@ -1,5 +1,5 @@
 #' ---
-#' title: "{{title}}"
+#' title: "{{project}}"
 #' author: "{{author}}"
 #' params:
 #'   res_dir: "results"

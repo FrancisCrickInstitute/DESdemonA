@@ -1,4 +1,4 @@
-Package: rnaseq
+Package: babsrnaseq
 Title: rnaseq
 Version: 0.0.0
 Authors@R: person("BABS", email = "bioinformatics@crick.ac.uk", role = c("aut", "cre"))
