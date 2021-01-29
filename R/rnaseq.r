@@ -67,6 +67,81 @@ subsample <- function(dds, subs) {
   out
 }
 
+
+load_specs <- function(dds, file="") {
+  if (file.exists(file)) {
+    e <- as.environment(as.data.frame(colData(dds)))
+    parent.env(e) <- environment()
+    assign("sample_set", list, envir=e)
+    assign("model", list, envir=e)
+    assign("specification", list, envir=e)
+    specs <- source(file, local=e)$value
+    rm(list=ls(envir=e), envir=e)
+  } else {
+    fml <- paste("~", names(colData(dds))[ncol(colData(dds))])
+    specs <- list(
+      sample_sets = list(all=TRUE),
+      models=list(
+        "Naive" = list(
+          design = as.formula(fml),
+          comparisons = mult_comp(as.formula(paste("pairwise", fml)))
+        )
+      ),
+      plot_scale = function(y) {
+        y/mean(y)
+      }
+    )
+  }
+  specs
+}
+
+
+build_dds_list <- function(dds, spec) {
+  lapply(spec$sample_sets, function(set) {
+    mdlList <- spec$models
+    if (is.list(set)) {
+      ind <- set$subset
+      mdlList <- c(mdlList, set$models)
+    } else {
+      ind <- set
+    }
+    obj <- dds[,ind]
+    colData(obj) <- droplevels(colData(obj))
+    metadata(obj)$models <- mdlList 
+    obj
+  })
+}
+
+
+check_model <- function(mdl, coldat) {
+  mdl$any_dropped <- FALSE
+  if (is_formula(mdl$design)) {
+    mm <- model.matrix(mdl$design, coldat)
+  } else {
+    return(mdl)
+  }
+  if ("drop_unsupported_combinations" %in% names(mdl)) {
+    do_fix <- mdl$drop_unsupported_combinations
+  } else {
+    do_fix <- FALSE
+  }
+  unsupported_ind <- apply(mm==0, 2, all)
+  if (any(unsupported_ind)) {
+    if (!do_fix) {
+      warning("Some conditions have no samples in them")
+    } else {
+      mm <- mm[,!unsupported_ind]
+      colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
+      colnames(mm) <- make.names(colnames(mm))
+      mdl$design <- mm
+      mdl$any_dropped <- TRUE
+    }
+  } 
+  mdl
+}
+
+  
+
 mult_comp <- function(spec, ...) {
   obj <- list(spec=spec,...)
   class(obj) <- "post_hoc"
@@ -79,8 +154,8 @@ emcontrasts <- function(dds, spec, ...) {
   if (is_formula(design(dds))) {
     fml <- as.formula(paste0(".x ~ ", as.character(design(dds)[2])))
     fit <- lm(fml, data=df)
-    dds_ind <- seq_along(resultsNames(dds))
-  } else {
+  } else { # shouldn't happen, but
+    warning("Seem to be doing EM on a matrix - not sure that's great")
     mm <- design(dds)
     ind <- colnames(mm) == "(Intercept)"
     colnames(mm)[ind] <- "Intercept"
@@ -90,29 +165,48 @@ emcontrasts <- function(dds, spec, ...) {
   }
   emfit <- emmeans::emmeans(fit, spec,...)
   contr_frame <- as.data.frame(summary(emfit$contrasts))
-  contr_frame <- contr_frame[1:(which(names(contr_frame)=="estimate")-1)]
-  contr <- lapply(seq_len(nrow(contr_frame)), function(i) emfit$contrast@linfct[i,])
+  ind_est <- !is.na(contr_frame$estimate)
+  contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1)]
+  contr_mat <- emfit$contrast@linfct[ind_est,]
+  colnames(contr_mat)[colnames(contr_mat)=="(Intercept)"] <- "Intercept"
+  colnames(contr_mat) <- make.names(colnames(contr_mat))
+  contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,])
   names(contr) <- do.call(paste, c(contr_frame,sep= "|"))
   contr
 }
 
 
 fit_models <- function(dds, ...) {
-  lapply(metadata(dds)$model,
+  lapply(metadata(dds)$models,
          function(mdl)  {
            out <- list()
-           is_lrt <- sapply(mdl$comparison, is_formula)
+           is_lrt <- sapply(mdl$comparisons, is_formula)
            if (any(!is_lrt)) {
              wald <- dds
              design(wald) <- mdl$design
-             comps <- mdl$comparison[!is_lrt]
+             comps <- mdl$comparisons[!is_lrt]
              is_post_hoc <- sapply(comps, class)=="post_hoc"
+             new_design <- check_model(mdl, colData(dds)) 
              if (any(is_post_hoc)) {
                comps[is_post_hoc] <- lapply(comps[is_post_hoc], function(ph) {
                  do.call(emcontrasts, c(dds=wald, spec=ph$spec, ph[-1]))
                })
+               if (new_design$any_dropped) {
+                 comps[is_post_hoc] <- lapply(comps[is_post_hoc],function(ph) {
+                   lapply(ph, function(contr_vec) {
+                     ind <- match(colnames(new_design$design), names(contr_vec))
+                     if (any(contr_vec[-ind]!=0)) {
+                       stop("Error: non-estimable coefficient needed for comparison")
+                     }
+                     contr_vec[ind]
+                   })
+                 })
+               }
                comps[!is_post_hoc] <- lapply(comps[!is_post_hoc], list) # protect existing lists from unlist
                comps <- unlist(comps, recursive=FALSE)
+             }
+             if (new_design$any_dropped) {
+               design(wald) <- new_design$design
              }
              wald <- DESeq(wald, test="Wald", ...)
              metadata(wald)$model <- mdl$design
@@ -121,7 +215,7 @@ fit_models <- function(dds, ...) {
                wald})
            }
            if (any(is_lrt)) {
-             lrt <- lapply(mdl$comparison[is_lrt],
+             lrt <- lapply(mdl$comparisons[is_lrt],
                           function(reduced) {
                             dds_lrt <- fitLRT(dds, full=mdl$design, reduced=reduced, ...)
                             metadata(dds_lrt)$model <- mdl$design
