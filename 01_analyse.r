@@ -262,8 +262,7 @@ for (dataset in names(dds_model_comp)) {
     cat("### ", mdl, "\n", sep="")
     babsrnaseq::differential_heatmap(dds_model_comp[[dataset]][[mdl]],
                          . %>% rownames_to_column() %>%
-                           mutate(.value=.value - mean(.value[AML12_co=="no" & Melanoma=="4434"])) %>%
-                           dplyr::select(AML12_co, Melanoma, Group, .value, rowname) %>%
+                           mutate(.value=.value - mean(.value)) %>%
                            column_to_rownames(),
                          caption=fig_caption
                          )
