@@ -65,7 +65,7 @@ if (file.exists("specify.r")) {
     sample_sets = list(all=TRUE),
     models=list(
       "Naive" = list(
-        design = as.formula(fml)
+        design = as.formula(fml),
         comparison = mult_comp(as.formula(paste("pairwise", fml)))
       )
     ),
@@ -83,7 +83,7 @@ ddsList <- lapply(specs$sample_sets, function(sample_ind) {
   obj <- rsem_dds[,sample_ind]
   colData(obj) <- droplevels(colData(obj))
   obj
-}
+})
 
 
 #Which features are zero across all samples in all datasets
