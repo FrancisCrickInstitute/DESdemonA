@@ -1,5 +1,5 @@
 #' ---
-#' title: "{{project}}"
+#' title: "{{title}}"
 #' author: "{{author}}"
 #' params:
 #'   res_dir: "results"
@@ -9,7 +9,6 @@
 #'     code_folding: hide
 #'     includes:
 #'       in_header: styles.html
-#' bibliography: R.bib
 #' link-citations: yes
 #' ---
 #'
@@ -27,6 +26,7 @@ library(grid)
 library(RColorBrewer)
 library(pheatmap)
 library(ComplexHeatmap)
+library(gt)
 library(DESeq2)          # Assay-specific
 library(PoiClaClu)
 library(rtracklayer)
@@ -38,52 +38,33 @@ library("IHW")
 devtools::load_all()
 
 
-param <- {{package}}::ParamList$new(
+param <- babsrnaseq::ParamList$new(
   title="title",
   script="analyse.r",
   seed = 1)
 set.seed(param$get("seed"))
 
-caption <- {{package}}::captioner()
+fig_caption <- babsrnaseq::captioner()
+
+
+  
+
+
 knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
                       dev=c("png","pdf"), out.width="80%",
-                      results='asis')
+                      results='asis', fig.cap=expression(fig_caption())
+                      )
 
 #+ read
 
-data(rsem_dds)
+data(rsem_human_dds)
+rsem_dds <- rsem_human_dds
 library(metadata(rsem_dds)$organism$org, character.only=TRUE)
 
-if (file.exists("specify.r")) {
-  e <- as.environment(as.data.frame(colData(rsem_dds)))
-  parent.env(e) <- environment()
-  specs <- source("specify.r", local=e)$value
-  rm(list=ls(envir=e), envir=e)
-} else {
-  fml <- paste("~", names(colData(rsem_dds))[ncol(colData(rsem_dds))])
-  specs <- list(
-    sample_sets = list(all=TRUE),
-    models=list(
-      "Naive" = list(
-        design = as.formula(fml),
-        comparison = mult_comp(as.formula(paste("pairwise", fml)))
-      )
-    ),
-    plot_scale = function(y) {
-      y/mean(y)
-    }
-  )
-}
 
 
-
-
-
-ddsList <- lapply(specs$sample_sets, function(sample_ind) {
-  obj <- rsem_dds[,sample_ind]
-  colData(obj) <- droplevels(colData(obj))
-  obj
-})
+specs   <- babsrnaseq::load_specs(rsem_dds, file="specify.r")
+ddsList <- babsrnaseq::build_dds_list(rsem_dds, specs)
 
 
 #Which features are zero across all samples in all datasets
@@ -129,17 +110,16 @@ ddsList <- lapply(ddsList, estimateSizeFactors)
 #' or the components selected to have the greatest association with
 #' the factor.
 #'
-#+ qc-visualisation, fig.cap=caption()
+#+ qc-visualisation
+
 param$set("top_n_variable", 500, "Only use {} genes for unsupervised clustering")
-
-
 for (dataset in names(ddsList)) {
-  {{package}}::qc_heatmap(
+  babsrnaseq::qc_heatmap(
     ddsList[[dataset]], title=dataset,
     n=param$get("top_n_variable"),
     pc_x=1, pc_y=2,
     batch=~1,
-    caption=caption
+    caption=fig_caption
     )
 }
 
@@ -147,76 +127,42 @@ for (dataset in names(ddsList)) {
 #' 
 #' # Find differential genes
 #' 
-#' We want to account for any differences in individual mouse
-#' backgrounds when testing for differential expression between
-#' groups.  We include terms for _both_ Group and Mouse in our model
-#' to enable this.  We use DESeq2 [@pkg_DESeq2] to find differential
-#' genes using the negative binomial distribution to model counts,
-#' with IHW [@pkg_IHW] for multiple-testing correction with greater
-#' power than Benjamini-Hochberg, and ashr [@pkg_ashr] for effect-size
-#' shrinkage to ensure reported fold-changes are more robust.
+#'  We use DESeq2 [@pkg_DESeq2] to find differential genes using the
+#' negative binomial distribution to model counts, with IHW [@pkg_IHW]
+#' for multiple-testing correction with greater power than
+#' Benjamini-Hochberg, and ashr [@pkg_ashr] for effect-size shrinkage
+#' to ensure reported fold-changes are more robust.
 #'
-#+ differential, fig.cap=caption()
+#+ differential
 
 param$set("alpha", 0.05)
 param$set("lfcThreshold", 0)
 
-
-## Example set of designs and their comparisons.
-
-mdlList <- list(
-  "Standard" = list(
-    design = ~ treatment,
-    comparison = list(
-      "DPN" = c("treatment","DPN","Control"),
-      "OHT" = c("treatment","OHT","Control")
-      )
-  ),
-  "Patient Adjusted" = list(
-    design = ~ patient + treatment, 
-    comparison = list(
-      "Treated" = list(c("treatment_DPN_vs_Control", "treatment_OHT_vs_Control"), listValues=c(.5, -1)),
-      mult_comp(revpairwise~treatment),
-      "Patient" = ~treatment
-    )
-  )
-)
-
-mdlList <- spec$models
-
-## Each dataset gets the same set of models
-ddsList <- map(ddsList, function(dds) {
-  metadata(dds)$model <- mdlList
-  dds
-})
-
-# or you could explicitly allocate a different set of
-# models to each dataset separately
-
 ## For each dataset, fit all its models
-dds_model_comp <- map(ddsList, {{package}}::fit_models, minReplicatesForReplace = Inf)
+dds_model_comp <- map(ddsList, babsrnaseq::fit_models, minReplicatesForReplace = Inf)
 
 ## Now put results in each 3rd level mcols(dds)$results
 dds_model_comp <- map_depth(
-  dds_model_comp, 3, {{package}}::get_result,
+  dds_model_comp, 3, babsrnaseq::get_result,
 #  filterFun=NULL, # reinstate if we get IHR working
   alpha=param$get("alpha"))
 
-xl_files <- {{package}}::write_results(dds_model_comp, param, dir=params$res_dir)
+xl_files <- babsrnaseq::write_results(dds_model_comp, param, dir=params$res_dir)
 iwalk(xl_files,
      ~cat("\n\n<a class=\"download-excel btn btn-primary\" href=\"", sub(paste0("^", params$res_dir, "/?"), "", .x), "\"> Open Spreadsheet '", .y,"'</a>", sep="")
      )
-#{{package}}::write_all_results(dds_model_comp, dir=params$res_dir)
+#babsrnaseq::write_all_results(dds_model_comp, dir=params$res_dir)
+
+
 
 
 #'
 #' ## Summary Tables {.tabset}
 #'
-#' Here we summarise the results of the differential testing. As
-#' mentioned above, there is only one design strategy, but we have a
-#' choice as to which samples we use (determined by which tab we
-#' select below), and which null hypothesis we test against (described
-#' in the 'Comparison' column.)
+#' Here we summarise the results of the differential testing. Each
+#' sample-set gets its own table (flick between tabs to choose which),
+#' within which the different models, and their null hypotheses, are
+#' enumerated.
 #'
 #' In the 'Significant' column we tally the number of significant
 #' genes (for pairwise comparisons, separated into up or down, where
@@ -228,12 +174,12 @@ iwalk(xl_files,
 #' there is an independent filter of low-signal genes whose effect
 #' varies from comparison to comparison.
 #' 
-#+ summary, fig.cap=caption()
+#+ summary
 
-summaries <- map_depth(dds_model_comp, 3, {{package}}::summarise_results)
+summaries <- map_depth(dds_model_comp, 3, babsrnaseq::summarise_results)
 
 
-per_dataset <- map(summaries, {{package}}::rbind_summary,
+per_dataset <- map(summaries, babsrnaseq::rbind_summary,
                   levels=c("Design","Comparison")) %>%
   map(function(x) {
     levels(x$Group) <- sub(".*<(.+<.+<0)$", "\\1", levels(x$Group))
@@ -243,14 +189,31 @@ per_dataset <- map(summaries, {{package}}::rbind_summary,
   }
   )
 
-    
+pval_frame <- map_depth(
+  dds_model_comp,
+  2,
+  ~map_dfr(.x, function(comp) {as.data.frame(mcols(comp)$results)}, .id="comparison")
+)
 
 for (dataset in names(per_dataset)) {
+  options(htmltools.preserve.raw=TRUE)
   cat("### ", dataset, " \n", sep="")
-  print(knitr::kable(per_dataset[[dataset]],
-                     options=list(dom="t"),
-                     caption=paste0("Size of differential gene-lists for ", dataset),
-                     label=klabel(paste0("summary", dataset))))
+  per_dataset[[dataset]] %>%
+  gt(caption=paste0("Size of gene-lists for ", dataset)) %>%
+    tab_header(title="Genelist summary",
+               subtitle=dataset) %>%
+    babsrnaseq::tab_link_caption() %>%
+    print()
+
+  for (model in names(pval_frame[[dataset]])) {
+    pl <- ggplot(pval_frame[[dataset]][[model]], aes(x=pvalue, fill=baseMean<1)) +
+      geom_density(alpha=0.5) +
+      facet_wrap(~comparison) +
+      theme_bw()
+    print(pl)
+    fig_caption(caption=paste0("p-Diagnostic for", dataset, model))
+  }
+  
 }
 
 
@@ -267,17 +230,17 @@ for (dataset in names(per_dataset)) {
 #' provide a more reliable prediction of behaviour in future
 #' replications.
 #'
-#' Again, select the dataset you wish to examine via the tabs - there are
-#' sub-tabs for different experimental designs, if any (e.g. removing/ignoring
-#' batch effects).
+#' Again, select the dataset you wish to examine via the tabs - there
+#' are sub-tabs for different experimental designs, if any
+#' (e.g. removing/ignoring batch effects).
 #'
-#+ differential-MA, fig.cap=caption()
+#+ differential-MA
 
 for (dataset in names(dds_model_comp)) {
   cat("## ", dataset, " {.tabset} \n", sep="") 
   for (mdl in names(dds_model_comp[[dataset]])) {
     cat("### ", mdl, "\n", sep="") 
-    differential_MA(dds_model_comp[[dataset]][[mdl]], caption=caption)
+    differential_MA(dds_model_comp[[dataset]][[mdl]], caption=fig_caption)
   }
 }
 
@@ -292,17 +255,17 @@ for (dataset in names(dds_model_comp)) {
 #' of the experimental groups, so should be interpreted differently
 #' from the QC heatmaps which were blind to the experimental design.
 
-#+ differential-heatmap, fig.cap=caption()
+#+ differential-heatmap
 for (dataset in names(dds_model_comp)) {
   cat("## ", dataset, " {.tabset} \n", sep="") 
   for (mdl in names(dds_model_comp[[dataset]])) {
     cat("### ", mdl, "\n", sep="")
-    {{package}}::differential_heatmap(dds_model_comp[[dataset]][[mdl]],
+    babsrnaseq::differential_heatmap(dds_model_comp[[dataset]][[mdl]],
                          . %>% rownames_to_column() %>%
-                           mutate(.value=.value - mean((.value[Diagnosis=="CONTROL"]))) %>%
-                           dplyr::select(Diagnosis, .value, rowname) %>%
+                           mutate(.value=.value - mean(.value[AML12_co=="no" & Melanoma=="4434"])) %>%
+                           dplyr::select(AML12_co, Melanoma, Group, .value, rowname) %>%
                            column_to_rownames(),
-                         caption=caption
+                         caption=fig_caption
                          )
   }
 }
@@ -330,13 +293,13 @@ knitr::knit_exit()
 #' Here we look at which [Reactome](https://reactome.org/) and [GO molecular functions](http://geneontology.org/)
 #' are enriched in the various genelists we have created.
 #'
-#+ enrich-init, fig.cap=caption()
+#+ enrich-init
 param$set("showCategory", 25, "Only show top {} enriched categories in plots")
 
 #' ## Reactome Enrichment {.tabset} 
 #'
-#+ enrich-reactome, fig.cap=caption(), eval=FALSE
-enrich_plots <- map_depth(dds_model_comp, 2, {{package}}::enrichment,
+#+ enrich-reactome,  eval=FALSE
+enrich_plots <- map_depth(dds_model_comp, 2, babsrnaseq::enrichment,
   fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
 
 enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
@@ -346,7 +309,7 @@ for (dataset in names(enrich_plots)) {
       cat("#### ", mdl, " \n", sep="")
       print(enrich_plots[[dataset]][[mdl]]$plot)
       lbl <- paste("Reactome for", mdl, dataset)
-      caption(lbl)
+      fig_caption(lbl)
       print(
         knitr::kable(enrich_plots[[dataset]][[mdl]]$table,
                      options=list(dom="t"),
@@ -359,8 +322,8 @@ for (dataset in names(enrich_plots)) {
 
 #' ## GO MF Enrichment {.tabset} 
 #'
-#+ enrich-GO, fig.cap=caption(), eval=FALSE
-enrich_plots <- map_depth(dds_model_comp, 2, {{package}}::enrichment,
+#+ enrich-GO,  eval=FALSE
+enrich_plots <- map_depth(dds_model_comp, 2, babsrnaseq::enrichment,
   fun="enrichGO", showCategory = param$get("showCategory"), max_width=30)
 enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
 
@@ -370,7 +333,7 @@ for (dataset in names(enrich_plots)) {
       cat("#### ", mdl, " \n", sep="")
       print(enrich_plots[[dataset]][[mdl]]$plot)
       lbl <- paste("GO MF for", mdl, dataset)
-      caption(lbl)
+      fig_caption(lbl)
       print(
         knitr::kable(enrich_plots[[dataset]][[mdl]]$table,
                      options=list(dom="t"),
