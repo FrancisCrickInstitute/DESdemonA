@@ -109,7 +109,7 @@ fit_models <- function(dds, ...) {
              is_post_hoc <- sapply(comps, class)=="post_hoc"
              if (any(is_post_hoc)) {
                comps[is_post_hoc] <- lapply(comps[is_post_hoc], function(ph) {
-                 do.call(emcontrasts, list(dds=wald, spec=ph$spec, ph[-1]))
+                 do.call(emcontrasts, c(dds=wald, spec=ph$spec, ph[-1]))
                })
                comps[!is_post_hoc] <- lapply(comps[!is_post_hoc], list) # protect existing lists from unlist
                comps <- unlist(comps, recursive=FALSE)
@@ -330,22 +330,23 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
       geom_text_repel(aes(label=sample)) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
       ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
-      labs(colour=j) + coord_fixed()
+      labs(colour=j)
     print(qc_vis$PC[[j]])
     caption(paste0("Coloured by ", j))
   }
   qc_vis$PC_assoc <- list()
   cat(header, "# Visualisation of associated PCs coloured by covariate", "\n", sep="") 
   for (j in vars) {
-    tmp <- order(covvar_PC[j,], decreasing=TRUE)
-    pc_x <- tmp[1]
-    pc_y <- tmp[2]
+    tmp <- subset(plotFrame, Covariate==j)
+    tmp <- tmp[order(tmp$Assoc, decreasing=TRUE),]
+    pc_x <- as.integer(as.character(tmp$PC[1]))
+    pc_y <- as.integer(as.character(tmp$PC[2]))
     pc.df <- data.frame(PC1=pc$x[,pc_x], PC2=pc$x[,pc_y], col=colDat[[j]], sample=rownames(colDat))
     qc_vis$PC[[j]] <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
       geom_text_repel(aes(label=sample)) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
       ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
-      labs(colour=j) + coord_fixed()
+      labs(colour=j) 
     print(qc_vis$PC[[j]])
     caption(paste0("Coloured by ", j))
   }
