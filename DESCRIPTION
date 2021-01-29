@@ -1,9 +1,8 @@
-Package: {{package}}
-Title: {{project}}
-Version: {{version}}
-Authors@R: person({{person}}, email = "{{email}}",
-                  role = c("aut", "cre"))
-Description: {{descript}}
+Package: rnaseq
+Title: rnaseq
+Version: 0.0.0
+Authors@R: person("BABS", email = "bioinformatics@crick.ac.uk", role = c("aut", "cre"))
+Description: Basic rnaseq template
 Depends: R (>= 3.1.0)
 License: GPL-3
 LazyData: true

@@ -33,11 +33,12 @@ ifneq ($(lims),{{lims}})
 	ln -sfn /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(lims)/primary_data/ asf
 	cp -n /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(lims)/$(lims)_design.csv inst/extdata/design.csv
 endif
-	sed -i 's/{{descrip}}/Analysis for $(scientist) in $(lab) lab/g' DESCRIPTION
-	sed -i 's/{{version}}/$(VERSION)/g' DESCRIPTION
-	sed -i 's/{{email}}/${email}/g' DESCRIPTION
-	sed -i 's/{{person}}/"${person}"/g' DESCRIPTION
-	for r in *.{r,R,rmd,Rmd} DESCRIPTION ; do \
+	sed -i     's/Package: .*/Package: $(type)/g' DESCRIPTION ; \
+	sed -i       's/Title: .*/Title: $(strproject)/g' DESCRIPTION ; \
+	sed -i     's/Version: .*/Version: 0.0.1/g' DESCRIPTION
+	sed -i   's/Authors@R: .*/Authors@R: person($(person), email="$(email)", role=c("aut","cre"))/g' DESCRIPTION
+	sed -i 's/Description: .*/Description: Analysis for $(scientist) in $(lab) lab/' DESCRIPTION
+	for r in *.{r,R,rmd,Rmd} ; do \
 	sed -i 's/{{project}}/$(strproject)/g' $$r ; \
 	sed -i 's/{{package}}/babs$(type)/g' $$r ; \
 	sed -i 's/{{author}}/$(me)/g' $$r ; \

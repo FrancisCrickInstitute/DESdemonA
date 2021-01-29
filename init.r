@@ -52,8 +52,8 @@ if (length(organism$org)!=1) {
 
 metadata(rsem_dds)$organism <- organism
 library(organism$org, character.only=TRUE)
-mcols(rsem_dds)symbol <- mapIds(
-  eval(parse(text = organism$org)) 
+mcols(rsem_dds)$symbol <- mapIds(
+  eval(parse(text = organism$org)),
   keys=row.names(rsem_dds),
   column="SYMBOL",
   keytype="ENSEMBL",
