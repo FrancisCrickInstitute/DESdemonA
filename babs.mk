@@ -9,7 +9,6 @@ email := $(shell git config --get user.email)
 me := $(shell git config --get user.name)
 lab := $(call babsfield,Lab)
 sci := $(shell echo $(firstword $(subst @, ,$(call babsfield,Scientist))) | tr A-Z a-z)
-type := $(call babsfield,Type)
 lims := $(call babsfield,Lims)
 # albert.einstein => Albert Einstein
 scientist := $(shell echo $(sci) | sed --expression="s/\b\(.\)/\u\1/g; s/\./ /")
@@ -33,16 +32,19 @@ ifneq ($(lims),{{lims}})
 	ln -sfn /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(lims)/primary_data/ asf
 	cp -n /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(lims)/$(lims)_design.csv inst/extdata/design.csv
 endif
-	sed -i     's/Package: .*/Package: $(type)/g' DESCRIPTION ; \
 	sed -i       's/Title: .*/Title: $(strproject)/g' DESCRIPTION ; \
 	sed -i     's/Version: .*/Version: 0.0.1/g' DESCRIPTION
 	sed -i   's/Authors@R: .*/Authors@R: person($(person), email="$(email)", role=c("aut","cre"))/g' DESCRIPTION
 	sed -i 's/Description: .*/Description: Analysis for $(scientist) in $(lab) lab/' DESCRIPTION
+	shopt -s nullglob ;\
 	for r in *.{r,R,rmd,Rmd} ; do \
 	sed -i 's/{{project}}/$(strproject)/g' $$r ; \
-	sed -i 's/{{package}}/babs$(type)/g' $$r ; \
 	sed -i 's/{{author}}/$(me)/g' $$r ; \
 	done
+	vc=`git ls-files` ;\
+	rm -rf .git ;\
+	git init ;\
+	git add $$vc ;\
 	git commit -a -m "Standard starting point"
 	git tag v0.0.1
 
