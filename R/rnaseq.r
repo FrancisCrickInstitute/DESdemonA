@@ -504,8 +504,8 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
                                .value=as.vector(t(mat)),
                                .gene=rep(rownames(mat),each=ncol(mat)),
                                .sample=colnames(mat)),
-                         .gene)
-    summ_long <- tidy_fn(pdat_long)
+                         .gene, .add=TRUE)
+    summ_long <- ungroup(tidy_fn(pdat_long), .gene)
     tidy_pdat <- summ_long[summ_long$.gene==summ_long$.gene[1],]
     tidy_mat <- mat[, tidy_pdat$.sample]
     tidy_mat[cbind(summ_long$.gene, summ_long$.sample)] <- summ_long$.value
