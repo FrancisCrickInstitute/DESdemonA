@@ -57,11 +57,8 @@ knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
 
 #+ read
 
-data(rsem_human_dds)
-rsem_dds <- rsem_human_dds
+data(rsem_dds)
 library(metadata(rsem_dds)$organism$org, character.only=TRUE)
-
-
 
 specs   <- babsrnaseq::load_specs(rsem_dds, file="specify.r")
 ddsList <- babsrnaseq::build_dds_list(rsem_dds, specs)

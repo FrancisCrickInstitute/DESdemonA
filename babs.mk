@@ -38,8 +38,7 @@ endif
 	sed -i 's/Description: .*/Description: Analysis for $(scientist) in $(lab) lab/' DESCRIPTION
 	shopt -s nullglob ;\
 	for r in *.{r,R,rmd,Rmd} ; do \
-	sed -i 's/{{project}}/$(strproject)/g' $$r ; \
-	sed -i 's/{{author}}/$(me)/g' $$r ; \
+	sed -i 's/{{project}}/$(strproject)/g;s/{{author}}/$(me)/g' $$r ; \
 	done
 	vc=`git ls-files` ;\
 	rm -rf .git ;\
