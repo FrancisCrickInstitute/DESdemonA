@@ -258,9 +258,7 @@ for (dataset in names(dds_model_comp)) {
   for (mdl in names(dds_model_comp[[dataset]])) {
     cat("### ", mdl, "\n", sep="")
     babsrnaseq::differential_heatmap(dds_model_comp[[dataset]][[mdl]],
-                         . %>% rownames_to_column() %>%
-                           mutate(.value=.value - mean(.value)) %>%
-                           column_to_rownames(),
+                         . %>% mutate(.value=.value - mean(.value)),
                          caption=fig_caption
                          )
   }

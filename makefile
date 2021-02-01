@@ -6,7 +6,7 @@ ifeq (,$(wildcard .git))
 TAG := unversioned
 VERSION:= unversioned
 else
-TAG := $(shell git describe --tags --dirty --always --long)
+TAG := $(shell git describe --tags --dirty=altered --always --long)
 VERSION := $(shell git describe --tags --abbrev=0)
 endif
 
@@ -28,7 +28,7 @@ data/rsem_dds.rda: 00_init.r $(wildcard inst/extdata/rsem/*.genes.results)
 version_dir:
 	mkdir -p $(res_dir)/$(VERSION)
 
-R.bib: analyse.r
+R.bib: 01_analyse.r
 	$(R) -e "pd <- getParseData(parse('$<', keep.source=TRUE));\
 	libreq <- pd\$$text[pd\$$line1 %in% pd\$$line1[pd\$$text=='library' | pd\$$text=='require'] & pd\$$token=='SYMBOL'];\
 	libreq <- unique(c('base', libreq, pd\$$text[pd\$$token=='SYMBOL_PACKAGE']));\

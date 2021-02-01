@@ -10,5 +10,13 @@ df2colorspace <- function(df) {
   df <- dplyr::mutate_if(as.data.frame(df), is.character, as.factor)
   purrr::map2(df,
               cumsum(c(0,map(df, nlevels)))[1:length(df)],
-              ~ setNames(pal[((match(levels(.x), levels(.x)) + .y -1) %% length(pal)) + 1], levels(.x)))
-  }
+              function(column, start_level) {
+                if (is.factor(column)) {
+                  setNames(pal[(seq(start_level, length=nlevels(column)) %% length(pal)) + 1],
+                           levels(column))
+                } else {
+                  circlize::colorRamp2(range(column), c("white","red"))
+                }
+              }
+              )
+}

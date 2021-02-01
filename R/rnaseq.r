@@ -166,7 +166,7 @@ emcontrasts <- function(dds, spec, ...) {
   emfit <- emmeans::emmeans(fit, spec,...)
   contr_frame <- as.data.frame(summary(emfit$contrasts))
   ind_est <- !is.na(contr_frame$estimate)
-  contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1)]
+  contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1), drop=FALSE]
   contr_mat <- emfit$contrast@linfct[ind_est,]
   colnames(contr_mat)[colnames(contr_mat)=="(Intercept)"] <- "Intercept"
   colnames(contr_mat) <- make.names(colnames(contr_mat))
@@ -417,14 +417,15 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   print(qc_vis$PC_phenotype)
   caption("Covariate-PC association")
   qc_vis$PC <- list()
-  cat(header, "# Visualisation of PCs ", pc_x, " and ", pc_y, " coloured by covariate", "\n", sep="") 
+  cat(header, "# Visualisation of PCs ", pc_x, " and ", pc_y, " coloured by covariate", "\n", sep="")
+  do_labels <- nrow(colDat)<10
   for (j in vars) {
     pc.df <- data.frame(PC1=pc$x[,pc_x], PC2=pc$x[,pc_y], col=colDat[[j]], sample=rownames(colDat))
     qc_vis$PC[[j]] <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
-      geom_text_repel(aes(label=sample)) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
       ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
       labs(colour=j)
+    if (do_labels) {qc_vis$PC[[j]] <- qc_vis$PC[[j]] + geom_text_repel(aes(label=sample))}
     print(qc_vis$PC[[j]])
     caption(paste0("Coloured by ", j))
   }
@@ -437,10 +438,11 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     pc_y <- as.integer(as.character(tmp$PC[2]))
     pc.df <- data.frame(PC1=pc$x[,pc_x], PC2=pc$x[,pc_y], col=colDat[[j]], sample=rownames(colDat))
     qc_vis$PC[[j]] <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
-      geom_text_repel(aes(label=sample)) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
       ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
-      labs(colour=j) 
+      labs(colour=j)
+    if (do_labels) {qc_vis$PC[[j]] <- qc_vis$PC[[j]] + geom_text_repel(aes(label=sample))}
+
     print(qc_vis$PC[[j]])
     caption(paste0("Coloured by ", j))
   }
@@ -497,10 +499,22 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
   if (is.null(tidy_fn)) {
     return(list(mat=mat, pdat=pdat))
   }
-  pdat$.value <- mat[1,]
-  tidy_mat <- apply(mat, 1, function(x) {pdat$.value=x; tidy_fn(pdat)$.value})
-  tidy_pdat <- tidy_fn(pdat) %>% dplyr::select(-.value)
-  list(mat=t(tidy_mat), pdat=tidy_pdat)
+  if (inherits(tidy_fn, "fseq")) {
+    pdat_long <- group_by(cbind(pdat,
+                               .value=as.vector(t(mat)),
+                               .gene=rep(rownames(mat),each=ncol(mat)),
+                               .sample=colnames(mat)),
+                         .gene)
+    summ_long <- tidy_fn(pdat_long)
+    tidy_pdat <- summ_long[summ_long$.gene==summ_long$.gene[1],]
+    tidy_mat <- mat[, tidy_pdat$.sample]
+    tidy_mat[cbind(summ_long$.gene, summ_long$.sample)] <- summ_long$.value
+    tidy_pdat  <- as.data.frame(dplyr::select(tidy_pdat, -.gene, -.value, -.sample))
+  }
+  ## pdat$.value <- mat[1,]
+  ## tidy_mat <- apply(mat, 1, function(x) {pdat$.value=x; tidy_fn(pdat)$.value})
+  ## tidy_pdat <- tidy_fn(pdat) %>% dplyr::select(-.value)
+  list(mat=tidy_mat, pdat=tidy_pdat)
 }
 
 ## tidy_per_gene <- function(mat, pdat,  tidy_fn) {
@@ -521,13 +535,15 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, tidy_fn)
     if (i == names(ddsList)[1]) {
       pdat <- tidied_data$pdat
-      if (length(group_vars(pdat))) {
-        column_split=pdat[group_vars(pdat)]
+      grouper <- setdiff(group_vars(pdat), ".gene")
+      if (length(grouper)) {
+        column_split=pdat[grouper]
       } else {
         column_split=NULL
       }
       pdat[sapply(pdat, is.character)] <- lapply(pdat[sapply(pdat, is.character)], 
                                                 as.factor)
+      pdat <- pdat[,metadata(ddsList[[i]])$labels]
       colList <- df2colorspace(pdat)
     }
     colnames(tidied_data$mat) <- rownames(pdat)
