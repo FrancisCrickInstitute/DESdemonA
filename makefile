@@ -22,8 +22,8 @@ analysis: 01_analyse.r  data/rsem_dds.rda version_dir R.bib
 	mv output_$(TAG)_files $(res_dir)/$(VERSION)
 
 
-data/rsem_dds.rda: init.r $(wildcard inst/extdata/rsem/*.genes.results)
-	$(R) -e "source('init.r')"
+data/rsem_dds.rda: 00_init.r $(wildcard inst/extdata/rsem/*.genes.results)
+	$(R) -e "source('00_init.r')"
 
 version_dir:
 	mkdir -p $(res_dir)/$(VERSION)
