@@ -60,7 +60,7 @@ knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
 data(rsem_dds)
 library(metadata(rsem_dds)$organism$org, character.only=TRUE)
 
-specs   <- babsrnaseq::load_specs(rsem_dds, file="specify.r")
+specs   <- babsrnaseq::load_specs(rsem_dds, file=params$spec_file)
 ddsList <- babsrnaseq::build_dds_list(rsem_dds, specs)
 
 
@@ -141,8 +141,19 @@ dds_model_comp <- map(ddsList, babsrnaseq::fit_models, minReplicatesForReplace =
 ## Now put results in each 3rd level mcols(dds)$results
 dds_model_comp <- map_depth(
   dds_model_comp, 3, babsrnaseq::get_result,
-#  filterFun=NULL, # reinstate if we get IHR working
+  filterFun=IHW::ihw,
   alpha=param$get("alpha"))
+
+dds_env <- new.env()
+dds_name <- paste0(basename(tools::file_path_sans_ext("a/b.des")),"_dds")
+assign(dds_name, dds_model_comp, envir=dds_env)
+save(list=dds_name,
+     file=file.path("data", paste0(dds_name, ".rda")),
+     envir=dds_env,
+     eval.promises=FALSE
+     )
+rm(list=dds_name, envir=dds_env)
+rm(dds_env)
 
 xl_files <- babsrnaseq::write_results(dds_model_comp, param, dir=params$res_dir)
 iwalk(xl_files,

@@ -1,25 +1,29 @@
 R := R-4.0.2-BABS
 res_dir := results
+contained := FALSE
 
 
 ifeq (,$(wildcard .git))
 TAG := unversioned
 VERSION:= unversioned
 else
-TAG := $(shell git describe --tags --dirty=altered --always --long)
+TAG := $(shell git describe --tags --dirty=_altered --always --long)
 VERSION := $(shell git describe --tags --abbrev=0)
 endif
 
-analysis : contained := FALSE
-analysis: 01_analyse.r  data/rsem_dds.rda version_dir R.bib
-	$(R) -e "rmarkdown::render('01_analyse.r',\
-	  output_file='output_$(TAG).html',\
+dda := $(patsubst %.spec,data/%_dds.rda,$(wildcard *.spec))
+
+analyses: $(dda)
+
+$(dda): data/%_dds.rda: 01_analyse.r %.spec data/rsem_dds.rda version_dir R.bib
+	$(R) -e "rmarkdown::render('$<',\
+	  output_file='$*_$(TAG).html',\
 	  output_options = list(self_contained=$(contained)),\
-	  params=list(res_dir='$(res_dir)/$(VERSION)'))"
-	rm -f $(res_dir)/$(VERSION)/output_$(TAG).html
-	mv output_$(TAG).html $(res_dir)/$(VERSION)
-	rm -rf $(res_dir)/$(VERSION)/output_$(TAG)_files
-	mv output_$(TAG)_files $(res_dir)/$(VERSION)
+	  params=list(res_dir='$(res_dir)/$(VERSION)'),spec_file='$*.spec')"
+	rm -f $(res_dir)/$(VERSION)/$*_$(TAG).html
+	mv $*_$(TAG).html $(res_dir)/$(VERSION)
+	rm -rf $(res_dir)/$(VERSION)/$*_$(TAG)_files
+	mv $*_$(TAG)_files $(res_dir)/$(VERSION)
 
 
 data/rsem_dds.rda: 00_init.r $(wildcard inst/extdata/rsem/*.genes.results)
