@@ -38,20 +38,11 @@ library("IHW")
 devtools::load_all()
 
 
-param <- babsrnaseq::ParamList$new(
-  title="title",
-  script="analyse.r",
-  seed = 1)
-set.seed(param$get("seed"))
 
 fig_caption <- babsrnaseq::captioner()
 
-
-  
-
-
 knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
-                      dev=c("png","pdf"), out.width="80%",
+                      dev=c("png","pdf"), out.width="90%",
                       results='asis', fig.cap=expression(fig_caption())
                       )
 
@@ -60,7 +51,15 @@ knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
 data(rsem_dds)
 library(metadata(rsem_dds)$organism$org, character.only=TRUE)
 
-specs   <- babsrnaseq::load_specs(rsem_dds, file=params$spec_file)
+specs   <- babsrnaseq::load_specs(file=params$spec_file, context=rsem_dds)
+
+param <- babsrnaseq::ParamList$new(
+  title="{{title}}",
+  script="analyse.r",
+  defaults=specs$settings)
+param$set("seed") # Calling the setter without a value will pick up the default (from the spec), _and_ alert it in the markdown
+set.seed(param$get("seed"))
+
 ddsList <- babsrnaseq::build_dds_list(rsem_dds, specs)
 
 
@@ -70,6 +69,12 @@ ddsList <- lapply(ddsList, `[`, !all_zero)
 
 
 ddsList <- lapply(ddsList, estimateSizeFactors)
+param$set("baseMeanMin")
+if (param$get("baseMeanMin")>0) {
+  ddsList <- lapply(ddsList,
+                   function(x) x[rowMeans(counts(x, normalized=TRUE)) >= param$get("baseMeanMin"),]
+                   )
+}
 
 
 #'
@@ -109,7 +114,7 @@ ddsList <- lapply(ddsList, estimateSizeFactors)
 #'
 #+ qc-visualisation
 
-param$set("top_n_variable", 500, "Only use {} genes for unsupervised clustering")
+param$set("top_n_variable")
 for (dataset in names(ddsList)) {
   babsrnaseq::qc_heatmap(
     ddsList[[dataset]], title=dataset,
@@ -132,8 +137,9 @@ for (dataset in names(ddsList)) {
 #'
 #+ differential
 
-param$set("alpha", 0.05)
-param$set("lfcThreshold", 0)
+param$set("alpha")
+param$set("lfcThreshold")
+param$set("filterFun")
 
 ## For each dataset, fit all its models
 dds_model_comp <- map(ddsList, babsrnaseq::fit_models, minReplicatesForReplace = Inf)
@@ -141,7 +147,7 @@ dds_model_comp <- map(ddsList, babsrnaseq::fit_models, minReplicatesForReplace =
 ## Now put results in each 3rd level mcols(dds)$results
 dds_model_comp <- map_depth(
   dds_model_comp, 3, babsrnaseq::get_result,
-  filterFun=IHW::ihw,
+  filterFun=param$get("filterFun"),
   alpha=param$get("alpha"))
 
 dds_env <- new.env()
@@ -299,7 +305,7 @@ knitr::knit_exit()
 #' are enriched in the various genelists we have created.
 #'
 #+ enrich-init
-param$set("showCategory", 25, "Only show top {} enriched categories in plots")
+param$set("showCategory")
 
 #' ## Reactome Enrichment {.tabset} 
 #'

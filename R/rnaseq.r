@@ -68,13 +68,19 @@ subsample <- function(dds, subs) {
 }
 
 
-load_specs <- function(dds, file="") {
+load_specs <- function(file="", context) {
   if (file.exists(file)) {
-    e <- as.environment(as.data.frame(colData(dds)))
+    e <- as.environment(as.data.frame(colData(context)))
     parent.env(e) <- environment()
     assign("sample_set", list, envir=e)
     assign("model", list, envir=e)
     assign("specification", list, envir=e)
+    assign("settings",
+           function(...) {
+             as.list( substitute(alist(...)))
+           },
+           envir=e
+           )
     specs <- source(file, local=e)$value
     rm(list=ls(envir=e), envir=e)
   } else {
