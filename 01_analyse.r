@@ -3,6 +3,7 @@
 #' author: "{{author}}"
 #' params:
 #'   res_dir: "results"
+#'   spec_file: ""
 #' output:
 #'   bookdown::html_document2:
 #'     toc: true
@@ -53,12 +54,11 @@ library(metadata(rsem_dds)$organism$org, character.only=TRUE)
 
 specs   <- babsrnaseq::load_specs(file=params$spec_file, context=rsem_dds)
 
-param <- babsrnaseq::ParamList$new(
-  title="{{title}}",
-  script="analyse.r",
-  defaults=specs$settings)
-param$set("seed") # Calling the setter without a value will pick up the default (from the spec), _and_ alert it in the markdown
-set.seed(param$get("seed"))
+param <- babsrnaseq::ParamList$new(defaults=specs$settings)
+# Calling the setter without a value will pick up the default (from the spec), _and_ alert it in the markdown, and return the default
+set.seed(param$set("seed"))
+param$set("title", "{{title}}")
+param$set("script", "{{script}}")
 
 ddsList <- babsrnaseq::build_dds_list(rsem_dds, specs)
 

@@ -15,10 +15,7 @@ ParamList <- R6::R6Class("ParamList",
                       defaults=list()
                     ),
                     public = list(
-                      initialize = function(title="Analysis",script="?",seed=1,defaults=list()) {
-                        self$set("title", title)
-                        self$set("script", script)
-                        self$set("seed", seed)
+                      initialize = function(defaults=list()) {
                         private$defaults <- defaults
                       },
                       set = function(id, value, description="", div=TRUE) {
@@ -46,7 +43,7 @@ ParamList <- R6::R6Class("ParamList",
 #                          cat(knitr::knit_child(text=knitr::knit_expand(text=c("```{block, type='rparam'}", self$describe(id), "```")), quiet=TRUE))
                           cat("\n\n<div class=\"rparam\">", self$describe(id), "</div>\n\n")
                         }
-                        invisible(self)
+                        invisible(self$get(id))
                       },
                       get = function(id) {
                         ret <- private$params[[id]]
