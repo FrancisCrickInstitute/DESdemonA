@@ -32,6 +32,8 @@ ifneq ($(lims),{{lims}})
 	ln -sfn /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(lims)/primary_data/ asf
 	cp -n /camp/stp/sequencing/inputs/instruments/data/$(lab)/$(sci)/$(lims)/$(lims)_design.csv inst/extdata/design.csv
 endif
+
+project:
 	sed -i       's/Title: .*/Title: $(strproject)/g' DESCRIPTION ; \
 	sed -i     's/Version: .*/Version: 0.0.1/g' DESCRIPTION
 	sed -i   's/Authors@R: .*/Authors@R: person($(person), email="$(email)", role=c("aut","cre"))/g' DESCRIPTION
