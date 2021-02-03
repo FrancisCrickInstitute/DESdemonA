@@ -36,7 +36,7 @@ endif
 project:
 	sed -i       's/Title: .*/Title: $(strproject)/g' DESCRIPTION ; \
 	sed -i     's/Version: .*/Version: 0.0.1/g' DESCRIPTION
-	sed -i   's/Authors@R: .*/Authors@R: person($(person), email="$(email)", role=c("aut","cre"))/g' DESCRIPTION
+	sed -i   's/Authors@R: .*/Authors@R: person("$(person)", email="$(email)", role=c("aut","cre"))/g' DESCRIPTION
 	sed -i 's/Description: .*/Description: Analysis for $(scientist) in $(lab) lab/' DESCRIPTION
 	shopt -s nullglob ;\
 	for r in *.{r,R,rmd,Rmd} ; do \
