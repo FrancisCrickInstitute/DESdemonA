@@ -399,7 +399,8 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     pc <- list(x=pc_glm$factors)
     percentVar <- rep(0, ncol(co))
   }
-  fml <- as.formula(paste0("~", paste(metadata(dds)$labels, collapse="+")))
+  is_vary <- sapply(colData(dds)[metadata(dds)$labels], function(v) length(unique(v))!=1)
+  fml <- as.formula(paste0("~", paste(metadata(dds)$labels[is_vary], collapse="+")))
   plotFrame <- expand.grid(Covariate=all.vars(fml),
                           PC=1:ncol(pc$x))
   plotFrame$Assoc <- 0.0
@@ -425,7 +426,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   qc_vis$PC <- list()
   cat(header, "# Visualisation of PCs ", pc_x, " and ", pc_y, " coloured by covariate", "\n", sep="")
   do_labels <- nrow(colDat)<10
-  for (j in vars) {
+  for (j in vars[is_vary]) {
     pc.df <- data.frame(PC1=pc$x[,pc_x], PC2=pc$x[,pc_y], col=colDat[[j]], sample=rownames(colDat))
     qc_vis$PC[[j]] <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
@@ -437,7 +438,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   }
   qc_vis$PC_assoc <- list()
   cat(header, "# Visualisation of associated PCs coloured by covariate", "\n", sep="") 
-  for (j in vars) {
+  for (j in vars[is_vary]) {
     tmp <- subset(plotFrame, Covariate==j)
     tmp <- tmp[order(tmp$Assoc, decreasing=TRUE),]
     pc_x <- as.integer(as.character(tmp$PC[1]))
