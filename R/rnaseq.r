@@ -278,17 +278,18 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, ...
     term <-  metadata(dds)$LRTterms
     # take the biggest fold-change vs baseline, for MA and reporting?
     if (all(term %in% names(mcols(dds)))) {
-      effect_matrix <- as.matrix(mcols(dds)[,term])
-      maxmin <- cbind(apply(effect_matrix, 1, which.max),
-                     apply(effect_matrix, 1, which.min))
+      effect_matrix <- cbind(I=rep(0, nrow(dds)),as.matrix(mcols(dds)[,term,drop=FALSE]))
+      maxmin <- cbind(
+        apply(effect_matrix, 1, which.max),
+        apply(effect_matrix, 1, which.min))
       #imax imin between them locate the max and min. imin is the 'earlier' term, to allow for negative and positive fc's
       imax <- apply(maxmin, 1, max)
       imin <- apply(maxmin, 1, min)
       r$log2FoldChange <- effect_matrix[cbind(1:length(imax), imax)] -
         effect_matrix[cbind(1:length(imin), imin)]
       r$lfcSE <- sqrt(
-      (as.matrix(mcols(dds)[,paste0("SE_", term)])[cbind(1:length(imax), imax)])^2 +
-        (as.matrix(mcols(dds)[,paste0("SE_", term)])[cbind(1:length(imin), imin)])^2
+      (as.matrix(mcols(dds)[,paste0("SE_", c("Intercept", term))])[cbind(1:length(imax), imax)])^2 +
+        (as.matrix(mcols(dds)[,paste0("SE_", c("Intercept", term))])[cbind(1:length(imin), imin)])^2
       )
       fit <- ashr::ash(r$log2FoldChange, r$lfcSE, mixcompdist = "normal", 
                       method = "shrink")
