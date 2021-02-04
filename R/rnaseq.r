@@ -137,8 +137,7 @@ check_model <- function(mdl, coldat) {
       warning("Some conditions have no samples in them")
     } else {
       mm <- mm[,!unsupported_ind]
-      colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
-      colnames(mm) <- make.names(colnames(mm))
+      colnames(mm) <- .resNames(colnames(mm))
       mdl$design <- mm
       mdl$any_dropped <- TRUE
     }
@@ -163,9 +162,7 @@ emcontrasts <- function(dds, spec, ...) {
   } else { # shouldn't happen, but
     warning("Seem to be doing EM on a matrix - not sure that's great")
     mm <- design(dds)
-    ind <- colnames(mm) == "(Intercept)"
-    colnames(mm)[ind] <- "Intercept"
-    colnames(mm) <- make.names(colnames(mm))
+    colnames(mm) <- .resNames(colnames(mm))
     fit <- lm(df$.x ~ . -1, data.frame(mm))
     ddsNames <- match(resultsNames(dds), names(coef(fit)))
   }
@@ -174,8 +171,7 @@ emcontrasts <- function(dds, spec, ...) {
   ind_est <- !is.na(contr_frame$estimate)
   contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1), drop=FALSE]
   contr_mat <- emfit$contrast@linfct[ind_est,]
-  colnames(contr_mat)[colnames(contr_mat)=="(Intercept)"] <- "Intercept"
-  colnames(contr_mat) <- make.names(colnames(contr_mat))
+  colnames(contr_mat) <- .resNames(colnames(contr_mat))
   contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,])
   names(contr) <- do.call(paste, c(contr_frame,sep= "|"))
   contr
@@ -223,7 +219,7 @@ fit_models <- function(dds, ...) {
            if (any(is_lrt)) {
              lrt <- lapply(mdl$comparisons[is_lrt],
                           function(reduced) {
-                            dds_lrt <- fitLRT(dds, full=mdl$design, reduced=reduced, ...)
+                            dds_lrt <- fitLRT(dds, mdl=mdl, reduced=reduced, ...)
                             metadata(dds_lrt)$model <- mdl$design
                             metadata(dds_lrt)$comparison <- reduced
                             dds_lrt
@@ -238,22 +234,21 @@ fit_models <- function(dds, ...) {
 ## Do likelihood ratio test, and classify in order of effect size
 ## Doesn't work for interactions, obviously
 
-fitLRT <- function(dds, full, reduced, ...) {
+fitLRT <- function(dds, mdl, reduced, ...) {
+  new_full <- check_model(mdl, colData(dds))
+  if (new_full$any_dropped) {
+    full <- new_full$design
+    reduced <- model.matrix(reduced, colData(dds))
+    unsupported_ind <- apply(reduced==0, 2, all)
+    colnames(reduced) <- .resNames(colnames(reduced))
+  } else {
+    full <- mdl$design
+  }
   design(dds) <- full
   dds <- DESeq(dds, test="LRT", full=full, reduced=reduced, ...)
-  ## cols <- resultsNames(dds)
-  ## inBoth <- intersect(attr(terms(full), "term.labels"),
-  ##                    attr(terms(reduced), "term.labels"))
-  ## testTerm <- setdiff(attr(terms(full), "term.labels"),
-  ##                    attr(terms(reduced), "term.labels"))
-  ## if (length(inBoth)) {
-  ##   cols <- cols[!grepl(inBoth, cols)]
-  ## }
-  ## toOrd <- mcols(dds)[cols]
-  ## toOrd[,1] <- 0
-  ## ords <-  apply(toOrd, 1, order)
-  ## str <- matrix(levels(dds[[testTerm]])[ords], nrow=nrow(ords), ncol=ncol(ords))
-  ## mcols(dds)$class <- apply(str, 2, paste, collapse="<")
+  metadata(dds)$LRTterms=setdiff(colnames(attr(dds, "modelMatrix")),
+                                 colnames(attr(dds, "reducedModelMatrix")
+                                          ))
   dds
 }
 
@@ -279,27 +274,31 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, ...
   if ("LRTPvalue" %in% names(mcols(dds))) {
     r$class <- mcols(dds)$class
     r$class[is.na(r$padj) | is.na(r$pvalue) | r$baseMean==0] <- NA
-    term <- setdiff(.resNames(dds,  metadata(dds)$model),
-                   .resNames(dds,  metadata(dds)$comparison))
-    convertNames <- DESeq2:::renameModelMatrixColumns(colData(dds), metadata(dds)$model)
-    convertNames <- subset(convertNames, from %in% term)
-    term[match(convertNames$from, term)] <- convertNames$to
+    term <-  metadata(dds)$LRTterms
     # take the biggest fold-change vs baseline, for MA and reporting?
-    effect_matrix <- as.matrix(mcols(dds)[,term])
-    ind <- apply(abs(effect_matrix), 1, which.max)
-    ind <- sapply(ind, function(x) ifelse(length(x)==0, NA, x))
-    r$log2FoldChange <- effect_matrix[cbind(1:length(ind), ind)]
-    r$lfcSE <- as.matrix(mcols(dds)[,paste0("SE_", term)])[cbind(1:length(ind), ind)]
-    fit <- ashr::ash(r$log2FoldChange, r$lfcSE, mixcompdist = "normal", 
-                    method = "shrink")
-    r$shrunkLFC <- fit$result$PosteriorMean
-    r$whichLFC <- term[ind]
-    r$lfcSE <- fit$result$PosteriorSD
-    effect_matrix <- cbind(0, effect_matrix)
-    colnames(effect_matrix)[1] <- "0"
-    colnames(effect_matrix) <- sub(paste0("(", paste0( all.vars(metadata(dds)$model), "_", collapse="|"),")"),  "", colnames(effect_matrix))
-    ind <- apply(effect_matrix, 1, order)
-    r$class <- apply(ind, 2, function(x) paste(colnames(effect_matrix)[x], collapse="<"))
+    if (all(term %in% names(mcols(dds)))) {
+      effect_matrix <- as.matrix(mcols(dds)[,term])
+      maxmin <- cbind(apply(effect_matrix, 1, which.max),
+                     apply(effect_matrix, 1, which.min))
+      #imax imin between them locate the max and min. imin is the 'earlier' term, to allow for negative and positive fc's
+      imax <- apply(maxmin, 1, max)
+      imin <- apply(maxmin, 1, min)
+      r$log2FoldChange <- effect_matrix[cbind(1:length(imax), imax)] -
+        effect_matrix[cbind(1:length(imin), imin)]
+      r$lfcSE <- sqrt(
+      (as.matrix(mcols(dds)[,paste0("SE_", term)])[cbind(1:length(imax), imax)])^2 +
+        (as.matrix(mcols(dds)[,paste0("SE_", term)])[cbind(1:length(imin), imin)])^2
+      )
+      fit <- ashr::ash(r$log2FoldChange, r$lfcSE, mixcompdist = "normal", 
+                      method = "shrink")
+      r$shrunkLFC <- fit$result$PosteriorMean
+      r$lfcSE <- fit$result$PosteriorSD
+      r$class <- paste(colnames(effect_matrix)[imax], "V", colnames(effect_matrix)[imin])
+    } else {
+      warning("Couldn't work out relevant group ordering in LRT")
+      r$shrunkLFC <- lfcShrink(dds, res=r, type="ashr", quiet=TRUE)$log2FoldChange
+      r$class <- ""
+    }
   }  else {
     r$shrunkLFC <- lfcShrink(dds, res=r, type="ashr", quiet=TRUE)$log2FoldChange
     r$class <- ifelse(r$log2FoldChange >0, "Up", "Down")
@@ -313,14 +312,10 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, ...
   dds
 }
 
-.resNames <- function(dds, mdl) {
-  make.names(
-  colnames(stats::model.matrix.default(
-    mdl, 
-    data = as.data.frame(colData(dds))
-  ))
-  )
-  }
+.resNames <- function(names) {
+ names[names == "(Intercept)"] <- "Intercept"
+ make.names(names)
+}
 
 
 summarise_results <- function(dds) {
@@ -577,11 +572,18 @@ differential_MA <- function(ddsList, caption) {
     md <- metadata(ddsList[[i]])
     pal <- RColorBrewer::brewer.pal(12, "Set3")
     if (is_formula(md$comparison)) {
-      term <- sort(unique(mcols(ddsList[[i]])$results$whichLFC))
-      res$class <- ifelse(grepl("\\*", res$class),res$whichLFC, "None")
-      cols <- setNames(c(pal[1:length(term)], "grey"), c(term, "None"))
+      res$class <- ifelse(grepl("\\*", res$class),res$class, "None")
+      colind <- (seq(along=unique(res$class), from=0)) %% length(pal) + 1
       yax <- "Largest fold change"
-      lpos <- "bottom"
+      if (length(colind)>12) {
+        res$class <- ifelse(res$class=="None","None","Sig")
+        cols <- setNames(c("blue","grey"), c("Sig","None"))
+        lpos <- "none"
+      } else {
+        cols <- setNames(c(pal[colind]), unique(res$class))
+        cols["None"] <- "grey"
+        lpos <- "bottom"
+      }
     } else {
       res$class <- ifelse(grepl("\\*", res$class), "Sig", "Not")
       cols <- setNames(c("blue","grey"), c("Sig","Not"))
