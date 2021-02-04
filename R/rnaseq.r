@@ -240,6 +240,7 @@ fitLRT <- function(dds, mdl, reduced, ...) {
     full <- new_full$design
     reduced <- model.matrix(reduced, colData(dds))
     unsupported_ind <- apply(reduced==0, 2, all)
+    reduced <- reduced[, !unsupported_ind]
     colnames(reduced) <- .resNames(colnames(reduced))
   } else {
     full <- mdl$design
