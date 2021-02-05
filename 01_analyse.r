@@ -151,7 +151,7 @@ dds_model_comp <- map_depth(
   alpha=param$get("alpha"))
 
 dds_env <- new.env()
-dds_name <- paste0(basename(tools::file_path_sans_ext("a/b.des")),"_dds")
+dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_dds")
 assign(dds_name, dds_model_comp, envir=dds_env)
 save(list=dds_name,
      file=file.path("data", paste0(dds_name, ".rda")),
