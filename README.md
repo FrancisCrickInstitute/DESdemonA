@@ -52,7 +52,7 @@ specicifation(
 ```
 
 So a collection of samples is called a `sample_set`, and we have two
-(a `list`) of theme here. The `subset` expression of a sample\_set is
+(a `list`) of them here. The `subset` expression of a sample\_set is
 evaluated in the context of the `colData`, so the first one always
 evaluates to `TRUE`, denoted that we include all samples; the second
 one evaluates to `FALSE` for a particular sample (assuming we have a
@@ -326,7 +326,7 @@ DESeq2, the first will need the advice of a statistician to see if
 anything is recoverable and at what compromise.
 
 The 'missing condition' case is easily remedied by supplying the
-option `drop\_unsupported\_combinations=TRUE` to any _model_ you want
+option `drop\_unsupported_combinations=TRUE` to any _model_ you want
 this to apply to. The 'nesting' case normally requires a tweak to the
 way factors are coded, and we have made it easy to achieve this
 through a `transform` option to any _sample\_set_.  Both options are
@@ -339,7 +339,7 @@ specicifation(
       subset = TRUE,
 	  transform = mutate(unit = recode_within(unit, genotype))
 	  models = list(
-	    accurate = model(
+	    nested = model(
 		  design = ~timepoint *  genotype + person:genotype,
 		  models = list(
 			mult_comp(rev.pairwise ~ timepoint | genotype),
@@ -355,7 +355,7 @@ specicifation(
 The 'missing condition' case is achieved by just the one line; the
 nesting is more complex - we firstly have to have a 'unit' column in
 our `colData` that identifies which biological unit (person, animal,
-plate) a sample belongs to. Then the `transform` line calls a `recode\_
+plate) a sample belongs to. Then the `transform` line calls a `recode_
 within` function that tells us that unit is nested within genotype
 here. And we alter the `design` in accordance with the DESeq2 vignette
 on within- and between- group comparisons.
@@ -363,3 +363,31 @@ on within- and between- group comparisons.
 The `transform` statement can be used to adjust any of the `colData`
 columns in-line, though it might be better to generate then in the
 original DESeq2 data object that is taken as input.
+
+### Settings
+
+Other than the overall modelling strategy, it's important to be able
+to tune the analysis by chosing the parameters behind the
+algorithms. It's possible to set any parameters that the core analysis
+script has made available to you through the `settings` top level
+option:
+
+```
+specicifation(
+  sample_sets =list( 
+  ...
+  )
+ settings=settings(     ## analysis parameters
+   alpha          = 0.05,    ## p-value cutoff
+   lfcThreshold   = 0,       ## abs lfc threshold
+   baseMeanMin    = 5,       ## discard transcripts with average normalised counts lower than this
+   top_n_variable = 500,     ## For PCA
+   showCategory   = 25,      ## For enrichment analyses
+   seed           = 1,       ## random seed gets set at start of script, just in case.
+   filterFun      = IHW::ihw ## NULL for standard DESeq2 results, otherwise  functions
+    )
+)
+```
+
+## Usage
+
