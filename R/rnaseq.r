@@ -19,23 +19,6 @@
 ##' @param within The parent factor that 'inner' is inside, e.g. the genotype of the cell-line
 ##' @return A recoded factor that can now replace the inner (cell-line) variable in your model
 ##' @author Gavin Kelly
-nest_batch <- function(inner, within, set_to=".") {
-  n_instances <- apply(table(inner, within)!=0, 1, sum)
-  if (any(n_instances>1)) {
-    stop(paste(names(n_instances)[n_instances>1], collapse=", "), " appear in multiple parents")
-  }
-  levels_in <- levels(inner)
-  # each inner level has in a unique group, find it
-  corresponding_group <-within[match(levels_in, inner)]
-  # for each group, find index of first inner level
-  which_inner <- match(levels(within), corresponding_group)
-  # and set it to the common value
-  if (any(levels(inner)[-which_inner]==set_to )) { # we're going to duplicate an existing level so best stop
-    stop("One of the batches is already called ", set_to, ". Please use a non-existing level")
-  }
-  levels(inner)[which_inner] <- set_to
-  inner
-  }
 
 recode_within <- function(inner, within) {
   tab <- table(inner, within)!=0 # which batches are in which nest
@@ -43,7 +26,7 @@ recode_within <- function(inner, within) {
     stop("Some inner levels appear in multiple outer groups.")
   }
   factor(apply(tab, 2, cumsum)[cbind(as.character(inner),as.character(within))]) # cumsum to get incrementing index within group.
-  }
+}
 
 clean_nested_imbalance <- function(dds) {
   mm <- model.matrix(design(dds), colData(dds))
@@ -77,7 +60,13 @@ load_specs <- function(file="", context) {
     assign("specification", list, envir=e)
     assign("settings",
            function(...) {
-             as.list( substitute(alist(...)))
+             as.list( substitute(alist(...)))[-1]
+           },
+           envir=e
+           )
+    assign("mutate",
+           function(...) {
+             substitute(alist(...))
            },
            envir=e
            )
@@ -113,10 +102,17 @@ build_dds_list <- function(dds, spec) {
     }
     obj <- dds[,ind]
     colData(obj) <- droplevels(colData(obj))
-    metadata(obj)$models <- mdlList 
+    metadata(obj)$models <- mdlList
+    if ("transform" %in% names(set)) {
+      .mu <- purrr::partial(mutate, .data=as.data.frame(colData(obj)))
+      tr <- set$transform
+      tr[[1]] <- .mu
+      colData(obj) <- S4Vectors::DataFrame(eval(tr))
+    }
     obj
   })
 }
+
 
 
 check_model <- function(mdl, coldat) {
