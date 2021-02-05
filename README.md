@@ -1,4 +1,4 @@
-** DESDemonA Philosophy
+## DESDemonA Philosophy
 
 This is a wrapper round DESeq2 which standardises the process of
 generating `DESeq2::results` objects for a specifiable set of
@@ -30,7 +30,7 @@ specification(
 )
 ```
 
-*** Sample sets
+### Sample sets
 The highest level of any DESDemonA analysis is a choice as to what
 samples are to be analysed together. Often this is trivial, and the
 only sensible analysis is to look at all the samples together. But
@@ -89,7 +89,7 @@ now we'll look at the main analysis attribute of a sample set, namely
 the model we'll use to estimate the expression in the various
 experimental conditions those samples were taken from:
 
-*** Models
+### Models
 
 DESeq2 uses R's standard one-sided formulas to inform the analysis as
 to which predictors to use in fitting a negative-binomial model of
@@ -136,7 +136,7 @@ then in a position to test the significance of contrasts (e.g.
 individual log fold-changes between condtions) and terms in the model
 (e.g whether batch effect is necessary or not):
 
-*** Comparisons
+### Comparisons
 
 DESeq2 has multiple ways of specifying a contrast. All of these are
 supported, and again as 'comparisons' is plural, we can have a list of
@@ -181,7 +181,7 @@ You are referred to the DESeq2 reference manual for further details,
 but one advantage of DESDemonA is that it allows a simple enumeration
 of complex comparisons using machinery from the `emmeans` package:
 
-**** Automatic comparison enumeration
+#### Automatic comparison enumeration
 
 We often find ourselves copying a contrast multiple times, with slight
 changes to elicit comparisons between different conditions. For
@@ -238,7 +238,7 @@ everything we'd ever need, as for example the difference between
 'novel\_treatment' and 'control' is by construction independent of
 which batch we're in.
 
-**** Interaction terms
+#### Interaction terms
 
 When our model includes an interaction between two main effects, say
 between treatment and genotype, then the magnitude of difference
@@ -300,7 +300,7 @@ The above is probably quite intimidating, so please ask for help on
 this - I'll try to write something a bit more friendly.
 
 
-*** Rank deficiency 
+### Rank deficiency 
 
 One of the most common hurdles in complex designs s the
 rank-deficiency problem. The way the experiment has been described can
