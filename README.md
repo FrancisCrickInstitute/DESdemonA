@@ -1,3 +1,5 @@
+{:toc}
+
 ## DESDemonA Philosophy
 
 This is a wrapper round DESeq2 which standardises the process of
@@ -133,7 +135,7 @@ So once again the plural 'models' is a list of individual `model`
 objects, which for the moment we've just specified by their `design`,
 exactly as we would for a `DESeq` object. Once we have a model, we are
 then in a position to test the significance of contrasts (e.g.
-individual log fold-changes between condtions) and terms in the model
+individual log fold-changes between conditions) and terms in the model
 (e.g whether batch effect is necessary or not):
 
 ### Comparisons
@@ -165,7 +167,7 @@ specicifation(
 ```
 
 So all of the traditional ways of specifying a specific contrst are
-represented, respecively:
+represented, respectively:
 
 - by a single character, traditionally done in DESeq2 with
   `results(..., name="treat_vs_ctrl")`
@@ -229,7 +231,7 @@ labelled "control". There are a number of other helpful keywords:
   natural 'vehicle vs control', 'standard vs vehicle' and finally
   'novel\_treatment vs standard'
   
-- `trt.vs.ctrl` choses one baseline (which we can select with an
+- `trt.vs.ctrl` chooses one baseline (which we can select with an
   additional `ref` argument, rather than having to `relevel` the data)
   and compares everything else against it.
   
@@ -246,7 +248,7 @@ between two treatments can depend on the genotype. This leads to two
 types of follow-up question: stratifying the data by one factor, and
 then examining the effect of the other factor in each individual
 stratum, or; examining the interaction itself, so looking to see if
-the magnitude of effect is different in one stratume than another.
+the magnitude of effect is different in one stratum than another.
 
 To make this more concrete for the genotype x treatment case, we could
 ask: which genes are responding to treatment in the KO; which genes
@@ -276,7 +278,7 @@ specicifation(
 so the `|` symbol is to be read as "stratified by" (or "conditioned
 on"). The first `mult_comp` is stratifying the treatment, and will
 generate the pairwise comparisons within treatment, separately for
-each different genotype. The second is the dual quesiton: For each
+each different genotype. The second is the dual question: For each
 treatment, find the genes that are 'markers of genotype' within that
 treatment group.
 
@@ -302,7 +304,7 @@ this - I'll try to write something a bit more friendly.
 
 ### Rank deficiency 
 
-One of the most common hurdles in complex designs s the
+One of the most common hurdles in complex designs is the
 rank-deficiency problem. The way the experiment has been described can
 result in the analysis struggling to identify an estimate for a
 particular experimental condition. This happens for one of three
@@ -367,7 +369,7 @@ original DESeq2 data object that is taken as input.
 ### Settings
 
 Other than the overall modelling strategy, it's important to be able
-to tune the analysis by chosing the parameters behind the
+to tune the analysis by choosing the parameters behind the
 algorithms. It's possible to set any parameters that the core analysis
 script has made available to you through the `settings` top level
 option:
@@ -479,7 +481,7 @@ place to start - I'll write some 'developer' documentation to cover
 this.
 
 In addition to creating an R object which contains all the results of
-all the analyses specificed, any of these ways of invoking the
+all the analyses specified, any of these ways of invoking the
 analysis will produce an HTML report in the `results` directory.
 
 ## Output
