@@ -151,7 +151,7 @@ specicifation(
 	  models = list(
 	    accurate = model(
 		  design = ~treatment + batch,
-		  models = list(
+		  comparisons = list(
 			comp1 = "treat_vs_ctrl",
 			comp2 = c("treatment", "treat", "ctrl"),
 			comp3 = list(c("treat_vs_ctrl"), c("vehicle_vs_ctrl"), listValues=c(1,-1))
@@ -187,7 +187,7 @@ We often find ourselves copying a contrast multiple times, with slight
 changes to elicit comparisons between different conditions. For
 example if our samples have been subject to three different treatment
 regimes, and a control, so treatment={_control_, _vehicle_,
-_standard_, _novel\_treatment_}, and we wanted to compare everything to
+_standard_, _novel_treatment_}, and we wanted to compare everything to
 _control_, then we'd need to hand-write three comparisons. Instead we
 can now write
 
@@ -199,7 +199,7 @@ specicifation(
 	  models = list(
 	    accurate = model(
 		  design = ~treatment + batch,
-		  models = list(
+		  comparisons = list(
 			mult_comp(trt.vs.ctrl ~ treatment, ref="control")
 		  )
 		)
@@ -262,7 +262,7 @@ specicifation(
 	  models = list(
 	    accurate = model(
 		  design = ~treatment *  genotype,
-		  models = list(
+		  comparisons = list(
 			mult_comp(rev.pairwise ~ treatment | genotype)
 			mult_comp(rev.pairwise ~ genotype  | treatment)
 		  )
@@ -326,7 +326,7 @@ DESeq2, the first will need the advice of a statistician to see if
 anything is recoverable and at what compromise.
 
 The 'missing condition' case is easily remedied by supplying the
-option `drop\_unsupported_combinations=TRUE` to any _model_ you want
+option `drop_unsupported_combinations=TRUE` to any _model_ you want
 this to apply to. The 'nesting' case normally requires a tweak to the
 way factors are coded, and we have made it easy to achieve this
 through a `transform` option to any _sample\_set_.  Both options are
@@ -341,7 +341,7 @@ specicifation(
 	  models = list(
 	    nested = model(
 		  design = ~timepoint *  genotype + person:genotype,
-		  models = list(
+		  comparisons = list(
 			mult_comp(rev.pairwise ~ timepoint | genotype),
 		  drop_unsupported_combinations=TRUE
 		  )
@@ -389,5 +389,92 @@ specicifation(
 )
 ```
 
+## Installation
+
+```
+git clone crickBabs/RNASeq-DESeq project_folder
+cd project_folder
+``` 
+
+will create all the required files in the ``project_folder``
+directory. You may notice that it contains a ``R`` directory and a
+``DESCRIPTION`` file - which is enough for R to think it is a
+package. The latter contains a generic project title, but if you're
+following the standard BABS approach, where you have created
+``project_folder`` in the hierarchy `working/username/lab/scientist/`
+then you can automatically customise it by:
+
+```
+git config --global user.name "First Last"
+git config --global user.email "first.last@crick.ac.uk"
+ts init type=rnaseq
+make project
+make config
+```
+
+You may not need to do the first two lines if you've already correctly
+configured git. And the third line is optional if you're operating in
+a directory that already has a ``.babs`` file. The fourth line uses
+information from your git and babs configurations to make the package
+specific to your project, and then clears the git history so that it
+can cleanly store any future changes. Finally we create links to
+standard Crick storage locations.
+
+If you're not using BABS' standard approach, you'll want to edit the
+``DESCRIPTION`` file so that it is specific to your project, and also
+manually remove the ``.git`` directory ready to make a
+project-specific commit history.
+
+
+
+All that remains is to create your initial dds object and specificy
+your first analysis:
+
 ## Usage
+
+As mentioned in the 'philosophy' section, we require two files to
+enable the analysis: a DESeq object containing all the counts, and a
+specification file. We've covered the ``.spec`` file above - you'll
+just need to create an arbitrarily (but meaningfully) named file
+conforming to the specification with a ``.spec`` extension in the top
+level of the project folder.
+
+To create an overall DESeq object, I suggest you look at the
+``00_init.r`` file to see how to do this. There are a few pieces of
+metadata that the DESeq object needs to store (species, gene
+symbols,...) and most crucially all the covariates that we might want
+when we analyse the data. The order of levels in a factor is perhaps
+less important than it has traditionally been, given we can use
+`mult_comp` to be more flexible, but it still makes sense to use the
+opportunity in ``00_init.r`` to put them in a sensible order. It's
+fine to set ``design(rsem_dds) <- ~1``, a temporary, uninformative
+design, as it will get changed as required.
+
+The important thing is that we have an ``data/rsem_dds.rda`` file as
+that is the place DESDemonA will look for its starting object. So
+assuming we have that, and a well formed e.g. ``default.spec``, we can
+run
+
+```
+make data/default.rda #or
+make analyses
+```
+
+The former invocation is explicitly identifying which analysis
+specification to use; the latter will look for all ``.spec`` files
+and, if their ``rda`` files need creating/updating, run the relevant
+analysis. 
+
+If you want to remain in R and run the analysis 'manually' then the
+above are primarily doing
+
+```
+R> library(rmarkdown)
+R> render("01_analysis.r", params(res_dir="results", spec_file="default.spec"))
+```
+
+As you see, ``01_analysis.r`` is the main script, so if you want to
+customise the reports to add extra functionality, then this is the
+place to start - I'll write some 'developer' documentation to cover
+this.
 
