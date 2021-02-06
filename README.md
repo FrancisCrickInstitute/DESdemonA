@@ -1,3 +1,4 @@
+* table of contents
 {:toc}
 
 ## DESDemonA Philosophy
@@ -46,8 +47,8 @@ specicifation(
     all = sample_set(
       subset = TRUE
     ),
-	no_outlier=sample_set(
-	  subset = sample_id != "id_of_bad_sample"
+    no_outlier=sample_set(
+    subset = sample_id != "id_of_bad_sample"
     )
   )
 )
@@ -74,11 +75,11 @@ specicifation(
     all = sample_set(
       subset = TRUE
     ),
-	tumour=sample_set(
-	  subset = condition == "tumour"
+    tumour=sample_set(
+      subset = condition == "tumour"
     ),
-	normal=sample_set(
-	  subset = condition == "normal"
+    normal=sample_set(
+      subset = condition == "normal"
     )
 
   )
@@ -118,14 +119,14 @@ specicifation(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE,
-	  models = list(
-	    accurate = model(
-		  design = ~treatment + batch
-		),
-	    powerful = model(
-		  design = ~treatment
-		)
-	  )
+      models = list(
+        accurate = model(
+          design = ~treatment + batch
+        ),
+        powerful = model(
+          design = ~treatment
+        )
+      )
     )
   )
 )
@@ -150,17 +151,17 @@ specicifation(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE,
-	  models = list(
-	    accurate = model(
-		  design = ~treatment + batch,
-		  comparisons = list(
-			comp1 = "treat_vs_ctrl",
-			comp2 = c("treatment", "treat", "ctrl"),
-			comp3 = list(c("treat_vs_ctrl"), c("vehicle_vs_ctrl"), listValues=c(1,-1))
-			comp4 = c(1,0,-0.5,-0.5)
-		  )
-		)
-	  )
+      models = list(
+        accurate = model(
+          design = ~treatment + batch,
+          comparisons = list(
+            comp1 = "treat_vs_ctrl",
+            comp2 = c("treatment", "treat", "ctrl"),
+            comp3 = list(c("treat_vs_ctrl"), c("vehicle_vs_ctrl"), listValues=c(1,-1))
+            comp4 = c(1,0,-0.5,-0.5)
+          )
+        )
+      )
     )
   )
 )
@@ -198,14 +199,14 @@ specicifation(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE,
-	  models = list(
-	    accurate = model(
-		  design = ~treatment + batch,
-		  comparisons = list(
-			mult_comp(trt.vs.ctrl ~ treatment, ref="control")
-		  )
-		)
-	  )
+      models = list(
+        accurate = model(
+          design = ~treatment + batch,
+          comparisons = list(
+            mult_comp(trt.vs.ctrl ~ treatment, ref="control")
+          )
+        )
+      )
     )
   )
 )
@@ -261,15 +262,15 @@ specicifation(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE,
-	  models = list(
-	    accurate = model(
-		  design = ~treatment *  genotype,
-		  comparisons = list(
-			mult_comp(rev.pairwise ~ treatment | genotype)
-			mult_comp(rev.pairwise ~ genotype  | treatment)
-		  )
-		)
-	  )
+      models = list(
+        accurate = model(
+          design = ~treatment *  genotype,
+          comparisons = list(
+            mult_comp(rev.pairwise ~ treatment | genotype)
+            mult_comp(rev.pairwise ~ genotype  | treatment)
+          )
+        )
+      )
     )
   )
 )
@@ -339,16 +340,16 @@ specicifation(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE,
-	  transform = mutate(unit = recode_within(unit, genotype))
-	  models = list(
-	    nested = model(
-		  design = ~timepoint *  genotype + person:genotype,
-		  comparisons = list(
-			mult_comp(rev.pairwise ~ timepoint | genotype),
-		  drop_unsupported_combinations=TRUE
-		  )
-		)
-	  )
+      transform = mutate(unit = recode_within(unit, genotype))
+      models = list(
+        nested = model(
+          design = ~timepoint *  genotype + person:genotype,
+          comparisons = list(
+            mult_comp(rev.pairwise ~ timepoint | genotype),
+          drop_unsupported_combinations=TRUE
+          )
+        )
+      )
     )
   )
 )
