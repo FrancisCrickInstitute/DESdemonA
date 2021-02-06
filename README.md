@@ -42,7 +42,7 @@ one sample is an outlier and we'd like to examine the effect of
 omitting or retaining this sample. We can accomplish this easily:
 
 ```
-specicifation(
+specification(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE
@@ -70,7 +70,7 @@ then becomes impossible to _statistically test_ between the two
 cohorts, but we can have a third set that still combines them:
 
 ```
-specicifation(
+specification(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE
@@ -115,7 +115,7 @@ accounting for it. So we allow, in any given sample_set, for there to
 be multiple models:
 
 ```
-specicifation(
+specification(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE,
@@ -147,7 +147,7 @@ them, and have DESDemonA loop through all of them for the parent
 model:
 
 ```
-specicifation(
+specification(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE,
@@ -195,7 +195,7 @@ _control_, then we'd need to hand-write three comparisons. Instead we
 can now write
 
 ```
-specicifation(
+specification(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE,
@@ -258,7 +258,7 @@ between WT and KO in the untreated. These are all questions of the
 first type, and we can automatically generate their contrasts by:
 
 ```
-specicifation(
+specification(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE,
@@ -336,7 +336,7 @@ through a `transform` option to any _sample\_set_.  Both options are
 illustrated below:
 
 ```
-specicifation(
+specification(
   sample_sets =list( 
     all = sample_set(
       subset = TRUE,
@@ -376,7 +376,7 @@ script has made available to you through the `settings` top level
 option:
 
 ```
-specicifation(
+specification(
   sample_sets =list( 
   ...
   )
