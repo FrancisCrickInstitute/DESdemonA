@@ -456,7 +456,7 @@ assuming we have that, and a well formed e.g. ``default.spec``, we can
 run
 
 ```
-make data/default.rda #or
+make data/default_dds.rda #or
 make analyses
 ```
 
@@ -478,3 +478,63 @@ customise the reports to add extra functionality, then this is the
 place to start - I'll write some 'developer' documentation to cover
 this.
 
+In addition to creating an R object which contains all the results of
+all the analyses specificed, any of these ways of invoking the
+analysis will produce an HTML report in the `results` directory.
+
+## Output
+
+### R object
+
+The _bioinformatician's output_ is contained in the
+`data/default_dds.rda` object. If you have R with the working directory at
+the top level of our project, you will be able to access it with 
+
+```
+R> data(default_dds)
+```
+
+(And any other name for your `.spec` file will have a corresponding
+expression, swapping 'default' to the relevant base-name). This is a
+triply-nested list. The first corresponds to the datasets, so for example
+
+```
+R> names(default_dds)
+[1] "all" "tumour" "normal"
+```
+
+corresponds to our situation where we analysed the tumour/normal
+cohorts both together and individually. The next level of the list
+corresponds to the models that were run on that dataset:
+
+```
+R> names(default_dds$all)
+[1] "accurate" "powerful"
+```
+
+might represent the two different approaches we used to account for a
+potential batch effect. And finally the third level corresponds to the
+individual comparisons:
+
+```
+R> names(default_dds$all$accurate)
+[1] "comp1" "comp2" "comp3" "comp4"
+R> class(default_dds$all$accurate$comp1
+[1] "DESeqDataSet"
+R> mcols(default_dds$all$accurate$comp1)$results
+DataFrame with 19319 rows and 11 columns
+                 baseMean log2FoldChange     lfcSE      stat      pvalue        padj    weight      symbol      entrez       class  shrunkLFC
+                <numeric>      <numeric> <numeric> <numeric>   <numeric>   <numeric> <numeric> <character> <character> <character>  <numeric>
+
+```
+
+So we have the `results` stored in the `mcols` of each DESeqDataSet
+that's stored in the third level of the list. You can use
+``purrr:map_depth(default_dds, .depth=3)`` as one way of extracting
+these, or loops, or ...
+
+### HTML Report
+
+We also generate a standard report of the results, most of the
+sections being fairly self-explanatory. We may produce some more
+documentation on this at some point.
