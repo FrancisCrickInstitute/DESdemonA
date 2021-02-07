@@ -30,7 +30,7 @@ treated with as much caution, security-wise, as any other script), but
 is expected to be of a certain form, the first criterion is that it
 should start and end as follows:
 
-```
+```r
 specification(
 ...
 )
@@ -44,7 +44,7 @@ even in the simplest experiment, it might be observed for example that
 one sample is an outlier and we'd like to examine the effect of
 omitting or retaining this sample. We can accomplish this easily:
 
-```
+```r
 specification(
   sample_sets =list( 
     all = sample_set(
@@ -72,7 +72,7 @@ the estimates of dispersion that hold for the other set. Of course it
 then becomes impossible to _statistically test_ between the two
 cohorts, but we can have a third set that still combines them:
 
-```
+```r
 specification(
   sample_sets =list( 
     all = sample_set(
@@ -117,7 +117,7 @@ if it's substantial then we want to make our estimates more precise by
 accounting for it. So we allow, in any given sample_set, for there to
 be multiple models:
 
-```
+```r
 specification(
   sample_sets =list( 
     all = sample_set(
@@ -149,7 +149,7 @@ supported, and again as 'comparisons' is plural, we can have a list of
 them, and have DESDemonA loop through all of them for the parent
 model:
 
-```
+```r
 specification(
   sample_sets =list( 
     all = sample_set(
@@ -201,7 +201,7 @@ _standard_, _novel\_treatment_}, and we wanted to compare everything to
 _control_, then we'd need to hand-write three comparisons. Instead we
 can now write
 
-```
+```r
 specification(
   sample_sets =list( 
     all = sample_set(
@@ -274,7 +274,7 @@ are responding to treatment in the WT; which genes are differential
 between WT and KO in the untreated. These are all questions of the
 first type, and we can automatically generate their contrasts by:
 
-```
+```r
 specification(
   sample_sets =list( 
     all = sample_set(
@@ -303,7 +303,7 @@ treatment group.
 The second type of question, where we want to investigate a
 'difference of differences', is achieved by the following grammar:
 
-```
+```r
 mult_comp(rev.pairwise+rev.pairwise ~ treatment + genotype, interaction=TRUE)
 ```
 
@@ -380,7 +380,7 @@ way factors are coded, and we have made it easy to achieve this
 through a `transform` option to any _sample\_set_.  Both options are
 illustrated below:
 
-```
+```r
 specification(
   sample_sets =list( 
     all = sample_set(
@@ -420,7 +420,7 @@ algorithms. It's possible to set any parameters that the core analysis
 script has made available to you through the `settings` top level
 option:
 
-```
+```r
 specification(
   sample_sets =list( 
   ...
@@ -439,7 +439,7 @@ specification(
 
 ## Installation
 
-```
+```bash
 git clone crickBabs/RNASeq-DESeq project_folder
 cd project_folder
 ``` 
@@ -452,7 +452,7 @@ following the standard BABS approach, where you have created
 ``project_folder`` in the hierarchy `working/username/lab/scientist/`
 then you can automatically customise it by:
 
-```
+```bash
 git config --global user.name "First Last"
 git config --global user.email "first.last@crick.ac.uk"
 ts init type=rnaseq
@@ -503,7 +503,7 @@ that is the place DESDemonA will look for its starting object. So
 assuming we have that, and a well formed e.g. ``default.spec``, we can
 run
 
-```
+```bash
 make data/default_dds.rda #or
 make analyses
 ```
@@ -516,7 +516,7 @@ analysis.
 If you want to remain in R and run the analysis 'manually' then the
 above are primarily doing
 
-```
+```r
 R> library(rmarkdown)
 R> render("01_analysis.r", params(res_dir="results", spec_file="default.spec"))
 ```
