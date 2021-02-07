@@ -3,6 +3,9 @@
 
 ## DESDemonA Philosophy
 
+> Desdemona: Not to pick bad from bad, but by bad mend!  
+> Othello (Act IV, Scene iii) - William Shakespeare.
+
 This is a wrapper round DESeq2 which standardises the process of
 generating `DESeq2::results` objects for a specifiable set of
 comparisons. Each comparison is done in the context of a model (a
@@ -158,7 +161,8 @@ specification(
             comp1 = "treat_vs_ctrl",
             comp2 = c("treatment", "treat", "ctrl"),
             comp3 = list(c("treat_vs_ctrl"), c("vehicle_vs_ctrl"), listValues=c(1,-1))
-            comp4 = c(1,0,-0.5,-0.5)
+            comp4 = c(1,0,-0.5,-0.5),
+			comp5 = ~treatment
           )
         )
       )
@@ -167,7 +171,7 @@ specification(
 )
 ```
 
-So all of the traditional ways of specifying a specific contrst are
+So all of the traditional ways of specifying a contrast are
 represented, respectively:
 
 - by a single character, traditionally done in DESeq2 with
@@ -180,6 +184,9 @@ represented, respectively:
   
 - A numeric vector.
 
+- A formula specifying the `reduced` term for carrying out Anova via
+  a likelihood ratio test.
+
 You are referred to the DESeq2 reference manual for further details,
 but one advantage of DESDemonA is that it allows a simple enumeration
 of complex comparisons using machinery from the `emmeans` package:
@@ -190,7 +197,7 @@ We often find ourselves copying a contrast multiple times, with slight
 changes to elicit comparisons between different conditions. For
 example if our samples have been subject to three different treatment
 regimes, and a control, so treatment={_control_, _vehicle_,
-_standard_, _novel_treatment_}, and we wanted to compare everything to
+_standard_, _novel\_treatment_}, and we wanted to compare everything to
 _control_, then we'd need to hand-write three comparisons. Instead we
 can now write
 
@@ -235,6 +242,16 @@ labelled "control". There are a number of other helpful keywords:
 - `trt.vs.ctrl` chooses one baseline (which we can select with an
   additional `ref` argument, rather than having to `relevel` the data)
   and compares everything else against it.
+  
+- `mean_chg` looks to see if splitting the levels at any particlar
+  point reveals a change between levels before vs after that
+  breakpoint, so amongst other things would test if the average of the
+  _vehicle_ and _control_ was different from the average of the
+  _standard_ and _novel_ treatment.
+  
+- `eff` tests whether each individual level is different from the
+  average of the remaining levels.
+
   
 When we don't have an interaction term in our model, this is
 everything we'd ever need, as for example the difference between
@@ -301,6 +318,34 @@ order.
 
 The above is probably quite intimidating, so please ask for help on
 this - I'll try to write something a bit more friendly.
+
+#### Attention all shipping
+
+With the ease of testing so many hypotheses comes a risk of fishing
+the data, resulting in spurious statistical associations. Strictly
+speaking, anything beyond one comparison on the data requires a more
+conservative approach than is achieved even with the traditional
+control for FDR to account for the multiplicity of genes.
+
+The ideal situation is the tests are prespecified. If that is the
+case, then we should really run an anova to confirm that a change
+exists somewhere, and then do at most n-1 comparisons
+(where n is the number of levels in the factor of interest, so at most
+three comparisons for our four-treatment example) and choose
+transcripts where both the anova and contrast are significant. There's
+a further technical constraint that the comparisons should be
+independent but that is often ignored. If there are more comparisons
+of interest, then the p-values won't be controlled at the correct
+rate.
+
+Often, the ideal situation is not achieved, and an exploratory
+approach is requested. Being strict one should immediately correct for
+the abundance of hypotheses in this situation. Pragmatically and
+traditionally we neither adjust in this situation nor consider
+possible adjusting in the pre-specificied case - this means that the
+p-values aren't correctly calibrated, and one of the reasons why I
+discourage presenting them in any quantitative form as part of the
+results.
 
 
 ### Rank deficiency 
