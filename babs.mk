@@ -43,6 +43,8 @@ project:
 	sed -i 's/{{project}}/$(strproject)/g;s/{{author}}/$(me)/g' $$r ; \
 	done
 	vc=`git ls-files` ;\
+	vcv=`git describe --tags --dirty=_altered --always --long` ;\
+	sed -i 's/git_last_commit: .*/git_last_commit: $$(vcv)/' DESCRIPTION ;\
 	rm -rf .git ;\
 	git init ;\
 	git add $$vc ;\

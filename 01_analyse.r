@@ -51,6 +51,7 @@ knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
 
 data(rsem_dds)
 library(metadata(rsem_dds)$organism$org, character.only=TRUE)
+metadata(rsem_dds)$template_git <- packageDescription("babsrnaseq")$git_last_commit
 
 specs   <- babsrnaseq::load_specs(file=params$spec_file, context=rsem_dds)
 

@@ -35,6 +35,7 @@ if (length(organism$org)!=1) {
   stop(paste("Can't find annotation for", organism$genus, organism$species))
 }
 metadata(rsem_dds)$organism <- organism
+metadata(rsem_dds)$template_git <- packageDescription("babsrnaseq")$git_last_commit
 
 library(organism$org, character.only=TRUE)
 
