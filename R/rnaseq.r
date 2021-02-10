@@ -330,15 +330,40 @@ summarise_results <- function(dds) {
 
 # sigNot <- function(r) ifelse(grepl("\\*", r$class), "Sig","-")
 
+add_dim_reduct  <-  function(dds, n=Inf, family="norm", batch=~1) {
+  var_stab <- assay(vst(dds))
+  if (batch != ~1) {
+    var_stab <- residuals(limma::lmFit(var_stab, model.matrix(batch, as.data.frame(colData(dds)))), var_stab)
+  }
+  colnames(var_stab) <- colnames(dds)
+  assay(dds, "vst") <- var_stab
+  if (family=="norm") {
+    pc <- prcomp(t(var_stab), scale=FALSE)
+    percentVar <- round(100 * pc$sdev^2 / sum( pc$sdev^2 ))
+    colData(dds)$.PCA <- DataFrame(pc$x)
+    metadata(colData(dds)$.PCA)$percentVar <- setNames(percentVar, colnames(pc$x))
+    mcols(dds)$PCA <-DataFrame(pc$rotation)
+  } else {
+    co <- counts(dds, norm=FALSE)
+    pc_glm <- glmpca::glmpca(Y=co[rowSums(co)!=0,],
+                            L=ncol(co),
+                            fam=family,
+                            X=if(batch == ~1) 
+                              NULL
+                            else
+                              model.matrix(batch, as.data.frame(colData(dds)))
+                            )
+    colData(dds)$.PCA <- DataFrame(pc_glm$factors)
+    metadata(colData(dds)$.PCA)$percentVar <- setNames(rep(0, ncol(co)), colnames(pc$x))
+  }
+  dds
+}
 
 qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC Visualisation", header="\n\n##", n=500, caption=print) {
   cat(header, " ", title, "\n", sep="")
   qc_vis <- list()
   
-  var_stab <- assay(vst(dds))
-  if (batch != ~1) {
-    var_stab <- residuals(limma::lmFit(var_stab, model.matrix(batch, as.data.frame(colData(dds)))), var_stab)
-  }
+  var_stab <- assay(dds, "vst")
   top <- order(apply(var_stab, 1, sd), decreasing=TRUE)[1:n] 
 
   ### Heatmap
@@ -375,31 +400,16 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   caption("Heatmap of sample distances")
   
   ### PCA
-  if (family=="norm") {
-    pc <- prcomp(t(var_stab), scale=FALSE)
-    percentVar <- round(100 * pc$sdev^2 / sum( pc$sdev^2 ))
-  } else {
-    co <- counts(dds, norm=FALSE)
-    pc_glm <- glmpca::glmpca(Y=co[rowSums(co)!=0,],
-                    L=ncol(co),
-                    fam=family,
-                    X=if(batch == ~1) 
-                      NULL
-                    else
-                      model.matrix(batch, as.data.frame(colData(dds)))
-                    )
-
-    pc <- list(x=pc_glm$factors)
-    percentVar <- rep(0, ncol(co))
-  }
+  pc <- as.matrix(colData(dds)$.PCA)
+  percentVar <- metadata(colData(dds)$.PCA)$percentVar
   is_vary <- sapply(colData(dds)[metadata(dds)$labels], function(v) length(unique(v))!=1)
   fml <- as.formula(paste0("~", paste(metadata(dds)$labels[is_vary], collapse="+")))
   plotFrame <- expand.grid(Covariate=all.vars(fml),
-                          PC=1:ncol(pc$x))
+                          PC=1:ncol(pc))
   plotFrame$Assoc <- 0.0
   plotFrame$AIC <- 0.0
-  for (ipc in 1:ncol(pc$x)) {
-    fit0 <- lm(pc$x[,ipc]  ~ 1, data=colData(dds))
+  for (ipc in 1:ncol(pc)) {
+    fit0 <- lm(pc[,ipc]  ~ 1, data=colData(dds))
     fit1 <- add1(fit0, fml, test="Chisq")
 #    covvar_PC[rownames(fit1)[-1],ipc] <- -log10(fit1$`Pr(>Chi)`[-1])
 #    covvar_PC[rownames(fit1)[-1],ipc] <- 1-fit1$RSS[-1]/fit1$RSS[1]
@@ -420,7 +430,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   cat(header, "# Visualisation of PCs ", pc_x, " and ", pc_y, " coloured by covariate", "\n", sep="")
   do_labels <- nrow(colDat)<10
   for (j in vars[is_vary]) {
-    pc.df <- data.frame(PC1=pc$x[,pc_x], PC2=pc$x[,pc_y], col=colDat[[j]], sample=rownames(colDat))
+    pc.df <- data.frame(PC1=pc[,pc_x], PC2=pc[,pc_y], col=colDat[[j]], sample=rownames(colDat))
     qc_vis$PC[[j]] <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
       ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
@@ -436,7 +446,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     tmp <- tmp[order(tmp$Assoc, decreasing=TRUE),]
     pc_x <- as.integer(as.character(tmp$PC[1]))
     pc_y <- as.integer(as.character(tmp$PC[2]))
-    pc.df <- data.frame(PC1=pc$x[,pc_x], PC2=pc$x[,pc_y], col=colDat[[j]], sample=rownames(colDat))
+    pc.df <- data.frame(PC1=pc[,pc_x], PC2=pc[,pc_y], col=colDat[[j]], sample=rownames(colDat))
     qc_vis$PC[[j]] <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
       ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +

@@ -115,13 +115,18 @@ if (param$get("baseMeanMin")>0) {
 #'
 #+ qc-visualisation
 
+
+ddsList <- lapply(ddsList,
+                 babsrnaseq::add_dim_reduct
+                 )
+
 param$set("top_n_variable")
 for (dataset in names(ddsList)) {
   babsrnaseq::qc_heatmap(
     ddsList[[dataset]], title=dataset,
     n=param$get("top_n_variable"),
     pc_x=1, pc_y=2,
-    batch=~1,
+    batch = ~1,
     caption=fig_caption
     )
 }
