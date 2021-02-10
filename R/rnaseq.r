@@ -16,11 +16,12 @@
 ##' the columns of the design matrix that are all zero separately
 ##' @title Adjust a confounded batch effect
 ##' @param inner A factor representing the variable to be recoded, e.g. the cell-line
-##' @param within The parent factor that 'inner' is inside, e.g. the genotype of the cell-line
+##' @param ... The parent factors that 'inner' is inside, e.g. the genotype of the cell-line
 ##' @return A recoded factor that can now replace the inner (cell-line) variable in your model
 ##' @author Gavin Kelly
 
-recode_within <- function(inner, within) {
+recode_within <- function(inner, ...) {
+  within <- do.call(interaction, alist(...))
   tab <- table(inner, within)!=0 # which batches are in which nest
   if (any(rowSums(tab)>1)) {
     stop("Some inner levels appear in multiple outer groups.")
@@ -281,16 +282,15 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, ...
       #imax imin between them locate the max and min. imin is the 'earlier' term, to allow for negative and positive fc's
       imax <- apply(maxmin, 1, max)
       imin <- apply(maxmin, 1, min)
-      r$log2FoldChange <- effect_matrix[cbind(1:length(imax), imax)] -
+      r$maxLog2FoldChange <- effect_matrix[cbind(1:length(imax), imax)] -
         effect_matrix[cbind(1:length(imin), imin)]
-      r$lfcSE <- sqrt(
+      maxlfcSE <- sqrt(
       (as.matrix(mcols(dds)[,paste0("SE_", c("Intercept", term))])[cbind(1:length(imax), imax)])^2 +
         (as.matrix(mcols(dds)[,paste0("SE_", c("Intercept", term))])[cbind(1:length(imin), imin)])^2
       )
-      fit <- ashr::ash(r$log2FoldChange, r$lfcSE, mixcompdist = "normal", 
+      fit <- ashr::ash(r$maxLog2FoldChange, maxlfcSE, mixcompdist = "normal", 
                       method = "shrink")
       r$shrunkLFC <- fit$result$PosteriorMean
-      r$lfcSE <- fit$result$PosteriorSD
       r$class <- paste(colnames(effect_matrix)[imax], "V", colnames(effect_matrix)[imin])
     } else {
       warning("Couldn't work out relevant group ordering in LRT")
@@ -645,7 +645,7 @@ write_results <- function(ddsList, param, dir=".") {
         dframe <- as.data.frame(mcols(ddsList[[dataset]][[design_ind]][[contrast_name]])$results) %>%
           tibble::rownames_to_column("id") %>%
           dplyr::filter(padj<param$get("alpha")) %>%
-          dplyr::arrange(desc(shrunkLFC)) %>%
+          dplyr::arrange(desc(abs(shrunkLFC))) %>%
           dplyr::select(-pvalue, -padj)
         if (length(ddsList[[dataset]])==1) {
           sn <- contrast_name
