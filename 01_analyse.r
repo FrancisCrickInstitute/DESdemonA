@@ -149,7 +149,9 @@ dds_model_comp <- map(ddsList, babsrnaseq::fit_models, minReplicatesForReplace =
 dds_model_comp <- map_depth(
   dds_model_comp, 3, babsrnaseq::get_result,
   filterFun=param$get("filterFun"),
-  alpha=param$get("alpha"))
+  alpha=param$get("alpha"),
+  lfcThreshold=param$get("lfcThreshold")
+)
 
 dds_env <- new.env()
 dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_dds")

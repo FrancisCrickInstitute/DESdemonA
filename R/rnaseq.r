@@ -252,17 +252,17 @@ fitLRT <- function(dds, mdl, reduced, ...) {
 
 ## apply contrast, and transfer across interesting mcols from the dds
 
-get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, ...) {
+get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfcThreshold=0,  ...) {
   if (is.null(filterFun)) filterFun <- rlang::missing_arg()
   comp <- metadata(dds)$comparison
   if (!is_formula(comp)) {
     if (is.character(comp) && length(comp)==1) { #  it's a name
-      r <- results(dds, filterFun=filterFun, name=metadata(dds)$comparison, ...)
+      r <- results(dds, filterFun=filterFun, lfcThreshold=lfcThreshold, name=metadata(dds)$comparison, ...)
     } else { # it's a contrast
       if (is.list(comp) && "listValues" %in% names(comp)) {
-        r <- results(dds, filterFun=filterFun, contrast=metadata(dds)$comparison[names(comp) != "listValues"], listValues=comp$listValues, ...)
+        r <- results(dds, filterFun=filterFun, lfcThreshold=lfcThreshold, contrast=metadata(dds)$comparison[names(comp) != "listValues"], listValues=comp$listValues, ...)
       } else {
-        r <- results(dds, filterFun=filterFun, contrast=metadata(dds)$comparison, ...)
+        r <- results(dds, filterFun=filterFun, lfcThreshold=lfcThreshold, contrast=metadata(dds)$comparison, ...)
       }
     }
   } else { # it's LRT
