@@ -542,6 +542,9 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
 differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
   pal <- RColorBrewer::brewer.pal(12, "Set3")
   for (i in names(ddsList)) {
+    if (!any(grepl("\\*$", mcols(ddsList[[i]])$results$class))) {
+      next
+    }
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, tidy_fn)
     if (i == names(ddsList)[1]) {
       pdat <- tidied_data$pdat
