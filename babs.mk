@@ -42,12 +42,9 @@ project:
 	for r in *.{r,R,rmd,Rmd} ; do \
 	sed -i 's/{{project}}/$(strproject)/g;s/{{author}}/$(me)/g' $$r ; \
 	done
-	vc=`git ls-files` ;\
 	vcv=`git describe --tags --dirty=_altered --always --long` ;\
 	sed -i 's/git_last_commit: .*/git_last_commit: $$(vcv)/' DESCRIPTION ;\
-	rm -rf .git ;\
-	git init ;\
-	git add $$vc ;\
-	git commit -a -m "Standard starting point"
+	git checkout --orphan project
+	git commit -a -m "Standard starting point, from $$(vcv)"
 	git tag v0.0.1
 
