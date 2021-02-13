@@ -80,7 +80,7 @@ subsample <- function(dds, subs) {
   if (is_formula(subs)) {
     grps <- Reduce(interaction, colData(dds)[all.vars(subs)])
     grps <- names(table(grps))[table(grps)!=0]
-    out <- lapply(setNames(grps,grps),  function(x) babsrnaseq::subsample(dds, grps==x))
+    out <- lapply(setNames(grps,grps),  function(x) DESdemonA::subsample(dds, grps==x))
   } else {
     out <- dds[,subs]
     colData(out) <- droplevels(colData(out))
@@ -153,7 +153,7 @@ fit_models <- function(dds, ...) {
              new_design <- check_model(mdl, colData(dds)) 
              if (any(is_post_hoc)) {
                comps[is_post_hoc] <- lapply(comps[is_post_hoc], function(ph) {
-                 do.call(babsrnaseq::emcontrasts, c(dds=wald, spec=ph$spec, ph[-1]))
+                 do.call(DESdemonA::emcontrasts, c(dds=wald, spec=ph$spec, ph[-1]))
                })
                if (new_design$any_dropped) {
                  comps[is_post_hoc] <- lapply(comps[is_post_hoc],function(ph) {
@@ -181,7 +181,7 @@ fit_models <- function(dds, ...) {
            if (any(is_lrt)) {
              lrt <- lapply(mdl$comparisons[is_lrt],
                           function(reduced) {
-                            dds_lrt <- babsrnaseq::fitLRT(dds, mdl=mdl, reduced=reduced, ...)
+                            dds_lrt <- DESdemonA::fitLRT(dds, mdl=mdl, reduced=reduced, ...)
                             metadata(dds_lrt)$model <- mdl$design
                             metadata(dds_lrt)$comparison <- reduced
                             dds_lrt
@@ -211,7 +211,7 @@ check_model <- function(mdl, coldat) {
       warning("Some conditions have no samples in them")
     } else {
       mm <- mm[,!unsupported_ind]
-      colnames(mm) <- babsrnaseq::.resNames(colnames(mm))
+      colnames(mm) <- DESdemonA::.resNames(colnames(mm))
       mdl$design <- mm
       mdl$any_dropped <- TRUE
     }
@@ -234,7 +234,7 @@ emcontrasts <- function(dds, spec, ...) {
   } else { # shouldn't happen, but
     warning("Seem to be doing EM on a matrix - not sure that's great")
     mm <- design(dds)
-    colnames(mm) <- babsrnaseq::.resNames(colnames(mm))
+    colnames(mm) <- DESdemonA::.resNames(colnames(mm))
     fit <- lm(df$.x ~ . -1, data.frame(mm))
     ddsNames <- match(resultsNames(dds), names(coef(fit)))
   }
@@ -243,7 +243,7 @@ emcontrasts <- function(dds, spec, ...) {
   ind_est <- !is.na(contr_frame$estimate)
   contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1), drop=FALSE]
   contr_mat <- emmeans::emfit$contrast@linfct[ind_est,]
-  colnames(contr_mat) <- babsrnaseq::.resNames(colnames(contr_mat))
+  colnames(contr_mat) <- DESdemonA::.resNames(colnames(contr_mat))
   contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,])
   names(contr) <- do.call(paste, c(contr_frame,sep= "|"))
   contr
@@ -253,13 +253,13 @@ emcontrasts <- function(dds, spec, ...) {
 ## Doesn't work for interactions, obviously
 
 fitLRT <- function(dds, mdl, reduced, ...) {
-  new_full <- babsrnaseq::check_model(mdl, colData(dds))
+  new_full <- DESdemonA::check_model(mdl, colData(dds))
   if (new_full$any_dropped) {
     full <- new_full$design
     reduced <- model.matrix(reduced, colData(dds))
     unsupported_ind <- apply(reduced==0, 2, all)
     reduced <- reduced[, !unsupported_ind]
-    colnames(reduced) <- babsrnaseq::.resNames(colnames(reduced))
+    colnames(reduced) <- DESdemonA::.resNames(colnames(reduced))
   } else {
     full <- mdl$design
   }

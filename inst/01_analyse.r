@@ -40,7 +40,7 @@ devtools::load_all()
 
 
 
-fig_caption <- babsrnaseq::captioner()
+fig_caption <- DESdemonA::captioner()
 
 knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
                       dev=c("png","pdf"), out.width="90%",
@@ -51,17 +51,17 @@ knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
 
 data(rsem_dds)
 library(metadata(rsem_dds)$organism$org, character.only=TRUE)
-metadata(rsem_dds)$template_git <- packageDescription("babsrnaseq")$git_last_commit
+metadata(rsem_dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
 
-specs   <- babsrnaseq::load_specs(file=params$spec_file, context=rsem_dds)
+specs   <- DESdemonA::load_specs(file=params$spec_file, context=rsem_dds)
 
-param <- babsrnaseq::ParamList$new(defaults=specs$settings)
+param <- DESdemonA::ParamList$new(defaults=specs$settings)
 # Calling the setter without a value will pick up the default (from the spec), _and_ alert it in the markdown, and return the default
 set.seed(param$set("seed"))
 param$set("title", "{{title}}")
 param$set("script", "{{script}}")
 
-ddsList <- babsrnaseq::build_dds_list(rsem_dds, specs)
+ddsList <- DESdemonA::build_dds_list(rsem_dds, specs)
 
 
 #Which features are zero across all samples in all datasets
@@ -117,12 +117,12 @@ if (param$get("baseMeanMin")>0) {
 
 
 ddsList <- lapply(ddsList,
-                 babsrnaseq::add_dim_reduct
+                 DESdemonA::add_dim_reduct
                  )
 
 param$set("top_n_variable")
 for (dataset in names(ddsList)) {
-  babsrnaseq::qc_heatmap(
+  DESdemonA::qc_heatmap(
     ddsList[[dataset]], title=dataset,
     n=param$get("top_n_variable"),
     pc_x=1, pc_y=2,
@@ -148,11 +148,11 @@ param$set("lfcThreshold")
 param$set("filterFun")
 
 ## For each dataset, fit all its models
-dds_model_comp <- map(ddsList, babsrnaseq::fit_models, minReplicatesForReplace = Inf)
+dds_model_comp <- map(ddsList, DESdemonA::fit_models, minReplicatesForReplace = Inf)
 
 ## Now put results in each 3rd level mcols(dds)$results
 dds_model_comp <- map_depth(
-  dds_model_comp, 3, babsrnaseq::get_result,
+  dds_model_comp, 3, DESdemonA::get_result,
   filterFun=param$get("filterFun"),
   alpha=param$get("alpha"),
   lfcThreshold=param$get("lfcThreshold")
@@ -169,11 +169,11 @@ save(list=dds_name,
 rm(list=dds_name, envir=dds_env)
 rm(dds_env)
 
-xl_files <- babsrnaseq::write_results(dds_model_comp, param, dir=params$res_dir)
+xl_files <- DESdemonA::write_results(dds_model_comp, param, dir=params$res_dir)
 iwalk(xl_files,
      ~cat("\n\n<a class=\"download-excel btn btn-primary\" href=\"", sub(paste0("^", params$res_dir, "/?"), "", .x), "\"> Open Spreadsheet '", .y,"'</a>", sep="")
      )
-#babsrnaseq::write_all_results(dds_model_comp, dir=params$res_dir)
+#DESdemonA::write_all_results(dds_model_comp, dir=params$res_dir)
 
 
 
@@ -198,10 +198,10 @@ iwalk(xl_files,
 #' 
 #+ summary
 
-summaries <- map_depth(dds_model_comp, 3, babsrnaseq::summarise_results)
+summaries <- map_depth(dds_model_comp, 3, DESdemonA::summarise_results)
 
 
-per_dataset <- map(summaries, babsrnaseq::rbind_summary,
+per_dataset <- map(summaries, DESdemonA::rbind_summary,
                   levels=c("Design","Comparison")) %>%
   map(function(x) {
     levels(x$Group) <- sub(".*<(.+<.+<0)$", "\\1", levels(x$Group))
@@ -224,7 +224,7 @@ for (dataset in names(per_dataset)) {
   gt(caption=paste0("Size of gene-lists for ", dataset)) %>%
     tab_header(title="Genelist summary",
                subtitle=dataset) %>%
-    babsrnaseq::tab_link_caption() %>%
+    DESdemonA::tab_link_caption() %>%
     print()
 
   for (model in names(pval_frame[[dataset]])) {
@@ -282,7 +282,7 @@ for (dataset in names(dds_model_comp)) {
   cat("## ", dataset, " {.tabset} \n", sep="") 
   for (mdl in names(dds_model_comp[[dataset]])) {
     cat("### ", mdl, "\n", sep="")
-    babsrnaseq::differential_heatmap(dds_model_comp[[dataset]][[mdl]],
+    DESdemonA::differential_heatmap(dds_model_comp[[dataset]][[mdl]],
                          . %>% mutate(.value=.value - mean(.value)),
                          caption=fig_caption
                          )
@@ -318,7 +318,7 @@ param$set("showCategory")
 #' ## Reactome Enrichment {.tabset} 
 #'
 #+ enrich-reactome,  eval=FALSE
-enrich_plots <- map_depth(dds_model_comp, 2, babsrnaseq::enrichment,
+enrich_plots <- map_depth(dds_model_comp, 2, DESdemonA::enrichment,
   fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
 
 enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
@@ -342,7 +342,7 @@ for (dataset in names(enrich_plots)) {
 #' ## GO MF Enrichment {.tabset} 
 #'
 #+ enrich-GO,  eval=FALSE
-enrich_plots <- map_depth(dds_model_comp, 2, babsrnaseq::enrichment,
+enrich_plots <- map_depth(dds_model_comp, 2, DESdemonA::enrichment,
   fun="enrichGO", showCategory = param$get("showCategory"), max_width=30)
 enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
 

@@ -1,4 +1,4 @@
-Package: babsrnaseq
+Package: DESdemonA
 Title: DESeq2 Wrapper For Pre-Specified Analyses
 Version: 0.1.0
 Authors@R: person("Gavin", "Kelly",  email = "gavin.kelly@crick.ac.uk", role = c("aut", "cre"))
@@ -32,9 +32,8 @@ Imports:
     circlize,
     htmlwidgets,
     htmltools
-    
 Suggests:
-    ReactomePA
+    ReactomePA,
     GO.db
 License: GPL-3
 LazyData: true
