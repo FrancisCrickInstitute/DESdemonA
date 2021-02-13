@@ -59,33 +59,3 @@ ParamList <- R6::R6Class("ParamList",
                       }
                     )
                     )
-#' Open a device with a trackable name
-#'
-#' Can be used with 'pdf' 'write.table' etc
-#'
-#' @param dev contains the function which will be called (which itself will get its 'file' param filled in automatically)
-#' @param file string will be used as a starting point for the filename.  If it doesn't contain an extension, will predict from 'dev'
-#' @param ignore.chunk if set,  will over-rule the use of knitr override 
-#' @return the filename actually used
-#' @export
-vDevice <- function(dev=list, file=NA, ..., dir="results") {
-  g <- remotes:::git("describe --dirty=-M --tags --always")
-  if (is.na(file)) return(file.path(dir, g))
-  devstr <- as.character(substitute(dev)) # e.g. 'pdf', 'write.txt'
-  devstr <- sub(".*\\.", "", devstr) # e.g. 'pdf', 'txt'
-  if (!grepl("\\.", file)) {
-    file <- paste0(file, ".", devstr)
-  }
-  if (isTRUE(getOption('knitr.in.progress'))) {
-    dName <- file.path(sub("/.*", "", knitr::fig_path()))
-  } else {
-    dName <- file.path(dir, g)
-  }
-  if (!dir.exists(dName)) {
-    dir.create(dName, recursive=TRUE)
-  }
-  file <- file.path(dName,sub("([^.]*)(.*)",paste0("\\1_", g, "\\2"), file))
-  dev(..., file= file)
-  file
-}
-
