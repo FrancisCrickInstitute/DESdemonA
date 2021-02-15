@@ -132,12 +132,13 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
 ##' @author Gavin Kelly
 differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
   pal <- RColorBrewer::brewer.pal(12, "Set3")
+  first_done <- FALSE
   for (i in names(ddsList)) {
     if (!any(grepl("\\*$", mcols(ddsList[[i]])$results$class))) {
       next
     }
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, tidy_fn)
-    if (i == names(ddsList)[1]) {
+    if (!first_done) {
       pdat <- tidied_data$pdat
       grouper <- setdiff(group_vars(pdat), ".gene")
       if (length(grouper)) {
@@ -149,6 +150,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
                                                 as.factor)
       pdat <- pdat[,metadata(ddsList[[i]])$labels]
       colList <- df2colorspace(pdat)
+      first_done <- TRUE
     }
     colnames(tidied_data$mat) <- rownames(pdat)
     name <- sub(".*\\t", "", i)

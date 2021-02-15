@@ -58,7 +58,7 @@ tab_link_caption <- function(data,name) {
 ##' Deprecated
 ##'
 ##' To be replaced by tab_link_caption
-##' @title 
+##' @title deprecated
 ##' @param lbl the label
 ##' @return 
 ##' @author Gavin Kelly

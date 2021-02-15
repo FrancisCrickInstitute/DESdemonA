@@ -38,3 +38,4 @@ Suggests:
 License: GPL-3
 LazyData: true
 git_last_commit: unspecified
+RoxygenNote: 7.1.1
