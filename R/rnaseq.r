@@ -516,7 +516,7 @@ enrichment <- function(ddsList, fun, showCategory, max_width=30) {
 
 tidy_significant_dds <- function(dds, res, tidy_fn=NULL) {
   ind <- grepl("\\*$", res$class)
-  mat <- assay(vst(dds))[ind,]
+  mat <- assay(vst(dds))[ind,,drop=FALSE]
   tidy_dat <- tidy_per_gene(mat, as.data.frame(colData(dds)), tidy_fn)
   return(tidy_dat)
 }
@@ -533,7 +533,7 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
                          .gene, .add=TRUE)
     summ_long <- dplyr::ungroup(tidy_fn(pdat_long), .gene)
     tidy_pdat <- summ_long[summ_long$.gene==summ_long$.gene[1],]
-    tidy_mat <- mat[, tidy_pdat$.sample]
+    tidy_mat <- mat[, tidy_pdat$.sample,drop=FALSE]
     tidy_mat[cbind(summ_long$.gene, summ_long$.sample)] <- summ_long$.value
     tidy_pdat  <- as.data.frame(dplyr::select(tidy_pdat, -.gene, -.value, -.sample))
   }
