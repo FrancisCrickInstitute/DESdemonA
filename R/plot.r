@@ -17,6 +17,7 @@
 ##' @param caption The function to use to create captions
 ##' @return A list (invisible) of ggplot2 objects
 ##' @author Gavin Kelly
+#' @export
 qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC Visualisation", header="\n\n##", n=500, caption=print) {
   cat(header, " ", title, "\n", sep="")
   qc_vis <- list()
@@ -130,6 +131,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
 ##' @param caption The function to use to create captions
 ##' @return
 ##' @author Gavin Kelly
+#' @export
 differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
   pal <- RColorBrewer::brewer.pal(12, "Set3")
   first_done <- FALSE
@@ -175,6 +177,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
 ##' @param caption The function to use to create captions
 ##' @return 
 ##' @author Gavin Kelly
+#' @export
 differential_MA <- function(ddsList, caption) {
   for (i in names(ddsList)) {
     res <- as.data.frame(mcols(ddsList[[i]])$results)

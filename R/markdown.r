@@ -9,6 +9,7 @@
 ##' @title Caption hyperlinking
 ##' @return
 ##' @author Gavin Kelly
+#' @export
 captioner <- function() {
   local({
     captions <- character()
@@ -39,6 +40,7 @@ captioner <- function() {
 ##' @param name The filename of the csv
 ##' @return Th GT object (invisibly)
 ##' @author Gavin Kelly
+#' @export
 tab_link_caption <- function(data,name) {
   if (missing(name)) {
     heading <- gt:::dt_heading_get(data)

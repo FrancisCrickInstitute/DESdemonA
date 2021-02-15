@@ -7,6 +7,7 @@
 ##' @param levels
 ##' @return The big table
 ##' @author Gavin Kelly
+##' @export
 rbind_summary <- function(x, levels=c("Dataset", "Design", "Comparison")) {
   if (class(x[[1]])=="list") {
     do.call(rbind, mapply(function(df, name) {

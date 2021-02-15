@@ -8,6 +8,7 @@
 ##' @param dir Directory to store the results in
 ##' @return A list of file paths to the excel files
 ##' @author Gavin Kelly
+#' @export
 write_results <- function(ddsList, param, dir=".") {
   si <- session_info()
   crick_colours <-list(
@@ -83,6 +84,7 @@ write_results <- function(ddsList, param, dir=".") {
 ##' @param dir Directory to store the results in
 ##' @return 
 ##' @author Gavin Kelly
+#' @export
 write_all_results <- function(ddsList, dir=".") {
   for (i in names(ddsList)) {
     for (j in names(ddsList[[i]])) { 

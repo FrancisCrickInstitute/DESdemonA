@@ -19,7 +19,7 @@
 ##' @param ... The parent factors that 'inner' is inside, e.g. the genotype of the cell-line
 ##' @return A recoded factor that can now replace the inner (cell-line) variable in your model
 ##' @author Gavin Kelly
-
+#' @export
 load_specs <- function(file="", context) {
   if (file.exists(file)) {
     e <- as.environment(as.data.frame(colData(context)))
@@ -59,6 +59,16 @@ load_specs <- function(file="", context) {
   specs
 }
 
+##' Recode nested factors to avoid matrix-rank problems
+##'
+##' Following the suggestion in the DESeq2 vignette, recode nested factors so that
+##' they take common values in different clusters to avoid rank problems
+##' @title Recode nested factors
+##' @param inner A factor representing the variable to be recoded, e.g. the cell-line
+##' @param ... The parent factors that 'inner' is inside, e.g. the genotype of the cell-line
+##' @return A factor with recoded levels
+##' @author Gavin Kelly
+##' @export
 recode_within <- function(inner, ...) {
   within <- do.call(interaction, alist(...))
   tab <- table(inner, within)!=0 # which batches are in which nest
@@ -68,6 +78,18 @@ recode_within <- function(inner, ...) {
   factor(apply(tab, 2, cumsum)[cbind(as.character(inner),as.character(within))]) # cumsum to get incrementing index within group.
 }
 
+##' Remove extraneous factor combinations from model matrix
+##'
+##' Particularly for nested designs where different clusters have
+##' different numbers of measurements, we want to remove inestimable
+##' coefficients from the model matrix
+##' @title Remove non-estimable coefficients
+##' @param dds A DESeq2 object with corresponding `design` as a
+##'   formula
+##' @return Another DESeq2 object, where the design has been replaced
+##'   with an estimatable matrix
+##' @author Gavin Kelly
+##' @export
 clean_nested_imbalance <- function(dds) {
   mm <- model.matrix(design(dds), colData(dds))
   mm <- mm[,!apply(mm==0, 2, all)] # remove zeroed columns
@@ -75,7 +97,16 @@ clean_nested_imbalance <- function(dds) {
   dds
 }
 
-## Only use certain samples
+
+##' Subsample
+##'
+##' Think this should probably be deprecated
+##' @title subsample
+##' @param dds Not Sure
+##' @param subs Not Sure
+##' @return Not Sure
+##' @author Gavin Kelly
+##' @export
 subsample <- function(dds, subs) {
   if (is_formula(subs)) {
     grps <- Reduce(interaction, colData(dds)[all.vars(subs)])
@@ -88,7 +119,16 @@ subsample <- function(dds, subs) {
   }
   out
 }
-
+##' Expand an analysis specification into its corresponding subset list
+##'
+##' Generate a list of DESeq2 objects corresponding to the different
+##' subsets specified
+##' @title Generate subsets of DESeq2 object
+##' @param dds The original DESeq2 object containing all samples
+##' @param spec The analysis specificiation
+##' @return A list of DESeq2 objects
+##' @author Gavin Kelly
+##' @export
 build_dds_list <- function(dds, spec) {
   lapply(spec$sample_sets, function(set) {
     mdlList <- spec$models
@@ -111,6 +151,18 @@ build_dds_list <- function(dds, spec) {
   })
 }
 
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Store dimension-reduction results in DESeq2 object
+##' @param dds The original DESeq2 object containing all samples
+##' @param n 
+##' @param family 
+##' @param batch 
+##' @param spec The analysis specificiation
+##' @return 
+##' @author Gavin Kelly
+##' @export
 add_dim_reduct  <-  function(dds, n=Inf, family="norm", batch=~1) {
   var_stab <- assay(vst(dds))
   if (batch != ~1) {
@@ -140,6 +192,15 @@ add_dim_reduct  <-  function(dds, n=Inf, family="norm", batch=~1) {
   dds
 }
 
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Fit the DESeq2 models
+##' @param dds The original DESeq2 object containing all samples
+##' @param ... 
+##' @return 
+##' @author Gavin Kelly
+##' @export
 fit_models <- function(dds, ...) {
   lapply(metadata(dds)$models,
          function(mdl)  {
@@ -181,7 +242,7 @@ fit_models <- function(dds, ...) {
            if (any(is_lrt)) {
              lrt <- lapply(mdl$comparisons[is_lrt],
                           function(reduced) {
-                            dds_lrt <- DESdemonA::fitLRT(dds, mdl=mdl, reduced=reduced, ...)
+                            dds_lrt <- DESdemonA:::fitLRT(dds, mdl=mdl, reduced=reduced, ...)
                             metadata(dds_lrt)$model <- mdl$design
                             metadata(dds_lrt)$comparison <- reduced
                             dds_lrt
@@ -193,6 +254,16 @@ fit_models <- function(dds, ...) {
          )
 }
 
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Check model
+##' @param mdl 
+##' @param coldat 
+##' @param dds The original DESeq2 object containing all samples
+##' @return 
+##' @author Gavin Kelly
+##' @export
 check_model <- function(mdl, coldat) {
   mdl$any_dropped <- FALSE
   if (is_formula(mdl$design)) {
@@ -211,7 +282,7 @@ check_model <- function(mdl, coldat) {
       warning("Some conditions have no samples in them")
     } else {
       mm <- mm[,!unsupported_ind]
-      colnames(mm) <- DESdemonA::.resNames(colnames(mm))
+      colnames(mm) <- DESdemonA:::.resNames(colnames(mm))
       mdl$design <- mm
       mdl$any_dropped <- TRUE
     }
@@ -219,12 +290,32 @@ check_model <- function(mdl, coldat) {
   mdl
 }
 
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Mark a formula as a multiple comparison
+##' @param spec 
+##' @param ... 
+##' @param dds The original DESeq2 object containing all samples
+##' @return 
+##' @author Gavin Kelly
+##' @export
 mult_comp <- function(spec, ...) {
   obj <- list(spec=spec,...)
   class(obj) <- "post_hoc"
   obj
 }
 
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Expand multiple comparisons into their contrasts
+##' @param dds The original DESeq2 object containing all samples
+##' @param spec 
+##' @param ... 
+##' @return 
+##' @author Gavin Kelly
+##' @export
 emcontrasts <- function(dds, spec, ...) {
   df <- as.data.frame(colData(dds))
   df$.x <- counts(dds, norm=TRUE)[1,]
@@ -234,7 +325,7 @@ emcontrasts <- function(dds, spec, ...) {
   } else { # shouldn't happen, but
     warning("Seem to be doing EM on a matrix - not sure that's great")
     mm <- design(dds)
-    colnames(mm) <- DESdemonA::.resNames(colnames(mm))
+    colnames(mm) <- DESdemonA:::.resNames(colnames(mm))
     fit <- lm(df$.x ~ . -1, data.frame(mm))
     ddsNames <- match(resultsNames(dds), names(coef(fit)))
   }
@@ -243,7 +334,7 @@ emcontrasts <- function(dds, spec, ...) {
   ind_est <- !is.na(contr_frame$estimate)
   contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1), drop=FALSE]
   contr_mat <- emmeans::emfit$contrast@linfct[ind_est,]
-  colnames(contr_mat) <- DESdemonA::.resNames(colnames(contr_mat))
+  colnames(contr_mat) <- DESdemonA:::.resNames(colnames(contr_mat))
   contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,])
   names(contr) <- do.call(paste, c(contr_frame,sep= "|"))
   contr
@@ -251,7 +342,16 @@ emcontrasts <- function(dds, spec, ...) {
 
 ## Do likelihood ratio test, and classify in order of effect size
 ## Doesn't work for interactions, obviously
-
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Fit LRT
+##' @param dds The original DESeq2 object containing all samples
+##' @param mdl 
+##' @param reduced 
+##' @param ... 
+##' @return 
+##' @author Gavin Kelly
 fitLRT <- function(dds, mdl, reduced, ...) {
   new_full <- DESdemonA::check_model(mdl, colData(dds))
   if (new_full$any_dropped) {
@@ -259,7 +359,7 @@ fitLRT <- function(dds, mdl, reduced, ...) {
     reduced <- model.matrix(reduced, colData(dds))
     unsupported_ind <- apply(reduced==0, 2, all)
     reduced <- reduced[, !unsupported_ind]
-    colnames(reduced) <- DESdemonA::.resNames(colnames(reduced))
+    colnames(reduced) <- DESdemonA:::.resNames(colnames(reduced))
   } else {
     full <- mdl$design
   }
@@ -272,7 +372,18 @@ fitLRT <- function(dds, mdl, reduced, ...) {
 }
 
 ## apply contrast, and transfer across interesting mcols from the dds
-
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Generate the results for a model and comparison
+##' @param dds The original DESeq2 object containing all samples
+##' @param mcols 
+##' @param filterFun 
+##' @param lfcThreshold 
+##' @param ... 
+##' @return 
+##' @author Gavin Kelly
+##' @export
 get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfcThreshold=0,  ...) {
   if (is.null(filterFun)) filterFun <- rlang::missing_arg()
   comp <- metadata(dds)$comparison
@@ -336,6 +447,14 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfc
  make.names(names)
 }
 
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Tabulate the size of the differential lists
+##' @param dds 
+##' @return 
+##' @author Gavin Kelly
+##' @export
 summarise_results <- function(dds) {
   res <- mcols(dds)$results
   as.data.frame(table(
@@ -348,6 +467,17 @@ summarise_results <- function(dds) {
     dplyr::arrange(desc(Significant/Total))
 }    
 
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Enrichment analysis
+##' @param ddsList 
+##' @param fun 
+##' @param showCategory 
+##' @param max_width 
+##' @return 
+##' @author Gavin Kelly
+##' @export
 enrichment <- function(ddsList, fun, showCategory, max_width=30) {
   genes <- lapply(ddsList, function(dds) {
     res <- mcols(dds)$results
