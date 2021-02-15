@@ -36,7 +36,7 @@ library(clusterProfiler)
 library(ReactomePA)
 library(GO.db)
 library("IHW")
-devtools::load_all()
+library(DESdemonA)
 
 
 
