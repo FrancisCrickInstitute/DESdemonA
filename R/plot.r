@@ -3,7 +3,7 @@
 ##' Plot heatmaps of the raw data, along with plots of the samples
 ##' projected onto various slices of the PCA space.
 ##' @title Data Visualisation
-##' @param dds The DESeqDataSet object
+##' @param dds The [DESeq2::DESeqDataSet-class] object
 ##' @param pc_x The default choice for which principal component to
 ##'   plot on the x axis
 ##' @param pc_y The default choice for which principal component to
@@ -123,7 +123,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
 ##' For each set of results, plot the heatmap of counts, limited to
 ##' differential genes
 ##' @title Heatmaps of differential genes
-##' @param ddsList DESdemonA-generated list of DESeqDataSets
+##' @param ddsList DESdemonA-generated list of [DESeq2::DESeqDataSet-class]s
 ##' @param tidy_fn A dplyr pipeline to transform the expression values
 ##'   in a convenient manner. Use this for example to 'normalise' the
 ##'   data so that all values are relative to a particular condition.

@@ -1,3 +1,5 @@
+#' R6 class representing the set of parameters used in an analysis
+#' 
 #' @export
 ParamList <- R6::R6Class("ParamList",
                     private = list(
@@ -15,9 +17,19 @@ ParamList <- R6::R6Class("ParamList",
                       defaults=list()
                     ),
                     public = list(
+                      #' @description
+                      #' Create a new set of parameters.
+                      #' @param defaults Named list of default values.  Names are the parameters, and the values will be their default.
+                      #' @return An object that will store all future values of analysis parameters.
                       initialize = function(defaults=list()) {
                         private$defaults <- defaults
                       },
+                      #' @description
+                      #' Set the value of a parameter
+                      #' @param id The name of the parameter to be set.
+                      #' @param value The value the parameter should taken henceforth; if missing, it will take the default value.
+                      #' @param description A string describing what the purpose of the parameter is.
+                      #' @param div Logical, whether to mention in the markdown report what the value has been set to.
                       set = function(id, value, description="", div=TRUE) {
                         if (missing(value)) {
                           if (id %in% names(private$defaults)) {
@@ -45,10 +57,16 @@ ParamList <- R6::R6Class("ParamList",
                         }
                         invisible(self$get(id))
                       },
+                      #' @description
+                      #' Get the value that the parameter is currently set to.
+                      #' @param id Name of the value you want to access.
                       get = function(id) {
                         ret <- private$params[[id]]
                         if (is.call(ret)) eval(ret) else ret
                       },
+                      #' @description
+                      #' Get a text description of what the setting is, and what value it currently takes.
+                      #' @param id Name of the value you want to access.
                       describe = function(id) {
                         if (missing(id)) {
                           map(private$descriptions[names(private$params)],  function(d) glue::glue_data(.x =private$params, d))

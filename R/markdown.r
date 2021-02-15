@@ -1,10 +1,11 @@
 ##' Make captioning function that generates hyperlinks
 ##'
-##' captioner returns a function that can be used in fig.caps.  Call
+##' captioner returns a function that can be used in `fig.cap`.  Call
 ##' the resulting function with a string containing the caption text,
-##' after any plot, to store a link to the pdf version of the plot. Call
-##' the function without any arguments (e.g. in the fig.cap argument)
-##' to invoke the captioining mechanism in the markdown.
+##' after any plot, to store a link to the pdf version of the
+##' plot. Call the function without any arguments (e.g. in the
+##' `fig.cap` argument of a chunk) to invoke the captioining mechanism
+##' in the markdown.
 ##' @title Caption hyperlinking
 ##' @return
 ##' @author Gavin Kelly
@@ -30,13 +31,13 @@ captioner <- function() {
 
 ##' Link GT tables to a csv file
 ##'
-##' To be used in a GT pipeline, it will store the underlying table
+##' To be used in a `GT` pipeline, it will store the underlying table
 ##' data in a csv file under the given name, and insert a link in the
 ##' table's caption that points to the csv file.
 ##' @title Link GT tables to a csv file
 ##' @param data The GT object with a caption set
 ##' @param name The filename of the csv
-##' @return Th Gt object (invisibly)
+##' @return Th GT object (invisibly)
 ##' @author Gavin Kelly
 tab_link_caption <- function(data,name) {
   if (missing(name)) {
