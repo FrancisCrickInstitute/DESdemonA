@@ -1,0 +1,9 @@
+Package: babsrnaseq
+Title: rnaseq
+Version: 0.0.0
+Authors@R: person("BABS", email = "bioinformatics@crick.ac.uk", role = c("aut", "cre"))
+Description: Basic rnaseq template
+Depends: R (>= 3.1.0)
+License: GPL-3
+LazyData: true
+git_last_commit: unspecified

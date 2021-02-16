@@ -1,3 +1,15 @@
+##' Make captioning function that generates hyperlinks
+##'
+##' captioner returns a function that can be used in `fig.cap`.  Call
+##' the resulting function with a string containing the caption text,
+##' after any plot, to store a link to the pdf version of the
+##' plot. Call the function without any arguments (e.g. in the
+##' `fig.cap` argument of a chunk) to invoke the captioining mechanism
+##' in the markdown.
+##' @title Caption hyperlinking
+##' @return
+##' @author Gavin Kelly
+#' @export
 captioner <- function() {
   local({
     captions <- character()
@@ -18,7 +30,17 @@ captioner <- function() {
   })
 }
 
-
+##' Link GT tables to a csv file
+##'
+##' To be used in a `GT` pipeline, it will store the underlying table
+##' data in a csv file under the given name, and insert a link in the
+##' table's caption that points to the csv file.
+##' @title Link GT tables to a csv file
+##' @param data The GT object with a caption set
+##' @param name The filename of the csv
+##' @return Th GT object (invisibly)
+##' @author Gavin Kelly
+#' @export
 tab_link_caption <- function(data,name) {
   if (missing(name)) {
     heading <- gt:::dt_heading_get(data)
@@ -32,10 +54,15 @@ tab_link_caption <- function(data,name) {
     "table_caption",
     paste0("[", caption, "](", fname, ")")
   )
+  invisible(data)
 }
 
+##' Deprecated
+##'
+##' To be replaced by tab_link_caption
+##' @title deprecated
+##' @param lbl the label
+##' @return 
+##' @author Gavin Kelly
 klabel <- function(lbl) paste0(knitr::opts_current$get('label'), "-", lbl)
 
-rmd_link_data <- function(fname) {
-  paste0("\n\n<a href=\"", fname, "\"><i class=\"fa fa-file-download\"></i>Download data</a>")
-}

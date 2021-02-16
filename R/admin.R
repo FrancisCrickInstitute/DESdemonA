@@ -1,3 +1,5 @@
+#' R6 class representing the set of parameters used in an analysis
+#' 
 #' @export
 ParamList <- R6::R6Class("ParamList",
                     private = list(
@@ -15,9 +17,19 @@ ParamList <- R6::R6Class("ParamList",
                       defaults=list()
                     ),
                     public = list(
+                      #' @description
+                      #' Create a new set of parameters.
+                      #' @param defaults Named list of default values.  Names are the parameters, and the values will be their default.
+                      #' @return An object that will store all future values of analysis parameters.
                       initialize = function(defaults=list()) {
                         private$defaults <- defaults
                       },
+                      #' @description
+                      #' Set the value of a parameter
+                      #' @param id The name of the parameter to be set.
+                      #' @param value The value the parameter should taken henceforth; if missing, it will take the default value.
+                      #' @param description A string describing what the purpose of the parameter is.
+                      #' @param div Logical, whether to mention in the markdown report what the value has been set to.
                       set = function(id, value, description="", div=TRUE) {
                         if (missing(value)) {
                           if (id %in% names(private$defaults)) {
@@ -45,10 +57,16 @@ ParamList <- R6::R6Class("ParamList",
                         }
                         invisible(self$get(id))
                       },
+                      #' @description
+                      #' Get the value that the parameter is currently set to.
+                      #' @param id Name of the value you want to access.
                       get = function(id) {
                         ret <- private$params[[id]]
                         if (is.call(ret)) eval(ret) else ret
                       },
+                      #' @description
+                      #' Get a text description of what the setting is, and what value it currently takes.
+                      #' @param id Name of the value you want to access.
                       describe = function(id) {
                         if (missing(id)) {
                           map(private$descriptions[names(private$params)],  function(d) glue::glue_data(.x =private$params, d))
@@ -59,33 +77,3 @@ ParamList <- R6::R6Class("ParamList",
                       }
                     )
                     )
-#' Open a device with a trackable name
-#'
-#' Can be used with 'pdf' 'write.table' etc
-#'
-#' @param dev contains the function which will be called (which itself will get its 'file' param filled in automatically)
-#' @param file string will be used as a starting point for the filename.  If it doesn't contain an extension, will predict from 'dev'
-#' @param ignore.chunk if set,  will over-rule the use of knitr override 
-#' @return the filename actually used
-#' @export
-vDevice <- function(dev=list, file=NA, ..., dir="results") {
-  g <- remotes:::git("describe --dirty=-M --tags --always")
-  if (is.na(file)) return(file.path(dir, g))
-  devstr <- as.character(substitute(dev)) # e.g. 'pdf', 'write.txt'
-  devstr <- sub(".*\\.", "", devstr) # e.g. 'pdf', 'txt'
-  if (!grepl("\\.", file)) {
-    file <- paste0(file, ".", devstr)
-  }
-  if (isTRUE(getOption('knitr.in.progress'))) {
-    dName <- file.path(sub("/.*", "", knitr::fig_path()))
-  } else {
-    dName <- file.path(dir, g)
-  }
-  if (!dir.exists(dName)) {
-    dir.create(dName, recursive=TRUE)
-  }
-  file <- file.path(dName,sub("([^.]*)(.*)",paste0("\\1_", g, "\\2"), file))
-  dev(..., file= file)
-  file
-}
-
