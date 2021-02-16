@@ -2,7 +2,7 @@ library(readxl)
 library(tidyverse)
 library(tximport)
 library(DESeq2)
-devtools::load_all(".")
+library(DESdemonA)
 
 sample_data <- readxl::read_excel(system.file("extdata/{{metadata_file}}.xlsx", package="babsrnaseq"), sheet=1)
 

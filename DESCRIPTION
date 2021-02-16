@@ -1,9 +1,41 @@
-Package: babsrnaseq
-Title: rnaseq
-Version: 0.0.0
-Authors@R: person("BABS", email = "bioinformatics@crick.ac.uk", role = c("aut", "cre"))
-Description: Basic rnaseq template
+Package: DESdemonA
+Title: DESeq2 Wrapper For Pre-Specified Analyses
+Version: 0.10.0
+Authors@R: person("Gavin", "Kelly",  email = "gavin.kelly@crick.ac.uk", role = c("aut", "cre"))
+Description: Use DESeq2 to automate RNASeq analysis
+ using a standard '.spec' template file to specify multiple
+ subsets of the data, design models, and contrasts. Also provides
+ tools to help generate comparisons according to 'emmeans' specification formulae.
+ Produces a nested list of DESeqDataSet objects (with their results embedded) and a
+ markdown report containing visualisations of the datasets.
 Depends: R (>= 3.1.0)
+Imports:
+    DESeq2,
+    emmeans,
+    tidyverse,
+    openxlsx,
+    ggrepel,
+    grid,
+    S4Vectors,
+    RColorBrewer,
+    ComplexHeatmap,
+    gt,
+    PoiClaClu,
+    rtracklayer,
+    tximport,
+    clusterProfiler,
+    IHW,
+    R6,
+    glue,
+    remotes,
+    knitr,
+    circlize,
+    htmlwidgets,
+    htmltools
+Suggests:
+    ReactomePA,
+    GO.db
 License: GPL-3
 LazyData: true
 git_last_commit: unspecified
+RoxygenNote: 7.1.1
