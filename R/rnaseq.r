@@ -140,6 +140,10 @@ build_dds_list <- function(dds, spec) {
     }
     obj <- dds[,ind]
     colData(obj) <- droplevels(colData(obj))
+    mdlList <- lapply(mdlList, function(x) modifyList(list(plot_qc=FALSE), x))
+    if (!any(sapply(mdlList, "[[", "plot_qc"))) {
+      mdlList[[1]]$plot_qc <- TRUE
+    }
     metadata(obj)$models <- mdlList
     if ("transform" %in% names(set)) {
       .mu <- purrr::partial(mutate, .data=as.data.frame(colData(obj)))
@@ -151,9 +155,9 @@ build_dds_list <- function(dds, spec) {
   })
 }
 
-##' .. content for \description{} (no empty lines) ..
+##' Calculate dimension reduction 
 ##'
-##' .. content for \details{} ..
+##' Add a vst transformed assay, and a projection of the samples ont PCA space
 ##' @title Store dimension-reduction results in DESeq2 object
 ##' @param dds The original DESeq2 object containing all samples
 ##' @param n 
@@ -192,17 +196,19 @@ add_dim_reduct  <-  function(dds, n=Inf, family="norm", batch=~1) {
   dds
 }
 
-##' .. content for \description{} (no empty lines) ..
+##' Fit the models of expression
 ##'
-##' .. content for \details{} ..
+##' Iterate through each model (stored in the 'models' metadata of a
+##' DESeqDataSet) and expand the contrasts so each contrast gets a
+##' separate nested level.
 ##' @title Fit the DESeq2 models
 ##' @param dds The original DESeq2 object containing all samples
-##' @param ... 
-##' @return 
+##' @param ...
+##' @return
 ##' @author Gavin Kelly
 ##' @export
 fit_models <- function(dds, ...) {
-  lapply(metadata(dds)$models,
+  model_comp <- lapply(metadata(dds)$models,
          function(mdl)  {
            out <- list()
            is_lrt <- sapply(mdl$comparisons, is_formula)
@@ -252,6 +258,7 @@ fit_models <- function(dds, ...) {
            out
          }
          )
+  model_comp[sapply(model_comp, length)!=0] 
 }
 
 ##' .. content for \description{} (no empty lines) ..

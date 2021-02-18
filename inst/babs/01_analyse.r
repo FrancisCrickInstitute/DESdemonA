@@ -46,6 +46,11 @@ knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
                       dev=c("png","pdf"), out.width="90%",
                       results='asis', fig.cap=expression(fig_caption())
                       )
+if (!isTRUE(getOption('knitr.in.progress'))) {
+  params <- list(
+    spec_file=dir(pattern="*.spec")[1],
+    res_dir="results")
+}
 
 #+ read
 
