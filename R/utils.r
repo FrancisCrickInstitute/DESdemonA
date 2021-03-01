@@ -24,3 +24,17 @@ rbind_summary <- function(x, levels=c("Dataset", "Design", "Comparison")) {
    ,x, names(x), SIMPLIFY=FALSE))
   }
 }
+
+
+classify_terms <- function(fml) {
+  has_random <- any(c("|", "||") %in% all.names(fml))
+  if (!has_random) {
+    return(list(fixed=all.vars(fml),groups=list() ))
+  }
+  fvars <- all.vars(lme4::nobars(fml))
+  avars <- all.vars(lme4::subbars(fml))
+  rterms <- lme4:::barnames(lme4::findbars(fml))
+  list(fixed=fvars, groups=rterms[!grepl(":", rterms)])
+}
+  
+  

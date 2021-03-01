@@ -70,7 +70,9 @@ ddsList <- DESdemonA::build_dds_list(rsem_dds, specs)
 
 
 #Which features are zero across all samples in all datasets
-all_zero <- Reduce(`&`, lapply(ddsList, function(x) apply(counts(x)==0,1, all)))
+all_zero <- Reduce(f=`&`,
+                   x=lapply(ddsList, function(x) apply(counts(x)==0,1, all)),
+                   init=TRUE)
 ddsList <- lapply(ddsList, `[`, !all_zero)
 
 

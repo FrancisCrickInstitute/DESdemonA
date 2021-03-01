@@ -139,6 +139,7 @@ build_dds_list <- function(dds, spec) {
       ind <- set
     }
     obj <- dds[,ind]
+    metadata(obj)$full_model <- spec$full_model
     colData(obj) <- droplevels(colData(obj))
     mdlList <- lapply(mdlList, function(x) modifyList(list(plot_qc=FALSE), x))
     if (!any(sapply(mdlList, "[[", "plot_qc"))) {
@@ -340,7 +341,7 @@ emcontrasts <- function(dds, spec, ...) {
   contr_frame <- as.data.frame(summary(emfit$contrasts))
   ind_est <- !is.na(contr_frame$estimate)
   contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1), drop=FALSE]
-  contr_mat <- emmeans::emfit$contrast@linfct[ind_est,]
+  contr_mat <- emfit$contrast@linfct[ind_est,]
   colnames(contr_mat) <- DESdemonA:::.resNames(colnames(contr_mat))
   contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,])
   names(contr) <- do.call(paste, c(contr_frame,sep= "|"))
