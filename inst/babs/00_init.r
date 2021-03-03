@@ -21,8 +21,6 @@ rsem_dds <- DESeqDataSetFromTximport(txi, sample_sheet, ~ 1) # ok to have fixed 
 ind <- rowSums(counts(rsem_dds)!=0) > 0
 rsem_dds <- rsem_dds[ind,]
 
-metadata(rsem_dds)$labels <- c("{{labels}}") # which columns of colData are biologically interesting - a vector of characters
-
 txi[c("abundance", "counts", "length")] <- map(txi[c("abundance", "counts", "length")], ~ .[ind,])
 
 
