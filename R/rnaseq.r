@@ -221,7 +221,7 @@ fit_models <- function(dds, ...) {
              new_design <- check_model(mdl, colData(dds)) 
              if (any(is_post_hoc)) {
                comps[is_post_hoc] <- lapply(comps[is_post_hoc], function(ph) {
-                 do.call(DESdemonA::emcontrasts, c(dds=wald, spec=ph$spec, ph[-1]))
+                 emcontrasts(dds=wald, spec=ph$spec, extra=ph[-1])
                })
                if (new_design$any_dropped) {
                  comps[is_post_hoc] <- lapply(comps[is_post_hoc],function(ph) {
@@ -324,7 +324,7 @@ mult_comp <- function(spec, ...) {
 ##' @return 
 ##' @author Gavin Kelly
 ##' @export
-emcontrasts <- function(dds, spec, ...) {
+emcontrasts <- function(dds, spec, extra=NULL) {
   df <- as.data.frame(colData(dds))
   df$.x <- counts(dds, norm=TRUE)[1,]
   if (is_formula(design(dds))) {
@@ -337,7 +337,7 @@ emcontrasts <- function(dds, spec, ...) {
     fit <- lm(df$.x ~ . -1, data.frame(mm))
     ddsNames <- match(resultsNames(dds), names(coef(fit)))
   }
-  emfit <- emmeans::emmeans(fit, spec,...)
+  emfit <- do.call(emmeans::emmeans, c(list(object=fit, specs= spec),extra))
   contr_frame <- as.data.frame(summary(emfit$contrasts))
   ind_est <- !is.na(contr_frame$estimate)
   contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1), drop=FALSE]
