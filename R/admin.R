@@ -77,3 +77,50 @@ ParamList <- R6::R6Class("ParamList",
                       }
                     )
                     )
+
+##' Populate a folder with DESdemonA starter scripts
+##'
+##' To start a DESdemonA-based project, we provide a sample set
+##' of scripts to point you in the right direction. Firstly there is
+##' an '00_init.r' file that will create a universal DESeqDataSet object
+##' from your quantified counts file.  You may need to edit this to link
+##' it to where your quantification pipeline stores its results, and to
+##' ensure that the full set of metadata is inserted into the colData.
+##'
+##' There is an example '.spec' file - rename and use this as a basis
+##' for your statistical analysis plan, or if you have an existing one,
+##' delete the example one and copy the existing one into the folder instead.
+##' 
+##' The main analysis is run via "01_analyse.r" - you should render this
+##' via rmarkdown.  It will look for every '.spec' file in the current
+##' directory.
+##'
+##' There will also be a "02_further_steps.r" script at some point. This
+##' will give concrete examples of how you might want to extract results
+##' for further programmatic use, to build upon the html report that
+##' rendering the "01_analyse.r" will provide.
+##'
+##' There's also a DESCRIPTION file, so that it is easy to turn your
+##' analysis into a re-distributable R package.
+##'
+##' The recommended usage is, at the start of project development,
+##' to simply call 'DESdemonA::get_started()' in the relevant directory,
+##' as the defaults path and files are sufficient - it will refuse
+##' to overwrite existing files, so is safe in that sense.
+##' 
+##' @title Initiate a DESdemonA project
+##' @param files Which files to retreive from the DESdemonA project
+##' @param path Where to copy the files to
+##' @return 
+##' @author Gavin Kelly
+#' @export
+get_started <- function(files = dir(system.file("babs",package="DESdemonA")), path=".") {
+  pre_exist <- file.exists(file.path(path, files))
+  if (any(pre_exist)) {
+    stop(paste(file.path(path, files), collapse=", "), " already exist. Remove or rename them")
+  }
+  file.copy(
+    from=system.file(file.path("babs", files), package="DESdemonA"),
+    to=path)
+}
+
