@@ -78,6 +78,7 @@ ParamList <- R6::R6Class("ParamList",
                     )
                     )
 
+
 ##' Populate a folder with DESdemonA starter scripts
 ##'
 ##' To start a DESdemonA-based project, we provide a sample set
@@ -113,6 +114,7 @@ ParamList <- R6::R6Class("ParamList",
 ##' @param path Where to copy the files to
 ##' @return 
 ##' @author Gavin Kelly
+#' 
 #' @export
 get_started <- function(files = dir(system.file("babs",package="DESdemonA")), path=".") {
   pre_exist <- file.exists(file.path(path, files))

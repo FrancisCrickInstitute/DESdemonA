@@ -68,7 +68,7 @@ results_apply <- function(object, dataset, model, comparison, fn, depth="compari
 ##' Return all results contained in a result list
 ##'
 ##' Traverse an object returned by get_result, and extract the DESeq2 results stored at each node.
-##' @title 
+##' @title Return all results contained in a result list
 ##' @param object The list of results returned by get_result
 ##' @param dataset The name of the dataset you want to restrict the traversal to - optional, and if omitted all datasets will be traversed.
 ##' @param model The name of the model you want to restrict the traversal to - optional, and if omitted all models will be traversed.
@@ -88,7 +88,7 @@ extract_model <- function(object, dataset) {
 ##' Return an assay from a result-list
 ##'
 ##' Traverse an object returned by get_result, and extract a specific assay
-##' @title 
+##' @title Return an assay from a result-list
 ##' @param dataset The name of the dataset you want to extract the assay from  - optional, and if omitted all datasets will be reported.
 ##' @param object The list of results returned by get_result
 ##' @param assay The name of the assay you want to extract from each dataset

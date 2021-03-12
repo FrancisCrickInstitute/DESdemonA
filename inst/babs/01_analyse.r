@@ -54,11 +54,11 @@ if (!isTRUE(getOption('knitr.in.progress'))) {
 
 #+ read
 
-data(rsem_dds)
-library(metadata(rsem_dds)$organism$org, character.only=TRUE)
-metadata(rsem_dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
+data(init_dds)
+library(metadata(init_dds)$organism$org, character.only=TRUE)
+metadata(init_dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
 
-specs   <- DESdemonA::load_specs(file=params$spec_file, context=rsem_dds)
+specs   <- DESdemonA::load_specs(file=params$spec_file, context=init_dds)
 
 param <- DESdemonA::ParamList$new(defaults=specs$settings)
 # Calling the setter without a value will pick up the default (from the spec), _and_ alert it in the markdown, and return the default
@@ -66,7 +66,7 @@ set.seed(param$set("seed"))
 param$set("title", "{{title}}")
 param$set("script", "{{script}}")
 
-ddsList <- DESdemonA::build_dds_list(rsem_dds, specs)
+ddsList <- DESdemonA::build_dds_list(init_dds, specs)
 
 
 #Which features are zero across all samples in all datasets
