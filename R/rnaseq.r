@@ -209,56 +209,59 @@ add_dim_reduct  <-  function(dds, n=Inf, family="norm", batch=~1) {
 ##' @author Gavin Kelly
 ##' @export
 fit_models <- function(dds, ...) {
-  model_comp <- lapply(metadata(dds)$models,
-         function(mdl)  {
-           out <- list()
-           is_lrt <- sapply(mdl$comparisons, is_formula)
-           if (any(!is_lrt)) {
-             wald <- dds
-             design(wald) <- mdl$design
-             comps <- mdl$comparisons[!is_lrt]
-             is_post_hoc <- sapply(comps, class)=="post_hoc"
-             new_design <- check_model(mdl, colData(dds)) 
-             if (any(is_post_hoc)) {
-               comps[is_post_hoc] <- lapply(comps[is_post_hoc], function(ph) {
-                 emcontrasts(dds=wald, spec=ph$spec, extra=ph[-1])
-               })
-               if (new_design$any_dropped) {
-                 comps[is_post_hoc] <- lapply(comps[is_post_hoc],function(ph) {
-                   lapply(ph, function(contr_vec) {
-                     ind <- match(colnames(new_design$design), names(contr_vec))
-                     if (any(contr_vec[-ind]!=0)) {
-                       stop("Error: non-estimable coefficient needed for comparison")
-                     }
-                     contr_vec[ind]
-                   })
-                 })
-               }
-               comps[!is_post_hoc] <- lapply(comps[!is_post_hoc], list) # protect existing lists from unlist
-               comps <- unlist(comps, recursive=FALSE)
-             }
-             if (new_design$any_dropped) {
-               design(wald) <- new_design$design
-             }
-             wald <- DESeq2::DESeq(wald, test="Wald", ...)
-             metadata(wald)$model <- mdl$design
-             out <- lapply(comps, function(cntr) {
-               metadata(wald)$comparison <- cntr
-               wald})
-           }
-           if (any(is_lrt)) {
-             lrt <- lapply(mdl$comparisons[is_lrt],
-                          function(reduced) {
-                            dds_lrt <- DESdemonA:::fitLRT(dds, mdl=mdl, reduced=reduced, ...)
-                            metadata(dds_lrt)$model <- mdl$design
-                            metadata(dds_lrt)$comparison <- reduced
-                            dds_lrt
-                          })
-             out <- c(out, lrt)
-           }
-           out
-         }
-         )
+  model_comp <- lapply(
+    metadata(dds)$models,
+    function(mdl)  {
+      this_dds <- dds
+      design(this_dds) <- mdl$design
+      metadata(this_dds)$model <- mdl
+      this_dds <- check_model(this_dds) 
+      out <- list()
+      is_lrt <- sapply(mdl$comparisons, is_formula)
+      if (any(!is_lrt)) {
+        comps <- mdl$comparisons[!is_lrt]
+        is_post_hoc <- sapply(comps, class)=="post_hoc"
+        if (any(is_post_hoc)) {
+          comps[is_post_hoc] <- lapply(
+            comps[is_post_hoc],
+            function(ph) {emcontrasts(dds=this_dds, spec=ph$spec, extra=ph[-1])}
+          )
+          ## if (any(mdl$dropped)) {
+          ##   comps[is_post_hoc] <- lapply(comps[is_post_hoc],function(ph) {
+          ##     lapply(ph, function(contr_vec) {
+          ##       ind <- match(colnames(mdl$mat), names(contr_vec))
+          ##       if (any(contr_vec[-ind]!=0)) {
+          ##         stop("Error: non-estimable coefficient needed for comparison")
+          ##       }
+          ##       contr_vec[ind]
+          ##     })
+          ##   })
+          ## }
+          comps[!is_post_hoc] <- lapply(comps[!is_post_hoc], list) # protect existing lists from unlist
+          comps <- unlist(comps, recursive=FALSE)
+        }
+        if (any(metadata(this_dds)$model$dropped)) {
+          design(this_dds) <- mdl$mat
+        }
+        this_dds <- DESeq2::DESeq(this_dds, test="Wald", ...)
+        metadata(this_dds)$model <- mdl$design
+        out <- lapply(comps, function(cntr) {
+          metadata(this_dds)$comparison <- cntr
+          this_dds})
+      }
+      if (any(is_lrt)) {
+        lrt <- lapply(mdl$comparisons[is_lrt],
+                     function(reduced) {
+                       dds_lrt <- DESdemonA:::fitLRT(this_dds, mdl=mdl, reduced=reduced, ...)
+                       metadata(dds_lrt)$model <- mdl$design
+                       metadata(dds_lrt)$comparison <- reduced
+                       dds_lrt
+                     })
+        out <- c(out, lrt)
+      }
+      out
+    }
+  )
   model_comp[sapply(model_comp, length)!=0] 
 }
 
@@ -272,31 +275,45 @@ fit_models <- function(dds, ...) {
 ##' @return 
 ##' @author Gavin Kelly
 ##' @export
-check_model <- function(mdl, coldat) {
-  mdl$any_dropped <- FALSE
-  if (is_formula(mdl$design)) {
-    mm <- model.matrix(mdl$design, coldat)
-  } else {
-    return(mdl)
+## check_model <- function(mdl, dds) {
+##   mdl$dropped <- FALSE
+##   if (is_formula(mdl$design) & "drop_unsupported_combinations" %in% names(mdl)) {
+##     df <- as.data.frame(colData(dds))
+##     df$.x <- counts(dds, norm=TRUE)[1,]
+##     fml <- as.formula(paste0(".x ~ ", as.character(design(dds)[2])))
+##     fit <- lm(fml, data=df)
+##     mdl$dropped <- is.na(coef(fit))
+##   }
+##   if (any(mdl$dropped)) {
+##     mm <- model.matrix(mdl$design, as.data.frame(colData(dds)))[,!mdl$dropped]
+##     colnames(mm) <- DESdemonA:::.resNames(colnames(mm))
+##     mdl$mat <- mm
+##   }
+##   mdl$lm <- fit
+##   mdl
+## }
+
+
+check_model <- function(dds) {
+  mdl <- metadata(dds)$model
+  mdl$dropped <- FALSE
+  if (is_formula(mdl$design) & "drop_unsupported_combinations" %in% names(mdl)) {
+    df <- as.data.frame(colData(dds))
+    df$.x <- counts(dds, norm=TRUE)[1,]
+    fml <- as.formula(paste0(".x ~ ", as.character(design(dds)[2])))
+    fit <- lm(fml, data=df)
+    mdl$dropped <- is.na(coef(fit))
   }
-  if ("drop_unsupported_combinations" %in% names(mdl)) {
-    do_fix <- mdl$drop_unsupported_combinations
-  } else {
-    do_fix <- FALSE
+  if (any(mdl$dropped)) {
+    mm <- model.matrix(mdl$design, as.data.frame(colData(dds)))[,!mdl$dropped]
+    colnames(mm) <- DESdemonA:::.resNames(colnames(mm))
+    mdl$mat <- mm
   }
-  unsupported_ind <- apply(mm==0, 2, all)
-  if (any(unsupported_ind)) {
-    if (!do_fix) {
-      warning("Some conditions have no samples in them")
-    } else {
-      mm <- mm[,!unsupported_ind]
-      colnames(mm) <- DESdemonA:::.resNames(colnames(mm))
-      mdl$design <- mm
-      mdl$any_dropped <- TRUE
-    }
-  } 
-  mdl
+  mdl$lm <- fit
+  metadata(dds)$model <- mdl
+  dds
 }
+
 
 ##' .. content for \description{} (no empty lines) ..
 ##'
@@ -325,28 +342,39 @@ mult_comp <- function(spec, ...) {
 ##' @author Gavin Kelly
 ##' @export
 emcontrasts <- function(dds, spec, extra=NULL) {
-  df <- as.data.frame(colData(dds))
-  df$.x <- counts(dds, norm=TRUE)[1,]
-  if (is_formula(design(dds))) {
-    fml <- as.formula(paste0(".x ~ ", as.character(design(dds)[2])))
-    fit <- lm(fml, data=df)
-  } else { # shouldn't happen, but
-    warning("Seem to be doing EM on a matrix - not sure that's great")
-    mm <- design(dds)
-    colnames(mm) <- DESdemonA:::.resNames(colnames(mm))
-    fit <- lm(df$.x ~ . -1, data.frame(mm))
-    ddsNames <- match(resultsNames(dds), names(coef(fit)))
+  ## df <- as.data.frame(colData(dds))
+  ## df$.x <- counts(dds, norm=TRUE)[1,]
+  ## if (is_formula(design(dds))) {
+  ##   fml <- as.formula(paste0(".x ~ ", as.character(design(dds)[2])))
+  ##   fit <- lm(fml, data=df)
+  ## } else { # shouldn't happen, but
+  ##   warning("Seem to be doing EM on a matrix - not sure that's great")
+  ##   mm <- design(dds)
+  ##   colnames(mm) <- DESdemonA:::.resNames(colnames(mm))
+  ##   fit <- lm(df$.x ~ . -1, data.frame(mm))
+  ##   ddsNames <- match(resultsNames(dds), names(coef(fit)))
+  ## }
+  if ("keep" %in% names(extra)) {
+    keep <- extra$keep
+    extra$keep <- NULL
+  } else {
+    keep <- NA
   }
-  emfit <- do.call(emmeans::emmeans, c(list(object=fit, specs= spec),extra))
+  mdl <- metadata(dds)$model
+  emfit <- do.call(emmeans::emmeans, c(list(object=mdl$lm, specs= spec),extra))
   contr_frame <- as.data.frame(summary(emfit$contrasts))
   ind_est <- !is.na(contr_frame$estimate)
   contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1), drop=FALSE]
-  contr_mat <- emfit$contrast@linfct[ind_est,]
+  if (!is.na(keep[1])) {
+    contr_frame <- subset(contr_frame, contrast %in% keep)
+  }
+  contr_mat <- emfit$contrast@linfct[ind_est, !mdl$dropped]
   colnames(contr_mat) <- DESdemonA:::.resNames(colnames(contr_mat))
   contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,])
   names(contr) <- do.call(paste, c(contr_frame,sep= "|"))
   contr
 }
+
 
 ## Do likelihood ratio test, and classify in order of effect size
 ## Doesn't work for interactions, obviously
@@ -355,14 +383,13 @@ emcontrasts <- function(dds, spec, extra=NULL) {
 ##' .. content for \details{} ..
 ##' @title Fit LRT
 ##' @param dds The original DESeq2 object containing all samples
-##' @param mdl 
 ##' @param reduced 
 ##' @param ... 
 ##' @return 
 ##' @author Gavin Kelly
-fitLRT <- function(dds, mdl, reduced, ...) {
-  new_full <- DESdemonA::check_model(mdl, colData(dds))
-  if (new_full$any_dropped) {
+fitLRT <- function(dds, reduced, ...) {
+  mdl <- metadata(dds)$model
+  if (any(new_full$dropped)) {
     full <- new_full$design
     reduced <- model.matrix(reduced, colData(dds))
     unsupported_ind <- apply(reduced==0, 2, all)
