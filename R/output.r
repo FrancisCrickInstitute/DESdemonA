@@ -88,7 +88,7 @@ write_results <- function(ddsList, param, dir=".", name="differential") {
 write_all_results <- function(ddsList, dir=".") {
   for (i in names(ddsList)) {
     for (j in names(ddsList[[i]])) { 
-      for (k in names(ddsList[[i]][[k]])) { 
+      for (k in names(ddsList[[i]][[j]])) { 
         readr::write_excel_csv(
           path=file.path(dir, sprintf("allgenes_%s_%s_%s.csv", i, j, k)),
           x=as.data.frame(mcols(ddsList[[i]][[j]][[k]])$results) %>% dplyr::select(log2FoldChange, stat, symbol, class))

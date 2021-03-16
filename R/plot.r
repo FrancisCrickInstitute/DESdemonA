@@ -187,7 +187,7 @@ get_terms <- function(dds) {
     return(ret)
   }
   if ("model" %in% names(metadata(dds))) {
-    ret$fixed <- all.vars(metadata(dds)$model)
+    ret$fixed <- all.vars(metadata(dds)$model$design)
     return(ret)
   } else {
     term_list <- lapply(metadata(dds)$models, function(mdl) {all.vars(mdl$design)})
