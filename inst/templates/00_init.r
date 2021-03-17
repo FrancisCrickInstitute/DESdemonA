@@ -1,9 +1,9 @@
 defaults <- list(
-  nfcore      = "results",                                                  ## directory that contains nfcore output
-  metadata    = system.file("extdata/metadata.xlsx", package="babsrnaseq"), ## Path to  spreadsheet containing covariates
-  file_col    = "filename",                                                 ## Column in that spreadsheet that identifies the basename of count file for each sample
-  counts      = "results/star_rsem",                                        ## directory that contains the quantified gene counts
-  org_package = NULL                                                        ## NULL will derive org.*.eg.db from nfcore info, otherwise specifcy string identifying annotation package of relevant species.
+  nfcore      = "{{{results}}}",     ## directory that contains nfcore output
+  metadata    = "{{{metadata}}}",    ## Path to  spreadsheet containing covariates
+  file_col    = "{{{file_col}}}",    ## Column in that spreadsheet that identifies the basename of count file for each sample
+  counts      = "{{{counts}}}",      ## directory that contains the quantified gene counts
+  org_package = "{{{org_package}}}"  ## NULL will derive org.*.eg.db from nfcore info, otherwise specifcy string identifying annotation package of relevant species.
 )
 
 
@@ -41,7 +41,7 @@ init_dds <- init_dds[ind,]
 txi[c("abundance", "counts", "length")] <- map(txi[c("abundance", "counts", "length")], ~ .[ind,])
 
 
-if (is.null(args$org_package)) {
+if (args$org_package=="") {
   run_info <- readLines(file.path(args$nfcore, "pipeline_info", "pipeline_report.txt"))
   gtf_file <- sub(".*/", "", grep(" - gtf:", run_info, value=TRUE))
   organism <- list(binomial=strsplit(gtf_file, ".", fixed=TRUE)[[1]][1])

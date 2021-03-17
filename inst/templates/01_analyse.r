@@ -1,6 +1,6 @@
 #' ---
-#' title: "{{project}}"
-#' author: "{{author}}"
+#' title: "{{{project}}}"
+#' author: "{{{author}}}"
 #' params:
 #'   res_dir: "results"
 #'   spec_file: ""
