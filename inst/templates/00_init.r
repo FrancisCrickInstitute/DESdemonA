@@ -1,5 +1,5 @@
 defaults <- list(
-  nfcore      = "{{{results}}}",     ## directory that contains nfcore output
+  nfcore      = "{{{nfcore}}}",     ## directory that contains nfcore output
   metadata    = "{{{metadata}}}",    ## Path to  spreadsheet containing covariates
   file_col    = "{{{file_col}}}",    ## Column in that spreadsheet that identifies the basename of count file for each sample
   counts      = "{{{counts}}}",      ## directory that contains the quantified gene counts

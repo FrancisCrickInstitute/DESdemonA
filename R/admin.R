@@ -131,7 +131,7 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
     stop(paste(file.path(path, files), collapse=", "), " already exist. Remove or rename them")
   }
   for (fname in files) {
-    usethis::use_template(fname, save_as=path, data=args, package="DESdemonA")
+    usethis::use_template(fname, save_as=fname, data=args, package="DESdemonA")
   }
 }
 
