@@ -17,7 +17,7 @@ library(R.utils)
 
 args <- R.utils::cmdArgs(args=defaults)
 
-sample_sheet <- readxl::read_excel(args$metadata), sheet=1)
+sample_sheet <- readxl::read_excel(args$metadata, sheet=1)
 
 if (is.null(sample_sheet[[args$file_col]])) {
   sample_sheet[[args$file_col]]  <- paste0(sample_sheet$LIMSID, "_R1") # that annoying nfcore '_R1' suffix may disappear
@@ -59,7 +59,7 @@ if (args$org_package=="") {
   organism <- list(org=args$org_package)
 }
 metadata(init_dds)$organism <- organism
-metadata(init_dds)$template_git <- packageDescription("babsrnaseq")$git_last_commit
+metadata(init_dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
 
 library(organism$org, character.only=TRUE)
 
