@@ -246,13 +246,15 @@ fit_models <- function(dds, ...) {
 check_model <- function(dds) {
   mdl <- metadata(dds)$model
   mdl$dropped <- FALSE
-  if (is_formula(mdl$design) & "drop_unsupported_combinations" %in% names(mdl)) {
+  if (is_formula(mdl$design) ) {
     df <- as.data.frame(colData(dds))
     df$.x <- counts(dds, norm=TRUE)[1,]
     fml <- as.formula(paste0(".x ~ ", as.character(design(dds)[2])))
     fit <- lm(fml, data=df)
-    mdl$dropped <- is.na(coef(fit))
     mdl$lm <- fit
+    if ("drop_unsupported_combinations" %in% names(mdl)) {
+      mdl$dropped <- is.na(coef(fit))
+    }
   }
   if (any(mdl$dropped)) {
     mm <- model.matrix(mdl$design, as.data.frame(colData(dds)))[,!mdl$dropped]
@@ -317,9 +319,9 @@ emcontrasts <- function(dds, spec, extra=NULL) {
   if (!is.na(keep[1])) {
     contr_frame <- subset(contr_frame, contrast %in% keep)
   }
-  contr_mat <- emfit$contrast@linfct[ind_est, !mdl$dropped]
+  contr_mat <- emfit$contrast@linfct[ind_est, !mdl$dropped, drop=FALSE]
   colnames(contr_mat) <- DESdemonA:::.resNames(colnames(contr_mat))
-  contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,])
+  contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,,drop=FALSE])
   names(contr) <- do.call(paste, c(contr_frame,sep= "|"))
   contr
 }
