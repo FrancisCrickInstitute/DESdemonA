@@ -321,7 +321,7 @@ emcontrasts <- function(dds, spec, extra=NULL) {
   }
   contr_mat <- emfit$contrast@linfct[ind_est, !mdl$dropped, drop=FALSE]
   colnames(contr_mat) <- DESdemonA:::.resNames(colnames(contr_mat))
-  contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,,drop=FALSE])
+  contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,,drop=TRUE])
   names(contr) <- do.call(paste, c(contr_frame,sep= "|"))
   contr
 }
