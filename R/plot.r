@@ -174,7 +174,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
         my_lbl + facet_wrap(~label, scales="free_y") 
       if (do_labels) {qc_vis$PC[[model_name]][[j]] <- qc_vis$PC[[model_name]][[j]] + geom_text_repel(aes(label=sample))}
       print(qc_vis$PC[[model_name]][[j]])
-      caption(paste0("Coloured by ", j))
+      caption(paste0("Against ", j))
     }
   }
   invisible(qc_vis)
@@ -238,6 +238,11 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
   for (i in names(ddsList)) {
     if (!any(grepl("\\*$", mcols(ddsList[[i]])$results$class))) {
       next
+    }
+    comp <- metadata(ddsList[[i]])$comparison
+    if ("spec" %in% names(attributes(comp))) {
+      tidy_fn <- emmeans:::.parse.by.formula(attr(comp, "spec"))
+      tidy_fn$rhs <- c(tidy_fn$rhs, setdiff(all.vars(metadata(ddsList[[i]])$model$design), unlist(tidy_fn)))
     }
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, tidy_fn)
     if (!first_done) {

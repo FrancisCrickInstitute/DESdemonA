@@ -322,6 +322,7 @@ emcontrasts <- function(dds, spec, extra=NULL) {
   contr_mat <- emfit$contrast@linfct[ind_est, !mdl$dropped, drop=FALSE]
   colnames(contr_mat) <- DESdemonA:::.resNames(colnames(contr_mat))
   contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,,drop=TRUE])
+  contr <- lapply(contr, function(vect) {attr(vect, "spec") <- spec; vect})
   names(contr) <- do.call(paste, c(contr_frame,sep= "|"))
   contr
 }
@@ -528,6 +529,9 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
     tidy_mat <- mat[, tidy_pdat$.sample,drop=FALSE]
     tidy_mat[cbind(summ_long$.gene, summ_long$.sample)] <- summ_long$.value
     tidy_pdat  <- as.data.frame(dplyr::select(tidy_pdat, -.gene, -.value, -.sample))
+  } else {
+    ord <- do.call(order, as.list(pdat[,c(NULL, tidy_fn$rhs), drop=FALSE]))
+    return(list(mat=mat[,ord], pdat=pdat[ord,]))
   }
   ## pdat$.value <- mat[1,]
   ## tidy_mat <- apply(mat, 1, function(x) {pdat$.value=x; tidy_fn(pdat)$.value})
