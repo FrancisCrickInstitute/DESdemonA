@@ -232,7 +232,7 @@ dendro_all <- function(mat, var) {
 ##' @return
 ##' @author Gavin Kelly
 #' @export
-differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colorspace(colData(ddsList[[1]]) ) {
+differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colorspace(colData(ddsList[[1]]))) {
   first_done <- FALSE
   for (i in names(ddsList)) {
     if (!any(grepl("\\*$", mcols(ddsList[[i]])$results$class))) {
