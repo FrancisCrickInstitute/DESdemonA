@@ -1,6 +1,6 @@
 Package: DESdemonA
 Title: DESeq2 Wrapper For Pre-Specified Analyses
-Version: 0.15.0-6
+Version: 0.15.0-7
 Authors@R: person("Gavin", "Kelly",  email = "gavin.kelly@crick.ac.uk", role = c("aut", "cre"))
 Description: Use DESeq2 to automate RNASeq analysis
  using a standard '.spec' template file to specify multiple
@@ -37,5 +37,5 @@ Suggests:
     GO.db
 License: GPL-3
 LazyData: true
-git_last_commit: v0.15.0-6-g6838df8_altered
+git_last_commit: v0.15.0-7-gcb81dc3_altered
 RoxygenNote: 7.1.1
