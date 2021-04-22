@@ -232,8 +232,7 @@ dendro_all <- function(mat, var) {
 ##' @return
 ##' @author Gavin Kelly
 #' @export
-differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
-  pal <- RColorBrewer::brewer.pal(12, "Set3")
+differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colorspace(colData(ddsList[[1]]) ) {
   first_done <- FALSE
   for (i in names(ddsList)) {
     if (!any(grepl("\\*$", mcols(ddsList[[i]])$results$class))) {
@@ -243,31 +242,22 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
     if ("spec" %in% names(attributes(comp))) {
       tidy_fn <- emmeans:::.parse.by.formula(attr(comp, "spec"))
       tidy_fn$rhs <- c(tidy_fn$rhs, setdiff(all.vars(metadata(ddsList[[i]])$model$design), unlist(tidy_fn)))
+    } else {
+      tidy_fn <- list(lhs="", rhs=all.vars(metadata(ddsList[[i]])$model$design), by=NULL)
     }
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, tidy_fn)
-    if (!first_done) {
-      vars <- get_terms(ddsList[[i]])
-      pdat <- tidied_data$pdat
-      grouper <- setdiff(group_vars(pdat), ".gene")
-      if (length(grouper)) {
-        column_split=pdat[grouper]
-      } else {
-        column_split=NULL
-      }
-      pdat[sapply(pdat, is.character)] <- lapply(pdat[sapply(pdat, is.character)], 
-                                                as.factor)
-      pdat <- pdat[,vars$fixed]
-      colList <- df2colorspace(pdat)
-      first_done <- TRUE
-    }
+    pdat <- tidied_data$pdat
+    pdat[sapply(pdat, is.character)] <- lapply(pdat[sapply(pdat, is.character)], 
+                                              as.factor)
     colnames(tidied_data$mat) <- rownames(pdat)
     name <- sub(".*\\t", "", i)
     ha <- ComplexHeatmap::HeatmapAnnotation(df=pdat, col=colList)
     pl <- ComplexHeatmap::Heatmap(tidied_data$mat,
                  heatmap_legend_param = list(direction = "horizontal" ),
                  name=sub(".*\\t", "", i),
-                 cluster_columns = is.null(column_split), show_column_names = TRUE,
-                 column_split = column_split,
+                 cluster_columns = FALSE,
+                 show_column_names = TRUE,
+#                column_split = column_split,
                  top_annotation = ha,
                  row_names_gp = gpar(fontsize = 6),
                  show_row_names = nrow(tidied_data$mat)<100)
