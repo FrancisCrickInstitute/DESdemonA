@@ -254,7 +254,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
     if (is.null(tidy_fn$by)) {
       col_split <- NULL
     } else {
-      col_split <- apply(pdat, 1, paste, collapse=" ")
+      col_split <- apply(sapply(pdat, as.character), 1, paste, collapse=" ")
     }
     ha <- ComplexHeatmap::HeatmapAnnotation(df=pdat, col=colList)
     pl <- ComplexHeatmap::Heatmap(tidied_data$mat,
@@ -262,7 +262,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
                  name=sub(".*\\t", "", i),
                  cluster_columns = FALSE,
                  show_column_names = TRUE,
-                 column_split = tidy_fn$by,
+                 column_split = col_split,
                  top_annotation = ha,
                  row_names_gp = gpar(fontsize = 6),
                  show_row_names = nrow(tidied_data$mat)<100)
