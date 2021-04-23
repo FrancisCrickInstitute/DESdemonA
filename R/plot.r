@@ -257,7 +257,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
                  name=sub(".*\\t", "", i),
                  cluster_columns = FALSE,
                  show_column_names = TRUE,
-#                column_split = column_split,
+                 column_split = tidy_fn$by,
                  top_annotation = ha,
                  row_names_gp = gpar(fontsize = 6),
                  show_row_names = nrow(tidied_data$mat)<100)

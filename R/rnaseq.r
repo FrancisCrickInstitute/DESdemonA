@@ -530,8 +530,9 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
     tidy_mat[cbind(summ_long$.gene, summ_long$.sample)] <- summ_long$.value
     tidy_pdat  <- as.data.frame(dplyr::select(tidy_pdat, -.gene, -.value, -.sample))
   } else {
-    ord <- do.call(order, as.list(pdat[,c(NULL, tidy_fn$rhs), drop=FALSE]))
-    return(list(mat=mat[,ord], pdat=pdat[ord,tidy_fn$rhs]))
+    facts <- c(tidy_fn$by, tidy_fn$rhs)
+    ord <- do.call(order, as.list(pdat[,facts, drop=FALSE]))
+    return(list(mat=mat[,ord], pdat=pdat[ord,facts]))
   }
   ## pdat$.value <- mat[1,]
   ## tidy_mat <- apply(mat, 1, function(x) {pdat$.value=x; tidy_fn(pdat)$.value})
