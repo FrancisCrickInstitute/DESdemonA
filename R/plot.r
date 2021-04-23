@@ -251,6 +251,11 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
                                               as.factor)
     colnames(tidied_data$mat) <- rownames(pdat)
     name <- sub(".*\\t", "", i)
+    if (is.null(tidy_fn$by)) {
+      col_split <- NULL
+    } else {
+      col_split <- apply(pdat, 1, paste, collapse=" ")
+    }
     ha <- ComplexHeatmap::HeatmapAnnotation(df=pdat, col=colList)
     pl <- ComplexHeatmap::Heatmap(tidied_data$mat,
                  heatmap_legend_param = list(direction = "horizontal" ),
