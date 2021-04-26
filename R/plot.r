@@ -32,10 +32,10 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   vars <- get_terms(dds)
   colDat <- as.data.frame(colData(dds))
   colnames(plotDat) <- rownames(colDat)
-  dend <- dendro_all(plotDat, colDat[[c(vars$groups, vars$fixed)[1]]])
+#  dend <- dendro_all(plotDat, colDat[[c(vars$groups, vars$fixed)[1]]])
   qc_vis$heatmap <- ComplexHeatmap::Heatmap(
     plotDat, name="Mean Centred", column_title="Samples", row_title="Genes",
-    cluster_columns=dend,
+#    cluster_columns=dend,
     heatmap_legend_param = list(direction = "horizontal" ),
     col=colorspace::diverging_hcl(5, palette="Blue-Red"),
     top_annotation=ComplexHeatmap::HeatmapAnnotation(df=colDat[vars$fixed],
