@@ -132,9 +132,9 @@ build_dds_list <- function(dds, spec) {
       .mu <- purrr::partial(mutate, .data=as.data.frame(colData(obj)))
       tr <- set$transform
       tr[[1]] <- .mu
-      rnames <- row.names(colData(obj))
+      cnames <- colnames(obj)
       colData(obj) <- S4Vectors::DataFrame(eval(tr))
-      row.names(obj) <- rnames
+      colnames(obj) <- cnames
     }
     obj
   })
