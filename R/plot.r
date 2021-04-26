@@ -251,7 +251,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
                                               as.factor)
     colnames(tidied_data$mat) <- rownames(pdat)
     name <- sub(".*\\t", "", i)
-    if (is.null(tidy_fn$by)) {
+    if (length(tidy_fn$by)==0) {
       col_split <- NULL
     } else {
       col_split <- apply(sapply(pdat[, tidy_fn$by, drop=FALSE], as.character), 1, paste, collapse=" ")
