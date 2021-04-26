@@ -26,17 +26,22 @@ if (is.null(sample_sheet[[args$file_col]])) {
 sample_sheet[sapply(sample_sheet, is.character)] <- lapply(sample_sheet[sapply(sample_sheet, is.character)], 
                                        as.factor)
 
-txi <- tximport(
-  file.path(
-    args$counts,
-    paste0(as.character(sample_sheet[[args$file_col]]), ".genes.results")
-   ),
-  type="rsem")
+tx_path <-   file.path(
+  args$counts,
+  paste0(as.character(sample_sheet[[args$file_col]]), ".genes.results")
+)
+if ("name" %in% names(sample_sheet)) {
+  names(tx_path) <- as.character(sample_sheet$name)
+} else {
+  names(tx_path) <- as.character(sample_sheet[[args$file_col]])
+}
+
+txi <- tximport(tx_path, type="rsem")
 txi$length[txi$length==0] <- 1
 
-init_dds <- DESeqDataSetFromTximport(txi, sample_sheet, ~ 1) # ok to have fixed trivial design - it'll get swapped out
-ind <- rowSums(counts(init_dds)!=0) > 0
-init_dds <- init_dds[ind,]
+dds <- DESeqDataSetFromTximport(txi, sample_sheet, ~ 1) # ok to have fixed trivial design - it'll get swapped out
+ind <- rowSums(counts(dds)!=0) > 0
+dds <- dds[ind,]
 
 txi[c("abundance", "counts", "length")] <- map(txi[c("abundance", "counts", "length")], ~ .[ind,])
 
@@ -58,24 +63,24 @@ if (args$org_package=="") {
 } else {
   organism <- list(org=args$org_package)
 }
-metadata(init_dds)$organism <- organism
-metadata(init_dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
+metadata(dds)$organism <- organism
+metadata(dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
 
 library(organism$org, character.only=TRUE)
 
-mcols(init_dds)$symbol <- mapIds(
+mcols(dds)$symbol <- mapIds(
   eval(parse(text = organism$org)), 
-  keys=row.names(init_dds),
+  keys=row.names(dds),
   column="SYMBOL",
   keytype="ENSEMBL",
-  multiVals="first")[row.names(init_dds)]
+  multiVals="first")[row.names(dds)]
 
-mcols(init_dds)$entrez <- mapIds(
+mcols(dds)$entrez <- mapIds(
   eval(parse(text = organism$org)),
-  keys=row.names(init_dds),
+  keys=row.names(dds),
   column="ENTREZID",
   keytype="ENSEMBL",
-  multiVals="first")[row.names(init_dds)]
+  multiVals="first")[row.names(dds)]
 
-usethis::use_data(init_dds, overwrite=TRUE)
+usethis::use_data(dds, overwrite=TRUE)
 
