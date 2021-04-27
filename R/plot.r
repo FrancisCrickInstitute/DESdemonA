@@ -270,7 +270,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
     caption(paste0("Heatmap on differential genes ", name))
     part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, metadata(ddsList[[i]])$model$design)
     for (i_term in 1:(dim(part_resid)[3])) {
-      term_name <- dimnames(part_resid)[i_term]
+      term_name <- dimnames(part_resid)[[3]][i_term]
           pl <- ComplexHeatmap::Heatmap(t(part_resid[,,i_term]),
                  heatmap_legend_param = list(direction = "horizontal" ),
                  name=paste(sub(".*\\t", "", i),term_name),
@@ -298,7 +298,7 @@ residual_heatmap_transform <- function(mat, cdata, fml) {
   out <- array(0, c(dim(fit$residuals), ncol(p1)), dimnames=c(dimnames(fit$residuals), list(colnames(p1))))
   for (i in 1:(dim(out)[2])) {
     fit1[ind] <- lapply(fit[ind], function(x) x[,i])
-    out[,i,] <- predict(fit1, type="terms")
+    out[,i,] <- predict(fit1, type="terms")+fit1$coefficients[1]
   }
   for (j in 1:(dim(out)[3])) {
     out[,,j] <- out[,,j]+fit$residuals
