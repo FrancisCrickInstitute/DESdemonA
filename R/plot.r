@@ -271,7 +271,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
     part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, metadata(ddsList[[i]])$model$design)
     for (i_term in 1:(dim(part_resid)[3])) {
       term_name <- dimnames(part_resid)[i_term]
-          pl <- ComplexHeatmap::Heatmap(part_resid[,,i_term],
+          pl <- ComplexHeatmap::Heatmap(t(part_resid[,,i_term]),
                  heatmap_legend_param = list(direction = "horizontal" ),
                  name=paste(sub(".*\\t", "", i),term_name),
                  cluster_columns = FALSE,
