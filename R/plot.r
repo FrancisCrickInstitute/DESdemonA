@@ -268,7 +268,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
                  show_row_names = nrow(tidied_data$mat)<100)
     draw(pl, heatmap_legend_side="top")
     caption(paste0("Heatmap on differential genes ", name))
-    part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, design(ddsList[[i]]$design))
+    part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, ddsList[[i]]$design)
     for (i_term in 1:(dim(part_resid)[3])) {
       term_name <- dimnames(part_resid)[i_term]
           pl <- ComplexHeatmap::Heatmap(part_resid[,,i_terms],
