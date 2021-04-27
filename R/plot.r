@@ -239,11 +239,12 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
       next
     }
     comp <- metadata(ddsList[[i]])$comparison
+    fml <- metadata(ddsList[[i]])$model$design
     if ("spec" %in% names(attributes(comp))) {
       tidy_fn <- emmeans:::.parse.by.formula(attr(comp, "spec"))
-      tidy_fn$rhs <- c(tidy_fn$rhs, setdiff(all.vars(metadata(ddsList[[i]])$model$design), unlist(tidy_fn)))
+      tidy_fn$rhs <- c(tidy_fn$rhs, setdiff(all.vars(fml), unlist(tidy_fn)))
     } else {
-      tidy_fn <- list(lhs="", rhs=all.vars(metadata(ddsList[[i]])$model$design), by=NULL)
+      tidy_fn <- list(lhs="", rhs=all.vars(fml), by=NULL)
     }
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, tidy_fn)
     pdat <- tidied_data$pdat
@@ -268,20 +269,22 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
                  show_row_names = nrow(tidied_data$mat)<100)
     draw(pl, heatmap_legend_side="top")
     caption(paste0("Heatmap on differential genes ", name))
-    part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, metadata(ddsList[[i]])$model$design)
-    for (i_term in 1:(dim(part_resid)[3])) {
-      term_name <- dimnames(part_resid)[[3]][i_term]
-          pl <- ComplexHeatmap::Heatmap(t(part_resid[,,i_term]),
-                 heatmap_legend_param = list(direction = "horizontal" ),
-                 name=paste(sub(".*\\t", "", i),term_name),
-                 cluster_columns = FALSE,
-                 show_column_names = TRUE,
-                 column_split = col_split,
-                 top_annotation = ha,
-                 row_names_gp = gpar(fontsize = 6),
-                 show_row_names = nrow(tidied_data$mat)<100)
-          draw(pl, heatmap_legend_side="top")
-          caption(paste0("Heatmap on differential genes ", name, ", ", term_name, "-focussed"))
+    if (length(all.vars(fml))>1) {
+      part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, fml)
+      term_names <- dimnames(part_resid)[[3]]
+      for (term_name in term_names) {
+        pl <- ComplexHeatmap::Heatmap(t(part_resid[,,term_name]),
+                                     heatmap_legend_param = list(direction = "horizontal" ),
+                                     name=paste(sub(".*\\t", "", i),term_name),
+                                     cluster_columns = FALSE,
+                                     show_column_names = TRUE,
+                                     column_split = col_split,
+                                     top_annotation = ha,
+                                     row_names_gp = gpar(fontsize = 6),
+                                     show_row_names = nrow(tidied_data$mat)<100)
+        draw(pl, heatmap_legend_side="top")
+        caption(paste0("Heatmap on differential genes ", name, ", ", term_name, "-focussed"))
+      }
     }
   }
 }
@@ -298,7 +301,8 @@ residual_heatmap_transform <- function(mat, cdata, fml) {
   out <- array(0, c(dim(fit$residuals), ncol(p1)), dimnames=c(dimnames(fit$residuals), list(colnames(p1))))
   for (i in 1:(dim(out)[2])) {
     fit1[ind] <- lapply(fit[ind], function(x) x[,i])
-    out[,i,] <- predict(fit1, type="terms")+fit1$coefficients[1]
+    pred <- predict(fit1, type="terms")
+    out[,i,] <- pred+attr(pred, "constant")
   }
   for (j in 1:(dim(out)[3])) {
     out[,,j] <- out[,,j]+fit$residuals
