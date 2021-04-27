@@ -268,8 +268,44 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
                  show_row_names = nrow(tidied_data$mat)<100)
     draw(pl, heatmap_legend_side="top")
     caption(paste0("Heatmap on differential genes ", name))
+    part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, design(ddsList[[i]]$design))
+    for (i_term in 1:(dim(part_resid)[3])) {
+      term_name <- dimnames(part_resid)[i_term]
+          pl <- ComplexHeatmap::Heatmap(part_resid[,,i_terms],
+                 heatmap_legend_param = list(direction = "horizontal" ),
+                 name=paste(sub(".*\\t", "", i),term_name),
+                 cluster_columns = FALSE,
+                 show_column_names = TRUE,
+                 column_split = col_split,
+                 top_annotation = ha,
+                 row_names_gp = gpar(fontsize = 6),
+                 show_row_names = nrow(tidied_data$mat)<100)
+          draw(pl, heatmap_legend_side="top")
+          caption(paste0("Heatmap on differential genes ", name, ", ", term_name, "-focussed"))
+    }
   }
 }
+
+residual_heatmap_transform <- function(mat, cdata, fml) {
+  tmat <- t(mat)
+  fml <- update(fml, tmat ~ .)
+  fit <- lm(fml, data=cdata)
+  fit1 <- fit
+  class(fit1) <- "lm"
+  ind <- c("coefficients","residuals","effects","fitted.values")
+  fit1[ind] <- lapply(fit[ind], function(x) x[,1])
+  p1 <- predict(fit1, type="terms")
+  out <- array(0, c(dim(fit$residuals), ncol(p1)), dimnames=c(dimnames(fit$residuals), list(colnames(p1))))
+  for (i in 1:(dim(out)[2])) {
+    fit1[ind] <- lapply(fit[ind], function(x) x[,i])
+    out[,i,] <- predict(fit1, type="terms")
+  }
+  for (j in 1:(dim(out)[3])) {
+    out[,,j] <- out[,,j]+fit$residuals
+  }
+  out
+}
+
 ##' Generate MA Plots
 ##'
 ##' MA plots of each differential genelist

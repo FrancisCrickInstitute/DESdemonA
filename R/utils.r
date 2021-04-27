@@ -31,10 +31,10 @@ classify_terms <- function(fml) {
   if (!has_random) {
     return(list(fixed=all.vars(fml),groups=list() ))
   }
-  fvars <- all.vars(lme4::nobars(fml))
-  avars <- all.vars(lme4::subbars(fml))
   rterms <- lme4:::barnames(lme4::findbars(fml))
-  list(fixed=fvars, groups=rterms[!grepl(":", rterms)])
+  rterms <- sub(":.*", "", rterms)
+  fvars <- setdiff(all.vars(lme4::subbars(fml)), rterms)
+  list(fixed=fvars, groups=rterms)
 }
   
   

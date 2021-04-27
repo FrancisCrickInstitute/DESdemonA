@@ -511,7 +511,7 @@ enrichment <- function(ddsList, fun, showCategory, max_width=30) {
 
 tidy_significant_dds <- function(dds, res, tidy_fn=NULL) {
   ind <- grepl("\\*$", res$class)
-  mat <- assay(vst(dds))[ind,,drop=FALSE]
+  mat <- assay(dds, "vst")[ind,,drop=FALSE]
   tidy_dat <- tidy_per_gene(mat, as.data.frame(colData(dds)), tidy_fn)
   return(tidy_dat)
 }
