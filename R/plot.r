@@ -204,7 +204,6 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
       caption(paste0("Against ", j))
     }
   }
-  invisible(qc_vis)
 }
 
 get_terms <- function(dds) {
