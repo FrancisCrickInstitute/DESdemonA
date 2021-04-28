@@ -82,12 +82,12 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
 
   do_part_resid <- length(vars$fixed)>1
   if (do_part_resid) {
-    samp_gene_factor <- residual_heatmap_transform(
+    sample_gene_factor <- residual_heatmap_transform(
       assay(dds, "vst"),
       colData(dds),
-      metadata(dds)$models[which(models_for_qc)[1]]$design)
+      metadata(dds)$models[[which(models_for_qc)[1]]]$design)
     pc_resid <- lapply(
-      dimnames(samp_gene_factor)[3],
+      dimnames(sample_gene_factor)[[3]],
       function(fac) {
         pc <- prcomp(sample_gene_factor[,,fac,drop=TRUE], scale=FALSE) 
         list(pc=pc$x, percent=round(100 * pc$sdev^2 / sum( pc$sdev^2 )))
@@ -115,8 +115,8 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
                  hjust=1.1, vjust=-1.1, col="white", cex=6,
                  fontface = "bold", alpha = 0.8) + 
         geom_point(size=3) +
-        xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
-        ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
+        xlab(paste0("PC ", pc_x, ": ", pc_resid[[j]]$percent[,pc_x], "% variance")) +
+        ylab(paste0("PC ", pc_y, ": ", pc_resid[[j]]$percent[,pc_y], "% variance")) +
         labs(colour=j)
       if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
       print(pl)
