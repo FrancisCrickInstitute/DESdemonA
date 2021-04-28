@@ -20,7 +20,6 @@
 #' @export
 qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC Visualisation", header="\n\n##", n=500, caption=print) {
   cat(header, " ", title, "\n", sep="")
-  qc_vis <- list()
   
   var_stab <- assay(dds, "vst")
   top <- order(apply(var_stab, 1, sd), decreasing=TRUE)[1:n] 
@@ -33,15 +32,15 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   colDat <- as.data.frame(colData(dds))
   colnames(plotDat) <- rownames(colDat)
 #  dend <- dendro_all(plotDat, colDat[[c(vars$groups, vars$fixed)[1]]])
-  qc_vis$heatmap <- ComplexHeatmap::Heatmap(
+  pl <- ComplexHeatmap::Heatmap(
     plotDat, name="Mean Centred", column_title="Samples", row_title="Genes",
-#    cluster_columns=dend,
+    #    cluster_columns=dend,
     heatmap_legend_param = list(direction = "horizontal" ),
     col=colorspace::diverging_hcl(5, palette="Blue-Red"),
     top_annotation=ComplexHeatmap::HeatmapAnnotation(df=colDat[vars$fixed],
                                                      col = df2colorspace(colDat[vars$fixed])),
     show_row_names=FALSE, show_column_names=TRUE)
-  draw(qc_vis$heatmap, heatmap_legend_side="top")
+  draw(pl, heatmap_legend_side="top")
   caption("Heatmap of variable genes")
 
   cat(header, "# Heatmap of sample distances", "\n", sep="") 
@@ -61,7 +60,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
       rownames(samplePoisDistMatrix) <-colDat[[vars$groups]]
     }
   }
-  qc_vis$sample_dist <- ComplexHeatmap::Heatmap(
+  pl <- ComplexHeatmap::Heatmap(
     samplePoisDistMatrix,
     name="Poisson Distance", 
     clustering_distance_rows = function(x) {poisd$dd},
@@ -70,7 +69,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     top_annotation=ComplexHeatmap::HeatmapAnnotation(df=colDat[vars$fixed],
                                      col = df2colorspace(colDat[vars$fixed]))
     )
-  draw(qc_vis$sample_dist, heatmap_legend_side="top")
+  draw(pl, heatmap_legend_side="top")
   caption("Heatmap of sample distances")
   
   ### PCA
@@ -79,30 +78,54 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   is_vary <- sapply(colData(dds)[vars$fixed], function(v) length(unique(v))!=1)
   #fml <- as.formula(paste0("~", paste(metadata(dds)$labels[is_vary], collapse="+")))
 
-  qc_vis$PC <- list(list())
+  do_part_resid <- length(vars$fixed)>1
+  if (do_part_resid) {
+    samp_gene_factor <- residual_heatmap_transform(assay(dds, "vst"), colData(dds), metadata(dds)$model$design)
+    pc_resid <- lapply(
+      dimnames(samp_gene_factor)[3],
+      function(fac) {
+        pc <- prcomp(sample_gene_factor[,,fac,drop=TRUE], scale=FALSE) 
+        list(pc=pc$x, percent=round(100 * pc$sdev^2 / sum( pc$sdev^2 )))
+      }
+    )
+  }
+
   cat(header, "# Visualisation of PCs ", pc_x, " and ", pc_y, " coloured by covariate", "\n", sep="")
   do_labels <- nrow(colDat)<10
-  pc_frame <- expand.grid(sample=rownames(colDat), PC=1:ncol(pc))
-  pc_frame$coord <- as.vector(pc)
-  pc_frame <- cbind(pc_frame, colDat)
                         
   for (j in vars$fixed[is_vary]) {
     pc.df <- data.frame(PC1=pc[,pc_x], PC2=pc[,pc_y], col=colDat[[j]], sample=rownames(colDat))
-    qc_vis$PC[[1]][[j]] <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
+    pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
       ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
       labs(colour=j)
-    if (do_labels) {qc_vis$PC[[1]][[j]] <- qc_vis$PC[[1]][[j]] + geom_text_repel(aes(label=sample))}
-    print(qc_vis$PC[[1]][[j]])
+    if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
+    print(pl)
     caption(paste0("Coloured by ", j))
+    if (do_part_resid) {
+      pc.df$PC1 <- pc_resid[[j]]$pc[,pc_x]
+      pc.df$PC2 <- pc_resid[[j]]$pc[,pc_y]
+      pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  +
+        annotate("text", x = Inf, y = -Inf, label = "PROOF ONLY",
+                 hjust=1.1, vjust=-1.1, col="white", cex=6,
+                 fontface = "bold", alpha = 0.8) + 
+        geom_point(size=3) +
+        xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
+        ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
+        labs(colour=j)
+      if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
+      print(pl)
+      caption(paste0("Focussed on ", j))
+    }
   }
   
-  qc_vis$PC_phenotype <- list()
+  pc_frame <- expand.grid(sample=rownames(colDat), PC=1:ncol(pc))
+  pc_frame$coord <- as.vector(pc)
+  pc_frame <- cbind(pc_frame, colDat)
   fitFrame <- colDat
   yvar <- make.unique(c(colnames(fitFrame), "y", sep=""))[ncol(fitFrame)+1]
   models_for_qc <- sapply(metadata(dds)$models, "[[", "plot_qc") # TODO Make this more sensible
   for (model_name in names(metadata(dds)$models)[models_for_qc]) {
-    qc_vis$PC[[model_name]] <- list()
     fml <- update(metadata(dds)$models[[model_name]]$design, paste(yvar, "~ ."))
     plotFrame <- expand.grid(Covariate=attr(terms(fml), "term.labels"),
                             PC=1:ncol(pc))
@@ -125,16 +148,15 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     plotFrame$wrap <- (plotFrame$PC-1) %/% 20
     plotFrame$wrap <- paste0("PCs ", plotFrame$wrap*20+1, "-", min((plotFrame$wrap+1) * 20, npc))
     plotFrame$PC <- sprintf("%02d", plotFrame$PC)
-    qc_vis$PC_phenotype[[model_name]] <- ggplot(plotFrame, aes(x=PC, y=Covariate, fill=Assoc)) +
+    pl <- ggplot(plotFrame, aes(x=PC, y=Covariate, fill=Assoc)) +
       geom_raster() +
       facet_wrap(~wrap, scales="free_x", ncol=1) + 
       scale_fill_gradient2(low="#4575b4", mid="grey90", high="#d73027") +
       theme_classic() + theme(aspect.ratio = length(unique(plotFrame$Covariate)) / min(20, npc))
-    print(qc_vis$PC_phenotype[[model_name]])
+    print(pl)
     caption("Covariate-PC association")
     
     cat(header, "# Partial Residuals of Associated PCs ",model_name, "\n", sep="")
-    qc_vis$PC[[model_name]] <- list()
     factors_1 <- attr(terms(fit1),"factors")
     many_levels <- sapply(colDat, function(x) length(unique(x)))
     for (j in unique(plotFrame$Covariate)) {
@@ -169,11 +191,11 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
         my_aes <- ggplot2::aes(x=X, y=coord, group=1)
         my_lbl <- labs(colour=j,x=inter_vars[1], y="Residual")
       }
-      qc_vis$PC[[model_name]][[j]] <- ggplot(pc.df, my_aes)  + geom_point(size=2) +
+      pl <- ggplot(pc.df, my_aes)  + geom_point(size=2) +
         stat_summary(fun = mean, geom="line") + 
         my_lbl + facet_wrap(~label, scales="free_y") 
-      if (do_labels) {qc_vis$PC[[model_name]][[j]] <- qc_vis$PC[[model_name]][[j]] + geom_text_repel(aes(label=sample))}
-      print(qc_vis$PC[[model_name]][[j]])
+      if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
+      print(pl)
       caption(paste0("Against ", j))
     }
   }
