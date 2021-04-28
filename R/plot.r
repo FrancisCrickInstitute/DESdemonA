@@ -93,6 +93,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
         list(pc=pc$x, percent=round(100 * pc$sdev^2 / sum( pc$sdev^2 )))
       }
     )
+    names(pc_resid) <- dimnames(sample_gene_factor)[[3]]
   }
 
   cat(header, "# Visualisation of PCs ", pc_x, " and ", pc_y, " coloured by covariate", "\n", sep="")
