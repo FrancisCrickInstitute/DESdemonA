@@ -23,6 +23,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   
   var_stab <- assay(dds, "vst")
   top <- order(apply(var_stab, 1, sd), decreasing=TRUE)[1:n] 
+  models_for_qc <- sapply(metadata(dds)$models, "[[", "plot_qc") # TODO Make this more sensible
 
   ### Heatmap
   cat(header, "# Heatmap of variable genes", "\n", sep="") 
@@ -77,10 +78,14 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   percentVar <- metadata(colData(dds)$.PCA)$percentVar
   is_vary <- sapply(colData(dds)[vars$fixed], function(v) length(unique(v))!=1)
   #fml <- as.formula(paste0("~", paste(metadata(dds)$labels[is_vary], collapse="+")))
+  
 
   do_part_resid <- length(vars$fixed)>1
   if (do_part_resid) {
-    samp_gene_factor <- residual_heatmap_transform(assay(dds, "vst"), colData(dds), metadata(dds)$model$design)
+    samp_gene_factor <- residual_heatmap_transform(
+      assay(dds, "vst"),
+      colData(dds),
+      metadata(dds)$models[which(models_for_qc)[1]]$design)
     pc_resid <- lapply(
       dimnames(samp_gene_factor)[3],
       function(fac) {
@@ -124,7 +129,6 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   pc_frame <- cbind(pc_frame, colDat)
   fitFrame <- colDat
   yvar <- make.unique(c(colnames(fitFrame), "y", sep=""))[ncol(fitFrame)+1]
-  models_for_qc <- sapply(metadata(dds)$models, "[[", "plot_qc") # TODO Make this more sensible
   for (model_name in names(metadata(dds)$models)[models_for_qc]) {
     fml <- update(metadata(dds)$models[[model_name]]$design, paste(yvar, "~ ."))
     plotFrame <- expand.grid(Covariate=attr(terms(fml), "term.labels"),
