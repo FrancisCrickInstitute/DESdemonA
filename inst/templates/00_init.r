@@ -3,7 +3,8 @@ defaults <- list(
   metadata    = "{{{metadata}}}",    ## Path to  spreadsheet containing covariates
   file_col    = "{{{file_col}}}",    ## Column in that spreadsheet that identifies the basename of count file for each sample
   counts      = "{{{counts}}}",      ## directory that contains the quantified gene counts
-  org_package = "{{{org_package}}}"  ## NULL will derive org.*.eg.db from nfcore info, otherwise specifcy string identifying annotation package of relevant species.
+  org_package = "{{{org_package}}}", ## NULL will derive org.*.eg.db from nfcore info, otherwise specifcy string identifying annotation package of relevant species.
+  spec_prefix = ""
 )
 
 
@@ -82,5 +83,5 @@ mcols(dds)$entrez <- mapIds(
   keytype="ENSEMBL",
   multiVals="first")[row.names(dds)]
 
-usethis::use_data(dds, overwrite=TRUE)
-
+save(dds, file=file.path("data",paste0("dds", args$spec_suffix, ".rda")))
+saveRDS(dds, file=file.path("data",paste0("dds", args$spec_suffix, ".rds")))

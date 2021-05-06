@@ -4,6 +4,7 @@
 #' params:
 #'   res_dir: "results"
 #'   spec_file: ""
+#'   spec_suffix: ""
 #' output:
 #'   bookdown::html_document2:
 #'     toc: true
@@ -49,12 +50,14 @@ knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
 if (!isTRUE(getOption('knitr.in.progress'))) {
   params <- list(
     spec_file=dir(pattern="*.spec")[1],
-    res_dir="results")
+    res_dir="results",
+    spec_suffix="")
 }
 
 #+ read
 
-data(dds)
+data(list=paste0("dds", params$spec_suffix))
+
 library(metadata(dds)$organism$org, character.only=TRUE)
 metadata(dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
 

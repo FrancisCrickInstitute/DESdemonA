@@ -117,6 +117,7 @@ ParamList <- R6::R6Class("ParamList",
 #' 
 #' @export
 get_started <- function(files = dir(system.file("templates",package="DESdemonA")), path=".",
+                yml="",
                 nfcore="results",
                 metadata=system.file("extdata/metadata.xlsx", package="babsrnaseq"),
                 file_col="filename",
@@ -125,7 +126,43 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
                 project=basename(getwd()),
                 author=getOption("usethis.full_name")
                 ) {
-  args <- as.list(environment())[-(1:2)]
+  if (yml!="") {
+    yml_args <- read_yml(yml)
+  } else {
+    yml_args <- list()
+  }
+  args <- as.list(environment())[-(1:3)]
+  pre_exist <- file.exists(file.path(path, files))
+  if (any(pre_exist)) {
+    stop(paste(file.path(path, files), collapse=", "), " already exist. Remove or rename them")
+  }
+  for (fname in files) {
+    usethis::use_template(fname, save_as=fname, data=args, package="DESdemonA")
+  }
+}
+
+get_started <- function(files = dir(system.file("templates",package="DESdemonA")),
+                path=".",
+                yml="",
+                ...
+                ) {
+  args <- list(...)
+  if (yml!="") {
+    yml_args <- read_yml(yml)
+    ind <- setdiff(yml_args, args)
+    args[ind] <- yml_args[ind]
+  }
+  defaults <- list(
+    nfcore="results",
+    metadata=system.file("extdata/metadata.xlsx", package="babsrnaseq"),
+    file_col="filename",
+    counts=file.path(nfcore, "star_rsem"),
+    org_package="",
+    project=basename(getwd()),
+    author=getOption("usethis.full_name")
+  )
+  ind <- setdiff(defaults, args)
+  args[ind] <- defaults[ind]
   pre_exist <- file.exists(file.path(path, files))
   if (any(pre_exist)) {
     stop(paste(file.path(path, files), collapse=", "), " already exist. Remove or rename them")
