@@ -131,7 +131,7 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
   } else {
     yml_args <- list()
   }
-  args <- as.list(environment())[-(1:3)]
+  args <- as.list(environment())
   pre_exist <- file.exists(file.path(path, files))
   if (any(pre_exist)) {
     stop(paste(file.path(path, files), collapse=", "), " already exist. Remove or rename them")
