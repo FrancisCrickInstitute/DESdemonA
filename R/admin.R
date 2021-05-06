@@ -161,8 +161,8 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
     project=basename(getwd()),
     author=getOption("usethis.full_name")
   )
-  ind <- setdiff(defaults, args)
-  args[ind] <- defaults[ind]
+  ind <- setdiff(names(defaults), names(args))
+  args <- c(args, defaults[ind])
   args <- lapply(args, eval, args)
   pre_exist <- file.exists(file.path(path, files))
   if (any(pre_exist)) {
