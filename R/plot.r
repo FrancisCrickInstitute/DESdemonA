@@ -269,10 +269,14 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
     if ("spec" %in% names(attributes(comp))) {
       tidy_fn <- emmeans:::.parse.by.formula(attr(comp, "spec"))
       tidy_fn$rhs <- c(tidy_fn$rhs, setdiff(all.vars(fml), unlist(tidy_fn)))
+      weights <- t(metadata(dds)$comparison %*% MASS::ginv(metadata(dds)$model$mat))
+      is_denom <- weights < -sqrt(.Machine$double.eps)
+      weights[!is_denom] <- 0
     } else {
       tidy_fn <- list(lhs="", rhs=all.vars(fml), by=NULL)
+      weights <- NULL
     }
-    tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, tidy_fn)
+    tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, tidy_fn, weights=weights)
     pdat <- tidied_data$pdat
     pdat[sapply(pdat, is.character)] <- lapply(pdat[sapply(pdat, is.character)], 
                                               as.factor)
@@ -283,6 +287,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
     } else {
       col_split <- apply(sapply(pdat[, tidy_fn$by, drop=FALSE], as.character), 1, paste, collapse=" ")
     }
+    
     ha <- ComplexHeatmap::HeatmapAnnotation(df=pdat, col=colList)
     pl <- ComplexHeatmap::Heatmap(tidied_data$mat,
                  heatmap_legend_param = list(direction = "horizontal" ),
