@@ -108,7 +108,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
     print(pl)
     caption(paste0("Coloured by ", j))
-    if (do_part_resid) {
+    if (do_part_resid && j %in% names(pc_resid)) {
       pc.df$PC1 <- pc_resid[[j]]$pc[,pc_x]
       pc.df$PC2 <- pc_resid[[j]]$pc[,pc_y]
       pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  +
