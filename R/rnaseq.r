@@ -112,6 +112,21 @@ subsample <- function(dds, subs) {
 ##' @author Gavin Kelly
 ##' @export
 build_dds_list <- function(dds, spec) {
+  flat <- unlist(spec$sample_sets)
+  flat <- flat[sapply(flat, is_formula)]
+  modelled_terms <-  unlist(lapply(flat, all.vars))
+  if (!"palette" %in% names(spec$settings)) {
+    spec$settings$palette="Set1"
+  }
+  if (is.list(spec$settings$palette)) {
+    default_palette <- spec$settings$palette
+  } else {
+    default_palette<- DESdemonA:::df2colorspace(
+      colData(dds)[, intersect(modelled_terms, colnames(colData(dds))),drop=FALSE],
+      spec$settings$palette
+    )
+  }
+  metadata(colData(dds))$palette <- default_palette
   lapply(spec$sample_sets, function(set) {
     mdlList <- spec$models
     if (is.list(set)) {
@@ -134,7 +149,15 @@ build_dds_list <- function(dds, spec) {
       tr[[1]] <- .mu
       cnames <- colnames(obj)
       colData(obj) <- S4Vectors::DataFrame(eval(tr))
+      metadata(colData(obj)) <- metadata(colData(dds))
       colnames(obj) <- cnames
+      new_cols <- intersect(modelled_terms, setdiff(names(colData(obj)), names(default_palette)))
+      if (length(new_cols)>0) {
+       metadata(colData(obj))$palette[new_cols] <- DESdemonA:::df2colorspace(
+         colData(obj)[, new_cols, drop=FALSE],
+         spec$settings$palette
+       )
+      }
     }
     obj
   })
@@ -536,7 +559,7 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
     tidy_mat[cbind(summ_long$.gene, summ_long$.sample)] <- summ_long$.value
     tidy_pdat  <- as.data.frame(dplyr::select(tidy_pdat, -.gene, -.value, -.sample))
   } else {
-    facts <- c(tidy_fn$by, tidy_fn$rhs)
+    facts <- c(tidy_fn$by, tidy_fn$rhs, setdiff(tidy_fn$all, unlist(tidy_fn[c("by", "rhs")])))
     ord <- do.call(order, as.list(pdat[,facts, drop=FALSE]))
     return(list(mat=mat[,ord], pdat=pdat[ord,facts,drop=FALSE]))
   }

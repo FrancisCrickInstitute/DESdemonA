@@ -39,7 +39,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     heatmap_legend_param = list(direction = "horizontal" ),
     col=colorspace::diverging_hcl(5, palette="Blue-Red"),
     top_annotation=ComplexHeatmap::HeatmapAnnotation(df=colDat[vars$fixed],
-                                                     col = df2colorspace(colDat[vars$fixed])),
+                                                     col = metadata(colData(dds))$palette[vars$fixed]),
     show_row_names=FALSE, show_column_names=TRUE)
   draw(pl, heatmap_legend_side="top")
   caption("Heatmap of variable genes")
@@ -68,7 +68,8 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     clustering_distance_columns = function(x) {poisd$dd},
     heatmap_legend_param = list(direction = "horizontal" ),
     top_annotation=ComplexHeatmap::HeatmapAnnotation(df=colDat[vars$fixed],
-                                     col = df2colorspace(colDat[vars$fixed]))
+                                                     col = metadata(colData(dds))$palette[vars$fixed]
+                                                     )
     )
   draw(pl, heatmap_legend_side="top")
   caption("Heatmap of sample distances")
@@ -104,6 +105,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
       ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
+      scale_colour_manual(values=metadata(colData(dds))$palette[[j]]) + 
       labs(colour=j)
     if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
     print(pl)
@@ -116,6 +118,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
                  hjust=1.1, vjust=-1.1, col="white", cex=6,
                  fontface = "bold", alpha = 0.8) + 
         geom_point(size=3) +
+        scale_colour_manual(values=metadata(colData(dds))$palette[[j]]) + 
         xlab(paste0("PC ", pc_x, ": ", pc_resid[[j]]$percent[pc_x], "% variance")) +
         ylab(paste0("PC ", pc_y, ": ", pc_resid[[j]]$percent[pc_y], "% variance")) +
         labs(colour=j)
@@ -182,23 +185,33 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
         pc.df$coord[pc.df$PC==ipc] <- part.resid(fit_selected[[ipc]])[,j]
       }
       if (length(inter_vars)>1) {
+        pc.df$col <-  colDat[,inter_vars[2]]
         if (length(inter_vars)==2) {
-          pc.df$col <-  colDat[,inter_vars[2]]
+          pl <- ggplot(pc.df, aes(x=X, y=coord, colour=col, group=col)) +
+            scale_colour_manual(values=metadata(colData(dds))$palette[[inter_vars[2]]]) +
+            stat_summary(fun = mean, geom="line") + 
+            labs(
+              x=inter_vars[1],
+              colour=paste(inter_vars[-1],collapse="x"),
+              y="Residual")
         } else {
-          pc.df$col <- Reduce(interaction, colDat[,inter_vars[-1]])
+          pc.df$grp <- Reduce(interaction, colDat[,inter_vars[-1]])
+          pl <- ggplot(pc.df, aes(x=X, y=coord, colour=col, group=grp)) +
+            scale_colour_manual(values=metadata(colData(dds))$palette[[inter_vars[2]]]) + 
+            stat_summary(fun = mean, geom="line") + 
+            labs(
+              x=inter_vars[1],
+              colour=paste(inter_vars[-1],collapse="x"),
+              y="Residual")
         }
-        my_aes <- ggplot2::aes(x=X, y=coord, colour=col, group=col)
-        my_lbl <- labs(
-          x=inter_vars[1],
-          colour=paste(inter_vars[-1],collapse="x"),
-          y="Residual")
       } else {
-        my_aes <- ggplot2::aes(x=X, y=coord, group=1)
-        my_lbl <- labs(colour=j,x=inter_vars[1], y="Residual")
+        pl <- ggplot(pc.df, aes(x=X, y=coord, colour=X, group=1)) + 
+          scale_colour_manual(values=metadata(colData(dds))$palette[[inter_vars[1]]]) +
+          stat_summary(fun = mean, geom="line", colour="black") + 
+          labs(colour=j,x=inter_vars[1], y="Residual")
       }
-      pl <- ggplot(pc.df, my_aes)  + geom_point(size=2) +
-        stat_summary(fun = mean, geom="line") + 
-        my_lbl + facet_wrap(~label, scales="free_y") 
+      pl <- pl  + geom_point(size=2) +
+        facet_wrap(~label, scales="free_y") 
       if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
       print(pl)
       caption(paste0("Against ", j))
@@ -258,7 +271,7 @@ dendro_all <- function(mat, var) {
 ##' @return
 ##' @author Gavin Kelly
 #' @export
-differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colorspace(colData(ddsList[[1]]))) {
+differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
   first_done <- FALSE
   for (i in names(ddsList)) {
     if (!any(grepl("\\*$", mcols(ddsList[[i]])$results$class))) {
@@ -267,28 +280,36 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
     comp <- metadata(ddsList[[i]])$comparison
     fml <- metadata(ddsList[[i]])$model$design
     if ("spec" %in% names(attributes(comp))) {
-      tidy_fn <- emmeans:::.parse.by.formula(attr(comp, "spec"))
-      tidy_fn$rhs <- c(tidy_fn$rhs, setdiff(all.vars(fml), unlist(tidy_fn)))
-      weights <- t(metadata(dds)$comparison %*% MASS::ginv(metadata(dds)$model$mat))
+      var_roles <- emmeans:::.parse.by.formula(attr(comp, "spec"))
+      var_roles$all <- c(var_roles$by, var_roles$rhs, setdiff(all.vars(fml), unlist(var_roles)))
+      mdl <- metadata(ddsList[[i]])$model
+      if ("mat" %in% names(mdl)) {
+        mmat <- mdl$mat
+      } else {
+        mmat <- model.matrix(mdl$design, colData(ddsList[[i]]))
+      }
+      weights <- t(metadata(ddsList[[i]])$comparison %*% MASS::ginv(mmat))
       is_denom <- weights < -sqrt(.Machine$double.eps)
       weights[!is_denom] <- 0
     } else {
-      tidy_fn <- list(lhs="", rhs=all.vars(fml), by=NULL)
+      var_roles <- list(lhs="", rhs=all.vars(fml), by=NULL, all=all.vars(fml))
       weights <- NULL
     }
-    tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, tidy_fn, weights=weights)
+    tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, var_roles, weights=weights)
     pdat <- tidied_data$pdat
     pdat[sapply(pdat, is.character)] <- lapply(pdat[sapply(pdat, is.character)], 
                                               as.factor)
     colnames(tidied_data$mat) <- rownames(pdat)
     name <- sub(".*\\t", "", i)
-    if (length(tidy_fn$by)==0) {
+    if (length(var_roles$by)==0) {
       col_split <- NULL
     } else {
-      col_split <- apply(sapply(pdat[, tidy_fn$by, drop=FALSE], as.character), 1, paste, collapse=" ")
+      col_split <- apply(sapply(pdat[, var_roles$by, drop=FALSE], as.character), 1, paste, collapse=" ")
     }
     
-    ha <- ComplexHeatmap::HeatmapAnnotation(df=pdat, col=colList)
+    ha <- ComplexHeatmap::HeatmapAnnotation(
+      df=pdat,
+      col=metadata(colData(ddsList[[i]]))$palette[names(pdat)])
     pl <- ComplexHeatmap::Heatmap(tidied_data$mat,
                  heatmap_legend_param = list(direction = "horizontal" ),
                  name=sub(".*\\t", "", i),
@@ -302,7 +323,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption, colList=df2colo
     caption(paste0("Heatmap on differential genes ", name))
     if (length(all.vars(fml))>1) {
       part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, fml)
-      term_names <- dimnames(part_resid)[[3]]
+      term_names <- intersect(dimnames(part_resid)[[3]], var_roles$rhs)
       for (term_name in term_names) {
         pl <- ComplexHeatmap::Heatmap(t(part_resid[,,term_name]),
                                      heatmap_legend_param = list(direction = "horizontal" ),
@@ -401,8 +422,8 @@ differential_MA <- function(ddsList, caption) {
 ##' @param df
 ##' @return
 ##' @author Gavin Kelly
-df2colorspace <- function(df) {
-  pal <- RColorBrewer::brewer.pal(12, "Set3")
+df2colorspace <- function(df, palette) {
+  pal <- RColorBrewer::brewer.pal(RColorBrewer::brewer.pal.info[palette, "maxcolors"], palette)
   df <- dplyr::mutate_if(as.data.frame(df), is.character, as.factor)
   purrr::map2(df,
               cumsum(c(0,purrr::map(df, nlevels)))[1:length(df)],
