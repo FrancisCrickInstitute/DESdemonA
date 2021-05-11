@@ -364,7 +364,7 @@ emcontrasts <- function(dds, spec, extra=NULL) {
 ##' @param ... 
 ##' @return 
 ##' @author Gavin Kelly
-fitLRT <- function(dds, reduced, ...) {
+fitLRT <- function(dds, mdl, reduced, ...) {
   mdl <- metadata(dds)$model
   metadata(dds)$comparison <- reduced
   if (any(mdl$dropped)) {
