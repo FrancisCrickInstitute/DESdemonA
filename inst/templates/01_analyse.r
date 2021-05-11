@@ -68,7 +68,9 @@ param <- DESdemonA::ParamList$new(defaults=specs$settings)
 set.seed(param$set("seed"))
 param$set("title", "{{{project}}}")
 param$set("script", file.path(getwd(),"01_analyse.r"))
-
+param$set("spec", sub("\\.spec$", "", params$spec_file), "Using analysis plan '{}'.")
+param$set("spec_suffix", params$spec_suffix, "Using alignment settings '{}'")
+  
 ddsList <- DESdemonA::build_dds_list(dds, specs)
 
 

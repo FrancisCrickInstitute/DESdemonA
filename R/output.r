@@ -9,7 +9,7 @@
 ##' @return A list of file paths to the excel files
 ##' @author Gavin Kelly
 #' @export
-write_results <- function(ddsList, param, dir=".", name="differential") {
+write_results <- function(ddsList, param, dir=".") {
   si <- session_info()
   crick_colours <-list(
     primary=list(red="#e3001a",yellow="#ffe608",blue="#4066aa",green="#7ab51d",purple="#bb90bd"),
@@ -70,8 +70,8 @@ write_results <- function(ddsList, param, dir=".", name="differential") {
                                  value = unlist(si$platform),
                                  stringsAsFactors = FALSE),
               headerStyle=hs2)
-    out[[dataset]] <- file.path(dir, paste0(name, "_", dataset, ".xlsx"))
-    saveWorkbook(wb, out[[dataset]], overwrite=TRUE)
+    out[[dataset]] <- file.path(dir, paste0(param$get("spec"), "_", dataset, ".xlsx"))
+    (saveWorkbook(wb, out[[dataset]], overwrite=TRUE,returnValue=TRUE))
   }
   out
 }
