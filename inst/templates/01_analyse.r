@@ -10,7 +10,7 @@
 #'     toc: true
 #'     code_folding: hide
 #'     includes:
-#'       in_header: "`r system.file('templates/styles.html', package='DESdemonA')`"
+#'       in_header: !expr system.file("templates/styles.html", package="DESdemonA")
 #' link-citations: yes
 #' ---
 #'
