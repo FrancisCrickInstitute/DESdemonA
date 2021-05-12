@@ -1,3 +1,9 @@
+sym_colour <- function(dat, lo="blue",zero="white", hi="red") {
+  mx <- max(abs(dat))
+  circlize::colorRamp2(c(-mx, 0, mx), colors=c(lo, zero, hi))
+}
+
+
 ##' Generate visualisations of raw data
 ##'
 ##' Plot heatmaps of the raw data, along with plots of the samples
@@ -20,11 +26,9 @@
 #' @export
 qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC Visualisation", header="\n\n##", n=500, caption=print) {
   cat(header, " ", title, "\n", sep="")
-  
   var_stab <- assay(dds, "vst")
   top <- order(apply(var_stab, 1, sd), decreasing=TRUE)[1:n] 
-  models_for_qc <- sapply(metadata(dds)$models, "[[", "plot_qc") # TODO Make this more sensible
-
+  models_for_qc <- metadata(dds)$models[sapply(metadata(dds)$models, "[[", "plot_qc")] # TODO Make this more sensible
   ### Heatmap
   cat(header, "# Heatmap of variable genes", "\n", sep="") 
   plotDat <- var_stab[top,]
@@ -32,18 +36,20 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   vars <- get_terms(dds)
   colDat <- as.data.frame(colData(dds))
   colnames(plotDat) <- rownames(colDat)
-#  dend <- dendro_all(plotDat, colDat[[c(vars$groups, vars$fixed)[1]]])
+  #  dend <- dendro_all(plotDat, colDat[[c(vars$groups, vars$fixed)[1]]])
   pl <- ComplexHeatmap::Heatmap(
     plotDat, name="Mean Centred", column_title="Samples", row_title="Genes",
+    col=sym_colour(plotDat),
     #    cluster_columns=dend,
     heatmap_legend_param = list(direction = "horizontal" ),
-    col=colorspace::diverging_hcl(5, palette="Blue-Red"),
+#    col=colorspace::diverging_hcl(5, palette="Blue-Red"),
+#    col = circlize::colorRamp2(sym_colour(plotDat), colors=c("blue", "white", "red")),
     top_annotation=ComplexHeatmap::HeatmapAnnotation(df=colDat[vars$fixed],
                                                      col = metadata(colData(dds))$palette[vars$fixed]),
     show_row_names=FALSE, show_column_names=TRUE)
   draw(pl, heatmap_legend_side="top")
   caption("Heatmap of variable genes")
-
+  
   cat(header, "# Heatmap of sample distances", "\n", sep="") 
   poisd <- PoiClaClu::PoissonDistance(t(counts(dds, normalized=TRUE)))
   samplePoisDistMatrix <- as.matrix( poisd$dd )
@@ -63,6 +69,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   }
   pl <- ComplexHeatmap::Heatmap(
     samplePoisDistMatrix,
+    col = circlize::colorRamp2(c(0,max(samplePoisDistMatrix)), colors=c("white", "red")),
     name="Poisson Distance", 
     clustering_distance_rows = function(x) {poisd$dd},
     clustering_distance_columns = function(x) {poisd$dd},
@@ -70,7 +77,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     top_annotation=ComplexHeatmap::HeatmapAnnotation(df=colDat[vars$fixed],
                                                      col = metadata(colData(dds))$palette[vars$fixed]
                                                      )
-    )
+  )
   draw(pl, heatmap_legend_side="top")
   caption("Heatmap of sample distances")
   
@@ -80,26 +87,37 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   is_vary <- sapply(colData(dds)[vars$fixed], function(v) length(unique(v))!=1)
   #fml <- as.formula(paste0("~", paste(metadata(dds)$labels[is_vary], collapse="+")))
   
-
-  do_part_resid <- length(vars$fixed)>1
-  if (do_part_resid) {
+  
+  do_focus <- length(vars$fixed)>1 # ie also remove effect of every other covariate
+  do_batch <- FALSE                # ie just remove effect of specified batch covariates
+  if (do_focus) {
     sample_gene_factor <- residual_heatmap_transform(
       assay(dds, "vst"),
       colData(dds),
-      metadata(dds)$models[[which(models_for_qc)[1]]]$design)
-    pc_resid <- lapply(
-      dimnames(sample_gene_factor)[[3]],
-      function(fac) {
-        pc <- prcomp(sample_gene_factor[,,fac,drop=TRUE], scale=FALSE) 
-        list(pc=pc$x, percent=round(100 * pc$sdev^2 / sum( pc$sdev^2 )))
-      }
-    )
-    names(pc_resid) <- dimnames(sample_gene_factor)[[3]]
+      models_for_qc[[1]]$design)
+    if ("batch" %in% names(models_for_qc[[1]])) {
+      batch_vars <- all.vars(models_for_qc[[1]]$batch)
+      pc_batch <- prcomp(t(assay(dds, "vst")) - apply(sample_gene_factor$terms[,,batch_vars, drop=FALSE], 1:2,sum),
+                  scale=FALSE)
+      pc_resid <- list(pc=pc_batch$x, percent=round(100 * pc_batch$sdev^2 / sum( pc_batch$sdev^2 )))
+      do_focus <- FALSE
+      do_batch <- TRUE
+    } else {
+      pc_resid <- lapply(
+        dimnames(sample_gene_factor$terms)[[3]],
+        function(fac) {
+          pc <- prcomp(sample_gene_factor$terms[,,fac,drop=TRUE] + sample_gene_factor$resid,
+                      scale=FALSE) 
+          list(pc=pc$x, percent=round(100 * pc$sdev^2 / sum( pc$sdev^2 )))
+        }
+      )
+      names(pc_resid) <- dimnames(sample_gene_factor$terms)[[3]]
+    }
   }
-
+  
   cat(header, "# Visualisation of PCs ", pc_x, " and ", pc_y, " coloured by covariate", "\n", sep="")
   do_labels <- nrow(colDat)<10
-                        
+  
   for (j in vars$fixed[is_vary]) {
     pc.df <- data.frame(PC1=pc[,pc_x], PC2=pc[,pc_y], col=colDat[[j]], sample=rownames(colDat))
     pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
@@ -110,7 +128,18 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
     if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
     print(pl)
     caption(paste0("Coloured by ", j))
-    if (do_part_resid && j %in% names(pc_resid)) {
+    if (do_batch) {
+      pc.df <- data.frame(PC1=pc_resid$pc[,pc_x], PC2=pc_resid$pc[,pc_y], col=colDat[[j]], sample=rownames(colDat))
+      pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
+        xlab(paste0("PC ", pc_x, ": ", pc_resid$percent[pc_x], "% variance")) +
+        ylab(paste0("PC ", pc_y, ": ", pc_resid$percent[pc_y], "% variance")) +
+        scale_colour_manual(values=metadata(colData(dds))$palette[[j]]) + 
+        labs(colour=j)
+      if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
+      print(pl)
+      caption(paste0("Coloured by ", j, ", correcting for ", paste(batch_vars, collapse=", ")))
+    }
+    if (do_focus && j %in% names(pc_resid)) {
       pc.df$PC1 <- pc_resid[[j]]$pc[,pc_x]
       pc.df$PC2 <- pc_resid[[j]]$pc[,pc_y]
       pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  +
@@ -133,7 +162,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   pc_frame <- cbind(pc_frame, colDat)
   fitFrame <- colDat
   yvar <- make.unique(c(colnames(fitFrame), "y", sep=""))[ncol(fitFrame)+1]
-  for (model_name in names(metadata(dds)$models)[models_for_qc]) {
+  for (model_name in names(models_for_qc)) {
     fml <- update(metadata(dds)$models[[model_name]]$design, paste(yvar, "~ ."))
     plotFrame <- expand.grid(Covariate=attr(terms(fml), "term.labels"),
                             PC=1:ncol(pc))
@@ -310,30 +339,35 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
     ha <- ComplexHeatmap::HeatmapAnnotation(
       df=pdat,
       col=metadata(colData(ddsList[[i]]))$palette[names(pdat)])
-    pl <- ComplexHeatmap::Heatmap(tidied_data$mat,
-                 heatmap_legend_param = list(direction = "horizontal" ),
-                 name=sub(".*\\t", "", i),
-                 cluster_columns = FALSE,
-                 show_column_names = TRUE,
-                 column_split = col_split,
-                 top_annotation = ha,
-                 row_names_gp = gpar(fontsize = 6),
-                 show_row_names = nrow(tidied_data$mat)<100)
+    pl <- ComplexHeatmap::Heatmap(
+      tidied_data$mat,
+      col=sym_colour(tidied_data$mat),
+      heatmap_legend_param = list(direction = "horizontal" ),
+      name=sub(".*\\t", "", i),
+      cluster_columns = FALSE,
+      show_column_names = TRUE,
+      column_split = col_split,
+      top_annotation = ha,
+      row_names_gp = gpar(fontsize = 6),
+      show_row_names = nrow(tidied_data$mat)<100)
     draw(pl, heatmap_legend_side="top")
     caption(paste0("Heatmap on differential genes ", name))
     if (length(all.vars(fml))>1) {
       part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, fml)
       term_names <- intersect(dimnames(part_resid)[[3]], var_roles$rhs)
       for (term_name in term_names) {
-        pl <- ComplexHeatmap::Heatmap(t(part_resid[,,term_name]),
-                                     heatmap_legend_param = list(direction = "horizontal" ),
-                                     name=paste(sub(".*\\t", "", i),term_name),
-                                     cluster_columns = FALSE,
-                                     show_column_names = TRUE,
-                                     column_split = col_split,
-                                     top_annotation = ha,
-                                     row_names_gp = gpar(fontsize = 6),
-                                     show_row_names = nrow(tidied_data$mat)<100)
+        tdat <- t(part_resid$term[,,term_name, drop=TRUE]) +part_resid$const + part_resid$resid
+        pl <- ComplexHeatmap::Heatmap(
+          tdat,
+          col=sym_colour(tdat),
+          heatmap_legend_param = list(direction = "horizontal" ),
+          name=paste(sub(".*\\t", "", i),term_name),
+          cluster_columns = FALSE,
+          show_column_names = TRUE,
+          column_split = col_split,
+          top_annotation = ha,
+          row_names_gp = gpar(fontsize = 6),
+          show_row_names = nrow(tidied_data$mat)<100)
         draw(pl, heatmap_legend_side="top")
         caption(paste0("Heatmap on differential genes ", name, ", ", term_name, "-focussed"))
       }
@@ -351,15 +385,14 @@ residual_heatmap_transform <- function(mat, cdata, fml) {
   fit1[ind] <- lapply(fit[ind], function(x) x[,1])
   p1 <- predict(fit1, type="terms")
   out <- array(0, c(dim(fit$residuals), ncol(p1)), dimnames=c(dimnames(fit$residuals), list(colnames(p1))))
+  const <- numeric(dim(out)[2])
   for (i in 1:(dim(out)[2])) {
     fit1[ind] <- lapply(fit[ind], function(x) x[,i])
     pred <- predict(fit1, type="terms")
-    out[,i,] <- pred+attr(pred, "constant")
+    out[,i,] <- predict(fit1, type="terms")
+    const[i] <- attr(pred, "constant")
   }
-  for (j in 1:(dim(out)[3])) {
-    out[,,j] <- out[,,j]+fit$residuals
-  }
-  out
+  list(terms=out, const=const, resid=fit$residuals)
 }
 
 ##' Generate MA Plots

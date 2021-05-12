@@ -10,7 +10,7 @@
 #'     toc: true
 #'     code_folding: hide
 #'     includes:
-#'       in_header: styles.html
+#'       in_header: "`r system.file('templates/styles.html', package='DESdemonA')`"
 #' link-citations: yes
 #' ---
 #'
@@ -44,7 +44,7 @@ library(DESdemonA)
 fig_caption <- DESdemonA::captioner()
 
 knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
-                      dev=c("png","pdf"), out.width="90%",
+                      dev=c("ragg_png","pdf"), out.width="90%",
                       results='asis', fig.cap=expression(fig_caption())
                       )
 if (!isTRUE(getOption('knitr.in.progress'))) {
