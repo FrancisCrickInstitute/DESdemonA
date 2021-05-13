@@ -354,9 +354,9 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
     caption(paste0("Heatmap on differential genes ", name))
     if (length(all.vars(fml))>1) {
       part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, fml)
-      term_names <- intersect(dimnames(part_resid)[[3]], var_roles$rhs)
+      term_names <- intersect(dimnames(part_resid$terms)[[3]], var_roles$rhs)
       for (term_name in term_names) {
-        tdat <- t(part_resid$term[,,term_name, drop=TRUE]) +part_resid$const + part_resid$resid
+        tdat <- t(part_resid$terms[,,term_name, drop=TRUE]) +part_resid$const + t(part_resid$resid)
         pl <- ComplexHeatmap::Heatmap(
           tdat,
           col=sym_colour(tdat),
