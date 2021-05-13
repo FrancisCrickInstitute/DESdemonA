@@ -14,20 +14,18 @@ sym_colour <- function(dat, lo="blue",zero="white", hi="red") {
 ##'   plot on the x axis
 ##' @param pc_y The default choice for which principal component to
 ##'   plot on the y axis
-##' @param batch A null model to take the residuals against, if you
-##'   want to visualise the plots having removed any nuisance factors.
 ##' @param family Choice of PCA method
 ##' @param title Data Visualisation
 ##' @param header The markdown prefix that should precede any section
-##' @param n The number of most-variable-genes to use for clustering
+##' @param param A parameter-set
 ##' @param caption The function to use to create captions
 ##' @return A list (invisible) of ggplot2 objects
 ##' @author Gavin Kelly
 #' @export
-qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC Visualisation", header="\n\n##", n=500, caption=print) {
+qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisation", header="\n\n##", param, caption=print) {
   cat(header, " ", title, "\n", sep="")
   var_stab <- assay(dds, "vst")
-  top <- order(apply(var_stab, 1, sd), decreasing=TRUE)[1:n] 
+  top <- order(apply(var_stab, 1, sd), decreasing=TRUE)[1:param$top_n_variable] 
   models_for_qc <- metadata(dds)$models[sapply(metadata(dds)$models, "[[", "plot_qc")] # TODO Make this more sensible
   ### Heatmap
   cat(header, "# Heatmap of variable genes", "\n", sep="") 
@@ -40,6 +38,8 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, batch=~1, family="norm", title="QC V
   pl <- ComplexHeatmap::Heatmap(
     plotDat, name="Mean Centred", column_title="Samples", row_title="Genes",
     col=sym_colour(plotDat),
+    clustering_distance_columns=param$clustering_distance_columns,
+    clustering_distance_rows=param$clustering_distance_rows,
     #    cluster_columns=dend,
     heatmap_legend_param = list(direction = "horizontal" ),
 #    col=colorspace::diverging_hcl(5, palette="Blue-Red"),
@@ -300,7 +300,7 @@ dendro_all <- function(mat, var) {
 ##' @return
 ##' @author Gavin Kelly
 #' @export
-differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
+differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
   first_done <- FALSE
   for (i in names(ddsList)) {
     if (!any(grepl("\\*$", mcols(ddsList[[i]])$results$class))) {
@@ -346,6 +346,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
       name=sub(".*\\t", "", i),
       cluster_columns = FALSE,
       show_column_names = TRUE,
+      clustering_distance_rows=param$clustering_distance_rows,
       column_split = col_split,
       top_annotation = ha,
       row_names_gp = gpar(fontsize = 6),
@@ -365,6 +366,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, caption) {
           cluster_columns = FALSE,
           show_column_names = TRUE,
           column_split = col_split,
+          clustering_distance_rows=param$clustering_distance_rows,
           top_annotation = ha,
           row_names_gp = gpar(fontsize = 6),
           show_row_names = nrow(tidied_data$mat)<100)

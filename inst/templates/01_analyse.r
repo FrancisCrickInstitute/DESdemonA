@@ -133,12 +133,13 @@ ddsList <- lapply(ddsList,
                  )
 
 param$set("top_n_variable")
+param$set("clustering_distance_rows")
+param$set("clustering_distance_columns")
+
 for (dataset in names(ddsList)) {
   DESdemonA::qc_heatmap(
     ddsList[[dataset]], title=dataset,
-    n=param$get("top_n_variable"),
-    pc_x=1, pc_y=2,
-    batch = ~1,
+    param=param$publish(),
     caption=fig_caption
     )
 }
@@ -181,7 +182,7 @@ save(list=dds_name,
 rm(list=dds_name, envir=dds_env)
 rm(dds_env)
 
-xl_files <- DESdemonA::write_results(dds_model_comp, param, dir=params$res_dir)
+xl_files <- DESdemonA::write_results(dds_model_comp, param$publish(), dir=params$res_dir)
 iwalk(xl_files,
      ~cat("\n\n<a class=\"download-excel btn btn-primary\" href=\"", sub(paste0("^", params$res_dir, "/?"), "", .x), "\"> Open Spreadsheet '", .y,"'</a>", sep="")
      )
@@ -274,7 +275,7 @@ for (dataset in names(dds_model_comp)) {
   cat("## ", dataset, " {.tabset} \n", sep="") 
   for (mdl in names(dds_model_comp[[dataset]])) {
     cat("### ", mdl, "\n", sep="") 
-    differential_MA(dds_model_comp[[dataset]][[mdl]], caption=fig_caption)
+    differential_MA(dds_model_comp[[dataset]][[mdl]], param=param$publish(), caption=fig_caption)
   }
 }
 

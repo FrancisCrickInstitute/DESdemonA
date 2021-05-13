@@ -35,6 +35,9 @@ ParamList <- R6::R6Class("ParamList",
                           if (id %in% names(private$defaults)) {
                             value <- private$defaults[[id]]
                           } else {
+                            eg <- readLines(system.file("templates/example.spec"))
+                            eg <- eg[grep(paste0("^\\s+", id))]
+                            cat("You may need to update your spec file, as new settings have been introduced.  Maybe lines like:", eg, sep="\n")
                             stop("Attempt to set '", id, "' but no value or default provided")
                           }
                         }
@@ -61,8 +64,16 @@ ParamList <- R6::R6Class("ParamList",
                       #' Get the value that the parameter is currently set to.
                       #' @param id Name of the value you want to access.
                       get = function(id) {
+                        if (!id %in% names(private$params)) {
+                          stop(id, " has not yet been initialized")
+                        }
                         ret <- private$params[[id]]
                         if (is.call(ret)) eval(ret) else ret
+                      },
+                      #' @description
+                      #' Turn the mutable object into a list
+                      publish = function() {
+                        lapply(private$params, eval)
                       },
                       #' @description
                       #' Get a text description of what the setting is, and what value it currently takes.
