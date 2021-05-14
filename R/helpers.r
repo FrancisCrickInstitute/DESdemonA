@@ -130,3 +130,148 @@ extract_colData <- function(object, dataset) {
   results_apply(object, dataset, fn=function(dds) colData(dds), depth="dataset")
 }
 
+
+
+#' Wrap each dataset of a  DESdemonA fitted object 
+#'
+#' If you want to loop through datasets that have been fitted by
+#' DESdemonA, then use this function as a wrapped so that reports
+#' can generate formatted output, and transformations can be applied.
+#'
+#' This should be the first process in a pipeline, and be followed by
+#' either a per_model or per_comparison call: the primary function .f
+#' will be applied to the output.  For each dataset in the dds
+#' object, the 'before' function will be called before passing things
+#' on (and so can be used to print a header, for example), and the
+#' 'after' function will be called after (to produce captions).  All
+#' functions have access to a variable '.dataset' that will take the
+#' name of the current dataset
+#' 
+#' @title Wrap datasets from DESdemonA
+#' @param .dds A three-level list in the standard DESdemonA hierarchy dataset > model > comparison
+#' @param .f The function that will be called on the output of the per_model or per_comparison.
+#' @param before A function that will be invoked before .f
+#' @param after A function that will be invoked after .f
+#' @return The return value of .f, as applied to the list of child outputs
+#' @author Gavin Kelly 
+#' @export
+per_dataset <- function(.dds, .f=identity, before=as.null, after=as.null) {
+  .data <- list(dds=.dds,
+               dataset_f=.f, dataset_before=before, dataset_after=after,
+               model_f=identity, model_before=as.null, model_after=as.null
+               )
+  class(.data) <- "DesIterator"
+  .data
+}
+
+##' Wrap each model of a DESdemonA fitted object
+##'
+#' If you want to loop through models that have been fitted by
+#' DESdemonA, then use this function as a wrapped so that reports
+#' can generate formatted output, and transformations can be applied.
+#'
+#' This can be the first process in a pipeline, or follow a
+#' 'per_dataset' process and must be followed by a per_comparison
+#' call: the primary function .f will be applied to the output.  For
+#' each model in the dds object, the 'before' function will be called
+#' before passing things on (and so can be used to print a header, for
+#' example), and the 'after' function will be called after (to produce
+#' captions).  All functions have access to a variables '.dataset' and
+#' '.model' that will take the name of the current dataset and model
+#' 
+#' @title Wrap models from DESdemonA
+##' @param x Either a DESdemonA three-level list, or a previous 'per_dataset' call
+##' @param .f The function that will be called on the output of per_comparison.
+##' @param before A function that will be invoked before .f
+##' @param after A function that will be invoked after .f
+##' @return The value of .f applied to the list of child outputs from per_comparison
+##' @author Gavin Kelly
+#' @export
+per_model <- function(x, .f, before, after) {
+  UseMethod("per_model") 
+}
+per_model.list <- function(.dds, .f = identity, before=as.null, after=as.null) {
+  .data <- list(dds=.dds,
+               dataset_f=identity, dataset_before=as.null, dataset_after=as.null,
+               model_f=.f, model_before=before, model_after=after
+               )
+  class(.data) <- "DesIterator"
+  .data
+}
+per_model.DesIterator <- function(.data, .f = identity, before=as.null, after=as.null) {
+  .data$model_f <- .f
+  .data$model_before=before
+  .data$model_after=after
+  .data
+}
+
+##' Wrap each comparison of a DESdemonA fitted object
+##'
+#' If you want to loop through comparisons that have been fitted by
+#' DESdemonA, then use this function as a wrapped so that reports
+#' can generate formatted output, and transformations can be applied.
+#'
+#' This can be called on its own, or at the end of a pipeline of
+#' per_model and per_comparison: the primary function .f will be
+#' applied to each dds comparison object.  For each comparison in the
+#' dds object, the 'before' function will be called before passing
+#' things on (and so can be used to print a header, for example), and
+#' the 'after' function will be called after (to produce captions).
+#' All functions have access to a variables '.dataset', '.model' and
+#' '.comparison' that will take the name of the current dataset,
+#' model and comparison
+#' 
+#' @title Wrap models from DESdemonA
+##' @param x Either a DESdemonA three-level list, or a previous 'per_dataset' or 'per_model' call
+##' @param .f The function that will be called on the DESeq object.
+##' @param before A function that will be invoked before .f
+##' @param after A function that will be invoked after .f
+##' @return A three-level list of results of .f applied to each comparison
+##' @author Gavin Kelly
+#' @export
+per_comparison <- function(x, .f, before, after) {
+  UseMethod("per_comparison")
+}
+per_comparison.list <- function(.dds, .f=identity, before=as.null, after=as.null) {
+  .data <- list(dds=.dds,
+               dataset_f=identity, dataset_before=as.null, dataset_after=as.null,
+               model_f=identity, model_before=as.null, model_after=as.null
+               )
+  class(.data) <- "DesIterator"
+  per_comparison.DesIterator(.data, .f=.f, before=before, after=after)
+}
+per_comparison.DesIterator <- function(.data, .f=identity, before=as.null, after=as.null, ...) {
+  dataset_ret <- list()
+  for (.dataset in names(.data$dds)) {
+    assign(".dataset", .dataset, envir=environment(.data$dataset_before))
+    assign(".dataset", .dataset, envir=environment(.data$dataset_after))
+    rlang::as_function(.data$dataset_before)()
+    model_ret <- list()
+    for (.model in names(.data$dds[[.dataset]])) {
+      assign(".dataset", .dataset, envir=environment(.data$model_before))
+      assign(".dataset", .dataset, envir=environment(.data$model_after))
+      assign(".model", .model, envir=environment(.data$model_before))
+      assign(".model", .model, envir=environment(.data$model_after))
+      (rlang::as_function(.data$model_before))()
+      comparison_ret <- list()
+      for (.comparison in names(.data$dds[[.dataset]][[.model]])) {
+        assign(".dataset", .dataset, envir=environment(.data$comparison_before))
+        assign(".dataset", .dataset, envir=environment(.data$comparison_after))
+        assign(".model", .model, envir=environment(.data$comparison_before))
+        assign(".model", .model, envir=environment(.data$comparison_after))
+        assign(".comparison", .comparison, envir=environment(.data$comparison_before))
+        assign(".comparison", .comparison, envir=environment(.data$comparison_after))
+        (rlang::as_function(before))()
+        .dds <- .data$dds[[.dataset]][[.model]][[.comparison]]
+        comparison_ret[[.comparison]] <- (rlang::as_function(.f))(.dds, ...)
+        (rlang::as_function(after))()
+      }
+      model_ret[[.model]] <- (rlang::as_function(.data$model_f))(comparison_ret)
+      (rlang::as_function(.data$model_after))()
+    }
+    dataset_ret[[.dataset]] <- (rlang::as_function(.data$dataset_f))(model_ret)
+    (rlang::as_function(.data$dataset_after))
+  }
+  dataset_ret
+}
+
