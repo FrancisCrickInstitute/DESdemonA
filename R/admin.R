@@ -35,10 +35,13 @@ ParamList <- R6::R6Class("ParamList",
                           if (id %in% names(private$defaults)) {
                             value <- private$defaults[[id]]
                           } else {
-                            eg <- readLines(system.file("templates/example.spec"))
-                            eg <- eg[grep(paste0("^\\s+", id))]
-                            cat("You may need to update your spec file, as new settings have been introduced.  Maybe lines like:", eg, sep="\n")
-                            stop("Attempt to set '", id, "' but no value or default provided")
+                            eg <- readLines(system.file("templates/example.spec", package="DESdemonA"))
+                            eg <- eg[grep(paste0("^\\s+", id),eg)]
+                            if (length(eg)>0) {
+                              stop("Attempt to set '", id, "' but no value or default provided.\n", "You may need to update your spec file, as new settings have been introduced.  Maybe lines like:\n", paste(eg, collapse="\n"))
+                            } else {
+                              stop("Attempt to set '", id, "' but no value or default provided.\n")
+                            }
                           }
                         }
                         if (is.null(value)) {

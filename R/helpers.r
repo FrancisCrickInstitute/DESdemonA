@@ -201,6 +201,8 @@ per_dataset <- function(.dds, .f=identity, before=as.null, after=as.null, deepen
 per_model <- function(x, .f, before, after, deepen) {
   UseMethod("per_model") 
 }
+
+#' @export
 per_model.list <- function(.dds, .f = identity, before=as.null, after=as.null, deepen=FALSE) {
   .data <- list(dds=.dds,
                dataset_f=identity, dataset_before=as.null, dataset_after=as.null
@@ -209,6 +211,7 @@ per_model.list <- function(.dds, .f = identity, before=as.null, after=as.null, d
   per_model(.data, .f, before, after, deepen)
 }
 
+#' @export
 per_model.DesIterator <- function(.data, .f = identity, before=as.null, after=as.null, deepen=FALSE) {
   .data$model_f <- .f
   .data$model_before=before
@@ -256,6 +259,8 @@ per_model.DesIterator <- function(.data, .f = identity, before=as.null, after=as
 per_comparison <- function(x, .f, before, after, ...) {
   UseMethod("per_comparison")
 }
+
+#' @export
 per_comparison.list <- function(.dds, .f=identity, before=as.null, after=as.null, ...) {
   .data <- list(dds=.dds,
                dataset_f=identity, dataset_before=as.null, dataset_after=as.null,
@@ -264,6 +269,7 @@ per_comparison.list <- function(.dds, .f=identity, before=as.null, after=as.null
   class(.data) <- "DesIterator"
   per_comparison.DesIterator(.data, .f=.f, before=before, after=after, ...)
 }
+#' @export
 per_comparison.DesIterator <- function(.data, .f=identity, before=as.null, after=as.null, ...) {
   dataset_ret <- list()
   for (.dataset in names(.data$dds)) {
