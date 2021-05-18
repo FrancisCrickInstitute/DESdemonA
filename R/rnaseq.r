@@ -40,6 +40,13 @@ load_specs <- function(file="", context) {
            envir=e
            )
     specs <- source(file, local=e)$value
+    pkg_defaults <- source(system.file("example.spec", package="DESdemonA"), local=e)$value
+    new_settings <- setdiff(names(pkg_defaults$settings), names(specs$settings))
+    if (any(new_settings)) {
+      warning("New settings (", paste(new_settings), ") can be set in ", file, ", so please update it. The default values that will be used are:\n")
+      dput(pkg_defaults$settings[new_settings])
+      specs$settings[new_settings] <- pkg_defaults$settings[new_settings]
+    }
     rm(list=ls(envir=e), envir=e)
   } else {
     fml <- paste("~", names(colData(dds))[ncol(colData(dds))])

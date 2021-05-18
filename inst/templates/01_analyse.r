@@ -186,7 +186,7 @@ save(dds_model_comp,
 saveRDS(dds_model_comp, file=file.path("data", paste0(dds_name, ".rda")))
 
 
-xl_files <- DESdemonA::write_results(dds_model_comp, param$publish(), dir=params$res_dir)
+xl_files <- DESdemonA::write_results(dds_model_comp, param, dir=params$res_dir)
 iwalk(xl_files,
      ~cat("\n\n<a class=\"download-excel btn btn-primary\" href=\"", sub(paste0("^", params$res_dir, "/?"), "", .x), "\"> Open Spreadsheet '", .y,"'</a>", sep="")
      )
@@ -216,7 +216,7 @@ iwalk(xl_files,
 #+ summary
 
 
-summares <- per_comparison(
+summaries <- per_comparison(
   dds_model_comp,
   DESdemonA::summarise_results
 )

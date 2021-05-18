@@ -70,7 +70,7 @@ write_results <- function(ddsList, param, dir=".") {
                                  value = unlist(si$platform),
                                  stringsAsFactors = FALSE),
               headerStyle=hs2)
-    out[[dataset]] <- file.path(dir, paste0(param$get("spec"), "_", dataset, ".xlsx"))
+    out[[dataset]] <- file.path(dir, paste0("differential_", param$get("spec"), "_", dataset, ".xlsx"))
     (saveWorkbook(wb, out[[dataset]], overwrite=TRUE,returnValue=TRUE))
   }
   out
