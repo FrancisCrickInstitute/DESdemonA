@@ -502,11 +502,11 @@ enrichment <- function(ddsList, fun, showCategory, max_width=30) {
     na.omit(res$entrez[grepl("\\*", res$class)])
   })
   genes <- genes[sapply(genes, length)!=0]
-  if (length(genes)<=1) {
-    return()
+  if (length(genes)<1) {
+    return(NULL)
   }
   if (fun=="enrichGO") {
-    reactome <- compareCluster(genes, fun=fun, OrgDb=metadata(ddsList[[1]])$organism$org, universe=na.omit(metadata(ddsList[[1]])$entrez))
+    reactome <- try(eval(substitute(compareCluster(genes, fun=fun, OrgDb=metadata(ddsList[[1]])$organism$org, universe=na.omit(metadata(ddsList[[1]])$entrez)), list(fun=fun))), silent=TRUE)
   } else {
     orgs <- c(anopheles = "org.Ag.eg.db", arabidopsis = "org.At.tair.db", 
              bovine = "org.Bt.eg.db", canine = "org.Cf.eg.db", celegans = "org.Ce.eg.db", 
@@ -518,7 +518,10 @@ enrichment <- function(ddsList, fun, showCategory, max_width=30) {
              xenopus = "org.Xl.eg.db", yeast = "org.Sc.sgd.db", zebrafish = "org.Dr.eg.db"
              )
     reactome_org <- names(orgs[orgs==metadata(ddsList[[1]])$organism$org])
-    reactome <- compareCluster(genes, fun=fun, organism=reactome_org, universe=na.omit(metadata(ddsList[[1]])$entrez))
+    reactome <- try(eval(substitute(compareCluster(genes, fun=fun, organism=reactome_org, universe=na.omit(metadata(ddsList[[1]])$entrez)), list(fun=fun))), silent=TRUE)
+  }
+  if (inherits(reactome,"try-error")) {
+    return(NULL)
   }
   enrich_table <- as.data.frame(reactome)[c("Cluster", "ID", "Description","GeneRatio","BgRatio")]
   reactome@compareClusterResult$Description <- ifelse(
