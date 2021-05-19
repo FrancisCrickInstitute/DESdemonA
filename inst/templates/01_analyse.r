@@ -37,6 +37,7 @@ library(clusterProfiler)
 library(ReactomePA)
 library(GO.db)
 library(IHW)
+library(equatiomatic)
 library(DESdemonA)
 
 
@@ -45,6 +46,7 @@ fig_caption <- DESdemonA::captioner()
 
 knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
                       dev=c("ragg_png","pdf"), out.width="90%",
+                      fig.width=14, fig.height=10,
                       results='asis', fig.cap=expression(fig_caption())
                       )
 if (!isTRUE(getOption('knitr.in.progress'))) {
@@ -89,6 +91,66 @@ if (param$get("baseMeanMin")>0) {
                    function(x) x[rowMeans(counts(x, normalized=TRUE)) >= param$get("baseMeanMin"),]
                    )
 }
+
+#' # Input Summary
+#'
+#' The sample annotations are as follows:
+#'
+#+ inputs
+samp <- as.data.frame(colData(dds))
+is_in_subset <- as.data.frame(
+  lapply(
+    ddsList,
+    function(x) ifelse(colnames(dds) %in% colnames(x), "✓", "")
+  )
+)
+                      
+gt(cbind(samp, is_in_subset),
+   caption="Sample annotation") %>%
+  tab_spanner(label="Metadata",
+              columns=seq_along(samp)) %>%
+  tab_spanner(label="In Subset",
+              columns=ncol(samp)+seq_along(is_in_subset)) %>%
+    DESdemonA::tab_link_caption() %>%
+  print()
+
+#' We may examine the samples in different combinations, and leave out
+#' certain samples.  In the above table, the columns under the 'In
+#' Subset' group indicate these combinations are listed, and the
+#' samples' inclusions are indicated.  Each of those combinations may be analysed in
+#' potentially several ways, as formulated here:
+#'
+
+for (dataset in names(specs$sample_sets)) {
+  mdls <- lapply(specs$sample_sets[[dataset]]$models, function(x) x$design)
+  mdls <- mdls[sapply(specs$sample_sets[[dataset]]$model, function(x) "comparisons" %in% names(x))]
+  for (mdl in names(mdls)) {
+    cat("\n\n####", dataset, mdl, "{-}\n\n")
+    print(extract_eq(lm(
+      update(mdls[[mdl]], Expression ~ .),
+      cbind(as.data.frame(colData(ddsList[[dataset]])), Expression=1:ncol(ddsList[[dataset]]))
+    )
+    ))
+  }
+}
+
+
+
+#' 
+#' We also have the following defaults set.  Whenever they are used
+#' or changed in the, analysis that will be highlighted in the text
+#' alongside a 'wrench' icon:
+#' 
+#+ settings
+data.frame(
+  Option=names(specs$settings),
+  Value=sapply(specs$settings, deparse)
+) %>%
+  gt(caption="Analysis settings") %>%
+  DESdemonA::tab_link_caption() %>%
+  print()
+
+ 
 
 
 #'
@@ -136,10 +198,11 @@ param$set("clustering_distance_rows")
 param$set("clustering_distance_columns")
 
 per_dataset(ddsList, 
-            DESdemonA::qc_heatmap,
-            title=.dataset,
-            caption=fig_caption,
-            param=param$publish(),
+            ~DESdemonA::qc_heatmap(.dds,
+              title=.dataset,
+              caption=fig_caption,
+              param=param$publish()
+            )
             )
 
 
@@ -183,7 +246,7 @@ save(dds_model_comp,
      file=file.path("data", paste0(dds_name, ".rda")),
      eval.promises=FALSE
      )
-saveRDS(dds_model_comp, file=file.path("data", paste0(dds_name, ".rda")))
+saveRDS(dds_model_comp, file=file.path("data", paste0(dds_name, ".rds")))
 
 
 xl_files <- DESdemonA::write_results(dds_model_comp, param, dir=params$res_dir)
@@ -241,11 +304,13 @@ for (dataset in names(summary_per_dataset)) {
   options(htmltools.preserve.raw=TRUE)
   cat("### ", dataset, " \n", sep="")
   summary_per_dataset[[dataset]] %>%
-  gt(caption=paste0("Size of gene-lists for ", dataset)) %>%
+    bookdown_label(dataset) %>%
+    gt(caption=paste0("Size of gene-lists for ", dataset)) %>%
     tab_header(title="Genelist summary",
                subtitle=dataset) %>%
     DESdemonA::tab_link_caption() %>%
-    print()
+    print() %>%
+    bookdown_label()
 
   for (model in names(pval_frame[[dataset]])) {
     pl <- ggplot(pval_frame[[dataset]][[model]], aes(x=pvalue, fill=baseMean<1)) +
@@ -282,7 +347,7 @@ for (dataset in names(dds_model_comp)) {
   cat("## ", dataset, " {.tabset} \n", sep="") 
   for (mdl in names(dds_model_comp[[dataset]])) {
     cat("### ", mdl, "\n", sep="") 
-    differential_MA(dds_model_comp[[dataset]][[mdl]], param=param$publish(), caption=fig_caption)
+    differential_MA(dds_model_comp[[dataset]][[mdl]], caption=fig_caption)
   }
 }
 
@@ -303,9 +368,10 @@ for (dataset in names(dds_model_comp)) {
   for (mdl in names(dds_model_comp[[dataset]])) {
     cat("### ", mdl, "\n", sep="")
     DESdemonA::differential_heatmap(dds_model_comp[[dataset]][[mdl]],
-                         . %>% mutate(.value=.value - mean(.value)),
-                         caption=fig_caption
-                         )
+                                    . %>% mutate(.value=.value - mean(.value)),
+                                    param=param$publish(),
+                                    caption=fig_caption
+                                    )
   }
 }
 
@@ -326,7 +392,7 @@ param$set("showCategory")
 
 
 
-enrich_plots <- map_depth(dds_model_comp[2], 2, tmp_enrichment,
+enrich_plots <- map_depth(dds_model_comp[2], 2, DESdemonA::enrichment,
                          fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
 
 for (dataset in names(enrich_plots)) {
@@ -341,11 +407,14 @@ for (dataset in names(enrich_plots)) {
     lbl <- paste("Reactome for", mdl, dataset)
     fig_caption(lbl)
     enrich_plots[[dataset]][[mdl]]$table %>%
+      bookdown_label(dataset) %>%
       gt(caption=lbl) %>%
       tab_header(title="Reactome",
                  subtitle=paste(dataset, mdl)) %>%
       DESdemonA::tab_link_caption() %>%
-      print()
+      print() %>%
+      bookdown_label()
+
   }
 }
 
@@ -353,7 +422,7 @@ for (dataset in names(enrich_plots)) {
 #'
 #+ enrich-GO
 
-enrich_plots <- map_depth(dds_model_comp, 2, tmp_enrichment,
+enrich_plots <- map_depth(dds_model_comp, 2, DESdemonA::enrichment,
   fun="enrichGO", showCategory = param$get("showCategory"), max_width=30)
 
 for (dataset in names(enrich_plots)) {
@@ -368,11 +437,14 @@ for (dataset in names(enrich_plots)) {
     lbl <- paste("GO MF for", dataset, mdl)
     fig_caption(lbl)
     enrich_plots[[dataset]][[mdl]]$table %>%
+      bookdown_label(dataset) %>%
       gt(caption=lbl) %>%
       tab_header(title="GO Molecular Function",
                  subtitle=paste(dataset, mdl)) %>%
       DESdemonA::tab_link_caption() %>%
-      print()
+      print() %>%
+      bookdown_label()
+
   }
 }
 
