@@ -40,7 +40,7 @@ load_specs <- function(file="", context) {
            envir=e
            )
     specs <- source(file, local=e)$value
-    assign("sample_sets", expression, envir=e)
+    assign("sample_set", expression, envir=e) # avoid evaluating any examples sample_sets.
     pkg_defaults <- source(system.file("templates/example.spec", package="DESdemonA"), local=e)$value
     new_settings <- setdiff(names(pkg_defaults$settings), names(specs$settings))
     if (any(new_settings)) {
