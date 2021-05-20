@@ -580,3 +580,7 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
   list(mat=tidy_mat, pdat=tidy_pdat)
 }
 
+full_model <- function(mdlList) {
+  rhs <- lapply(mdlList, function(mdl) deparse(mdl$design[[2]]))
+  fml <- update(as.formula(paste("~", paste(rhs, collapse=" + "))), ~ . )
+}
