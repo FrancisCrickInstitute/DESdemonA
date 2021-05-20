@@ -10,7 +10,7 @@
 #'     toc: true
 #'     code_folding: hide
 #'     includes:
-#'       in_header: styles.html
+#'       in_header: !expr system.file("templates/styles.html", package="DESdemonA")
 #' link-citations: yes
 #' ---
 #'
@@ -37,6 +37,7 @@ library(clusterProfiler)
 library(ReactomePA)
 library(GO.db)
 library(IHW)
+library(equatiomatic)
 library(DESdemonA)
 
 
@@ -44,7 +45,8 @@ library(DESdemonA)
 fig_caption <- DESdemonA::captioner()
 
 knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE,
-                      dev=c("png","pdf"), out.width="90%",
+                      dev=c("ragg_png","pdf"), out.width="90%",
+                      fig.width=14, fig.height=10,
                       results='asis', fig.cap=expression(fig_caption())
                       )
 if (!isTRUE(getOption('knitr.in.progress'))) {
@@ -68,24 +70,87 @@ param <- DESdemonA::ParamList$new(defaults=specs$settings)
 set.seed(param$set("seed"))
 param$set("title", "{{{project}}}")
 param$set("script", file.path(getwd(),"01_analyse.r"))
-
+param$set("spec", sub("\\.spec$", "", params$spec_file), "Using analysis plan '{}'.")
+param$set("spec_suffix", params$spec_suffix, "Using alignment settings '{}'")
+  
 ddsList <- DESdemonA::build_dds_list(dds, specs)
 
 
 #Which features are zero across all samples in all datasets
 all_zero <- Reduce(f=`&`,
-                   x=lapply(ddsList, function(x) apply(counts(x)==0,1, all)),
-                   init=TRUE)
-ddsList <- lapply(ddsList, `[`, !all_zero)
+                  x=per_dataset(ddsList, function(x) apply(counts(x)==0,1, all)),
+                  init=TRUE)
+ddsList <- per_dataset(ddsList, function(dds) dds[!all_zero,])
 
 
-ddsList <- lapply(ddsList, estimateSizeFactors)
+
+ddsList <- per_dataset(ddsList, estimateSizeFactors)
 param$set("baseMeanMin")
 if (param$get("baseMeanMin")>0) {
-  ddsList <- lapply(ddsList,
+  ddsList <- per_dataset(ddsList,
                    function(x) x[rowMeans(counts(x, normalized=TRUE)) >= param$get("baseMeanMin"),]
                    )
 }
+
+#' # Input Summary
+#'
+#' The sample annotations are as follows:
+#'
+#+ inputs
+samp <- as.data.frame(colData(dds))
+is_in_subset <- as.data.frame(
+  lapply(
+    ddsList,
+    function(x) ifelse(colnames(dds) %in% colnames(x), "✓", "")
+  )
+)
+                      
+gt(cbind(samp, is_in_subset),
+   caption="Sample annotation") %>%
+  tab_spanner(label="Metadata",
+              columns=seq_along(samp)) %>%
+  tab_spanner(label="In Subset",
+              columns=ncol(samp)+seq_along(is_in_subset)) %>%
+    DESdemonA::tab_link_caption() %>%
+  print()
+
+#' We may examine the samples in different combinations, and leave out
+#' certain samples.  In the above table, the columns under the 'In
+#' Subset' group indicate these combinations are listed, and the
+#' samples' inclusions are indicated.  Each of those combinations may be analysed in
+#' potentially several ways, as formulated here:
+#'
+
+for (dataset in names(specs$sample_sets)) {
+  mdls <- lapply(specs$sample_sets[[dataset]]$models, function(x) x$design)
+  mdls <- mdls[sapply(specs$sample_sets[[dataset]]$model, function(x) "comparisons" %in% names(x))]
+  for (mdl in names(mdls)) {
+    cat("\n\n####", dataset, mdl, "{-}\n\n")
+    print(extract_eq(lm(
+      update(mdls[[mdl]], Expression ~ .),
+      cbind(as.data.frame(colData(ddsList[[dataset]])), Expression=1:ncol(ddsList[[dataset]]))
+    )
+    ))
+  }
+}
+
+
+
+#' 
+#' We also have the following defaults set.  Whenever they are used
+#' or changed in the, analysis that will be highlighted in the text
+#' alongside a 'wrench' icon:
+#' 
+#+ settings
+data.frame(
+  Option=names(specs$settings),
+  Value=sapply(specs$settings, deparse)
+) %>%
+  gt(caption="Analysis settings") %>%
+  DESdemonA::tab_link_caption() %>%
+  print()
+
+ 
 
 
 #'
@@ -126,20 +191,20 @@ if (param$get("baseMeanMin")>0) {
 #+ qc-visualisation
 
 
-ddsList <- lapply(ddsList,
-                 DESdemonA::add_dim_reduct
-                 )
+ddsList <- per_dataset(ddsList, DESdemonA::add_dim_reduct)
 
 param$set("top_n_variable")
-for (dataset in names(ddsList)) {
-  DESdemonA::qc_heatmap(
-    ddsList[[dataset]], title=dataset,
-    n=param$get("top_n_variable"),
-    pc_x=1, pc_y=2,
-    batch = ~1,
-    caption=fig_caption
-    )
-}
+param$set("clustering_distance_rows")
+param$set("clustering_distance_columns")
+
+per_dataset(ddsList, 
+            ~DESdemonA::qc_heatmap(.dds,
+              title=.dataset,
+              caption=fig_caption,
+              param=param$publish()
+            )
+            )
+
 
 
 #' 
@@ -158,26 +223,31 @@ param$set("lfcThreshold")
 param$set("filterFun")
 
 ## For each dataset, fit all its models
-dds_model_comp <- map(ddsList, DESdemonA::fit_models, minReplicatesForReplace = Inf)
+dds_model_comp <- per_dataset(
+  ddsList,
+  DESdemonA::fit_models,
+  minReplicatesForReplace = Inf
+)
+
 
 ## Now put results in each 3rd level mcols(dds)$results
-dds_model_comp <- map_depth(
-  dds_model_comp, 3, DESdemonA::get_result,
+dds_model_comp <- per_comparison(
+  dds_model_comp,
+  DESdemonA::get_result,
   filterFun=param$get("filterFun"),
   alpha=param$get("alpha"),
   lfcThreshold=param$get("lfcThreshold")
 )
 
-dds_env <- new.env()
+
+
 dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_dds")
-assign(dds_name, dds_model_comp, envir=dds_env)
-save(list=dds_name,
+save(dds_model_comp,
      file=file.path("data", paste0(dds_name, ".rda")),
-     envir=dds_env,
      eval.promises=FALSE
      )
-rm(list=dds_name, envir=dds_env)
-rm(dds_env)
+saveRDS(dds_model_comp, file=file.path("data", paste0(dds_name, ".rds")))
+
 
 xl_files <- DESdemonA::write_results(dds_model_comp, param, dir=params$res_dir)
 iwalk(xl_files,
@@ -208,10 +278,13 @@ iwalk(xl_files,
 #' 
 #+ summary
 
-summaries <- map_depth(dds_model_comp, 3, DESdemonA::summarise_results)
 
+summaries <- per_comparison(
+  dds_model_comp,
+  DESdemonA::summarise_results
+)
 
-per_dataset <- map(summaries, DESdemonA::rbind_summary,
+summary_per_dataset <- map(summaries, DESdemonA::rbind_summary,
                   levels=c("Design","Comparison")) %>%
   map(function(x) {
     levels(x$Group) <- sub(".*<(.+<.+<0)$", "\\1", levels(x$Group))
@@ -227,15 +300,17 @@ pval_frame <- map_depth(
   ~map_dfr(.x, function(comp) {as.data.frame(mcols(comp)$results)}, .id="comparison")
 )
 
-for (dataset in names(per_dataset)) {
+for (dataset in names(summary_per_dataset)) {
   options(htmltools.preserve.raw=TRUE)
   cat("### ", dataset, " \n", sep="")
-  per_dataset[[dataset]] %>%
-  gt(caption=paste0("Size of gene-lists for ", dataset)) %>%
+  summary_per_dataset[[dataset]] %>%
+    bookdown_label(dataset) %>%
+    gt(caption=paste0("Size of gene-lists for ", dataset)) %>%
     tab_header(title="Genelist summary",
                subtitle=dataset) %>%
     DESdemonA::tab_link_caption() %>%
-    print()
+    print() %>%
+    bookdown_label()
 
   for (model in names(pval_frame[[dataset]])) {
     pl <- ggplot(pval_frame[[dataset]][[model]], aes(x=pvalue, fill=baseMean<1)) +
@@ -293,28 +368,14 @@ for (dataset in names(dds_model_comp)) {
   for (mdl in names(dds_model_comp[[dataset]])) {
     cat("### ", mdl, "\n", sep="")
     DESdemonA::differential_heatmap(dds_model_comp[[dataset]][[mdl]],
-                         . %>% mutate(.value=.value - mean(.value)),
-                         caption=fig_caption
-                         )
+                                    . %>% mutate(.value=.value - mean(.value)),
+                                    param=param$publish(),
+                                    caption=fig_caption
+                                    )
   }
 }
 
 
-#' # Terms Of Use
-#'
-#' The Crick has a [publication
-#' policy](https://intranet.crick.ac.uk/our-crick/library-information-services/pages/guidelines-publication)
-#' and we expect to be included on publications, regardless of funding
-#' arrangements. Any use of these results in publication must be
-#' discussed with BABS regarding authorship. If not authorship then
-#' the BABS analyst must receive a named acknowledgement. Please also
-#' cite the following sources which have enabled the analysis to be
-#' carried out.
-#'
-#' # Bibliography
-#'
-#' 
-knitr::knit_exit()
 
 #'
 #' # Enrichment Analysis
@@ -327,53 +388,67 @@ param$set("showCategory")
 
 #' ## Reactome Enrichment {.tabset} 
 #'
-#+ enrich-reactome,  eval=FALSE
-enrich_plots <- map_depth(dds_model_comp, 2, DESdemonA::enrichment,
-  fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
+#+ enrich-reactome
 
-enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
+
+
+enrich_plots <- map_depth(dds_model_comp[2], 2, DESdemonA::enrichment,
+                         fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
+
 for (dataset in names(enrich_plots)) {
-    cat("### ", dataset, " {.tabset} \n", sep="") 
-    for (mdl in names(enrich_plots[[dataset]])) {
-      cat("#### ", mdl, " \n", sep="")
-      print(enrich_plots[[dataset]][[mdl]]$plot)
-      lbl <- paste("Reactome for", mdl, dataset)
-      fig_caption(lbl)
-      print(
-        knitr::kable(enrich_plots[[dataset]][[mdl]]$table,
-                     options=list(dom="t"),
-                     caption=lbl,
-                     label=klabel(paste("REACTOME", dataset, mdl))
-                     )
-      )
-    }
+  has_enrich <- !sapply(enrich_plots[[dataset]], is.null)
+  if (!any(has_enrich)) {
+    next
+  }
+  cat("### ", dataset, " {.tabset} \n", sep="")
+  for (mdl in names(enrich_plots[[dataset]][has_enrich])) {
+    cat("#### ", mdl, " \n", sep="")
+    print(enrich_plots[[dataset]][[mdl]]$plot)
+    lbl <- paste("Reactome for", mdl, dataset)
+    fig_caption(lbl)
+    enrich_plots[[dataset]][[mdl]]$table %>%
+      bookdown_label(dataset) %>%
+      gt(caption=lbl) %>%
+      tab_header(title="Reactome",
+                 subtitle=paste(dataset, mdl)) %>%
+      DESdemonA::tab_link_caption() %>%
+      print() %>%
+      bookdown_label()
+
+  }
 }
 
 #' ## GO MF Enrichment {.tabset} 
 #'
-#+ enrich-GO,  eval=FALSE
+#+ enrich-GO
+
 enrich_plots <- map_depth(dds_model_comp, 2, DESdemonA::enrichment,
   fun="enrichGO", showCategory = param$get("showCategory"), max_width=30)
-enrich_plots <- map(enrich_plots, function(x) x[!sapply(x, length)==0])
 
 for (dataset in names(enrich_plots)) {
-    cat("### ", dataset, " {.tabset} \n", sep="") 
-    for (mdl in names(enrich_plots[[dataset]])) {
-      cat("#### ", mdl, " \n", sep="")
-      print(enrich_plots[[dataset]][[mdl]]$plot)
-      lbl <- paste("GO MF for", mdl, dataset)
-      fig_caption(lbl)
-      print(
-        knitr::kable(enrich_plots[[dataset]][[mdl]]$table,
-                     options=list(dom="t"),
-                     caption=lbl,
-                     label=klabel(paste("GO MF", dataset, mdl))
-                     )
-        )
-    }
+  has_enrich <- !sapply(enrich_plots[[dataset]], is.null)
+  if (!any(has_enrich)) {
+    next
+  }
+  cat("### ", dataset, " {.tabset} \n", sep="")
+  for (mdl in names(enrich_plots[[dataset]][has_enrich])) {
+    cat("#### ", mdl, " \n\n", sep="")
+    print(enrich_plots[[dataset]][[mdl]]$plot)
+    lbl <- paste("GO MF for", dataset, mdl)
+    fig_caption(lbl)
+    enrich_plots[[dataset]][[mdl]]$table %>%
+      bookdown_label(dataset) %>%
+      gt(caption=lbl) %>%
+      tab_header(title="GO Molecular Function",
+                 subtitle=paste(dataset, mdl)) %>%
+      DESdemonA::tab_link_caption() %>%
+      print() %>%
+      bookdown_label()
+
+  }
 }
 
-            
+
   
 
 

@@ -48,14 +48,41 @@ tab_link_caption <- function(data,name) {
   }
   caption <- gt:::dt_options_get_value(data = data, option = "table_caption")
   fname <- knitr::fig_path("csv", number=name)
+  if (!file.exists(dirname(fname))) dir.create(dirname(fname), recursive=TRUE)
   write.csv(gt:::dt_data_get(data), file=fname)
-  gt:::dt_options_set_value(
+  data <- gt:::dt_options_set_value(
     data,
     "table_caption",
     paste0("[", caption, "](", fname, ")")
   )
   invisible(data)
 }
+
+
+##' Generate multiple captions per chunk
+##'
+##' To be used in a `GT` pipeline. Before the call to `gt` to
+##' suffix the chunk label to make the caption unique, and once after
+##' to reset the chunk label to its default
+##' 
+##' @title Multiple GT tables per chunk
+##' @param data The GT object
+##' @param label The text that uniquely identifies this table amongst others in the chunk
+##' @return Th GT object (invisibly)
+##' @author Gavin Kelly
+#' @export
+bookdown_label <- function(data, label="") {
+  current <- knitr::opts_current$get('label')
+  if ("chunk" %in% names(attributes(data))) {
+    knitr::opts_current$set(label=attr(data, "chunk"))
+  } else {
+    attr(data, "chunk") <- current
+    knitr::opts_current$set(label=paste(current, label, sep="-"))
+  }
+  invisible(data)
+}
+    
+    
 
 ##' Deprecated
 ##'

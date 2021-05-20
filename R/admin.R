@@ -35,7 +35,13 @@ ParamList <- R6::R6Class("ParamList",
                           if (id %in% names(private$defaults)) {
                             value <- private$defaults[[id]]
                           } else {
-                            stop("Attempt to set '", id, "' but no value or default provided")
+                            eg <- readLines(system.file("templates/example.spec", package="DESdemonA"))
+                            eg <- eg[grep(paste0("^\\s+", id),eg)]
+                            if (length(eg)>0) {
+                              stop("Attempt to set '", id, "' but no value or default provided.\n", "You may need to update your spec file, as new settings have been introduced.  Maybe lines like:\n", paste(eg, collapse="\n"))
+                            } else {
+                              stop("Attempt to set '", id, "' but no value or default provided.\n")
+                            }
                           }
                         }
                         if (is.null(value)) {
@@ -61,8 +67,16 @@ ParamList <- R6::R6Class("ParamList",
                       #' Get the value that the parameter is currently set to.
                       #' @param id Name of the value you want to access.
                       get = function(id) {
+                        if (!id %in% names(private$params)) {
+                          stop(id, " has not yet been initialized")
+                        }
                         ret <- private$params[[id]]
                         if (is.call(ret)) eval(ret) else ret
+                      },
+                      #' @description
+                      #' Turn the mutable object into a list
+                      publish = function() {
+                        lapply(private$params, eval)
                       },
                       #' @description
                       #' Get a text description of what the setting is, and what value it currently takes.
@@ -116,30 +130,6 @@ ParamList <- R6::R6Class("ParamList",
 ##' @author Gavin Kelly
 #' 
 #' @export
-## get_started <- function(files = dir(system.file("templates",package="DESdemonA")), path=".",
-##                 yml="",
-##                 nfcore="results",
-##                 metadata=system.file("extdata/metadata.xlsx", package="babsrnaseq"),
-##                 file_col="filename",
-##                 counts=file.path(nfcore, "star_rsem"),
-##                 org_package="",
-##                 project=basename(getwd()),
-##                 author=getOption("usethis.full_name")
-##                 ) {
-##   if (yml!="") {
-##     yml_args <- read_yml(yml)
-##   } else {
-##     yml_args <- list()
-##   }
-##   args <- as.list(environment())
-##   pre_exist <- file.exists(file.path(path, files))
-##   if (any(pre_exist)) {
-##     stop(paste(file.path(path, files), collapse=", "), " already exist. Remove or rename them")
-##   }
-##   for (fname in files) {
-##     usethis::use_template(fname, save_as=fname, data=args, package="DESdemonA")
-##   }
-## }
 
 get_started <- function(files = dir(system.file("templates",package="DESdemonA")),
                 path=".",
