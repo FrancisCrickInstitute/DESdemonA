@@ -291,6 +291,7 @@ check_model <- function(dds) {
       if (any(is.na(coef(fit)))) {
         warning("Can't estimate some coefficients in ", mdl$design, ".\n In unbalanced nested designs, use the option 'drop_unsupported_combinations=TRUE,' in the problematic model. Other causes are complete confounding or conditions with no observations.")
       }
+    }
   }
   if (any(mdl$dropped)) {
     mm <- model.matrix(mdl$design, as.data.frame(colData(dds)))[,!mdl$dropped]
