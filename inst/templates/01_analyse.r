@@ -459,12 +459,12 @@ for (dataset in names(over_rep_plots)) {
 #+ enrich-reactome
 
 enrich <- per_comparison(dds_model_comp,
-                        ~DESdemonA::over_representation(.x, fun="goPathway2")
+                        ~DESdemonA::over_representation(.x, fun="gsePathway")
                         )
 
 enrich %>%
-  per_dataset(.before=~cat("### ", .dataset, "\n\n")) %>%
-  per_model(.before = ~cat("#### ", .model, "\n\n")) %>%
+  per_dataset(before=~cat("### ", .dataset, "\n\n")) %>%
+  per_model(before = ~cat("#### ", .model, "\n\n")) %>%
   per_comparison(function(obj) {
     as.data.frame(obj) %>%
       bookdown_label(paste(.dataset, .model, .comparison, sep="-")) %>%

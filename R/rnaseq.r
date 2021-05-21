@@ -43,9 +43,9 @@ load_specs <- function(file="", context) {
     assign("sample_set", expression, envir=e) # avoid evaluating any examples sample_sets.
     pkg_defaults <- source(system.file("templates/example.spec", package="DESdemonA"), local=e)$value
     new_settings <- setdiff(names(pkg_defaults$settings), names(specs$settings))
-    if (any(new_settings)) {
-      warning("New settings (", paste(new_settings), ") can be set in ", file, ", so please update it. The default values that will be used are:\n")
-      dput(pkg_defaults$settings[new_settings])
+    if (length(new_settings)>0) {
+      string_rep <- lapply(pkg_defaults$settings[new_settings], deparse)
+      warning("New settings (", paste(new_settings), ") can be set in ", file, ", so please update it. The default values that will be used are:\n", paste(names(string_rep), string_rep, sep=": ", collapse="\n"))
       specs$settings[new_settings] <- pkg_defaults$settings[new_settings]
     }
     rm(list=ls(envir=e), envir=e)
