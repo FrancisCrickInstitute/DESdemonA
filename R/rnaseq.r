@@ -285,9 +285,12 @@ check_model <- function(dds) {
     fml <- as.formula(paste0(".x ~ ", as.character(design(dds)[2])))
     fit <- lm(fml, data=df)
     mdl$lm <- fit
-    if ("drop_unsupported_combinations" %in% names(mdl)) {
+    if ("drop_unsupported_combinations" %in% names(mdl) && mdl$drop_unsupported_combinations==TRUE) {
       mdl$dropped <- is.na(coef(fit))
-    }
+    } else {
+      if (any(is.na(coef(fit)))) {
+        warning("Can't estimate some coefficients in ", mdl$design, ".\n In unbalanced nested designs, use the option 'drop_unsupported_combinations=TRUE,' in the problematic model. Other causes are complete confounding or conditions with no observations.")
+      }
   }
   if (any(mdl$dropped)) {
     mm <- model.matrix(mdl$design, as.data.frame(colData(dds)))[,!mdl$dropped]
@@ -326,18 +329,6 @@ mult_comp <- function(spec, ...) {
 ##' @author Gavin Kelly
 ##' @export
 emcontrasts <- function(dds, spec, extra=NULL) {
-  ## df <- as.data.frame(colData(dds))
-  ## df$.x <- counts(dds, norm=TRUE)[1,]
-  ## if (is_formula(design(dds))) {
-  ##   fml <- as.formula(paste0(".x ~ ", as.character(design(dds)[2])))
-  ##   fit <- lm(fml, data=df)
-  ## } else { # shouldn't happen, but
-  ##   warning("Seem to be doing EM on a matrix - not sure that's great")
-  ##   mm <- design(dds)
-  ##   colnames(mm) <- DESdemonA:::.resNames(colnames(mm))
-  ##   fit <- lm(df$.x ~ . -1, data.frame(mm))
-  ##   ddsNames <- match(resultsNames(dds), names(coef(fit)))
-  ## }
   if ("keep" %in% names(extra)) {
     keep <- extra$keep
     extra$keep <- NULL
@@ -493,55 +484,6 @@ summarise_results <- function(dds) {
     dplyr::arrange(desc(Significant/Total))
 }    
 
-##' .. content for \description{} (no empty lines) ..
-##'
-##' .. content for \details{} ..
-##' @title Enrichment analysis
-##' @param ddsList 
-##' @param fun 
-##' @param showCategory 
-##' @param max_width 
-##' @return 
-##' @author Gavin Kelly
-##' @export
-enrichment <- function(ddsList, fun, showCategory, max_width=30) {
-  genes <- lapply(ddsList, function(dds) {
-    res <- mcols(dds)$results
-    na.omit(res$entrez[grepl("\\*", res$class)])
-  })
-  genes <- genes[sapply(genes, length)!=0]
-  if (length(genes)<1) {
-    return(NULL)
-  }
-  if (fun=="enrichGO") {
-    reactome <- try(eval(substitute(compareCluster(genes, fun=fun, OrgDb=metadata(ddsList[[1]])$organism$org, universe=na.omit(metadata(ddsList[[1]])$entrez)), list(fun=fun))), silent=TRUE)
-  } else {
-    orgs <- c(anopheles = "org.Ag.eg.db", arabidopsis = "org.At.tair.db", 
-             bovine = "org.Bt.eg.db", canine = "org.Cf.eg.db", celegans = "org.Ce.eg.db", 
-             chicken = "org.Gg.eg.db", chimp = "org.Pt.eg.db", coelicolor = "org.Sco.eg.db", 
-             ecolik12 = "org.EcK12.eg.db", ecsakai = "org.EcSakai.eg.db", 
-             fly = "org.Dm.eg.db", gondii = "org.Tgondii.eg.db", human = "org.Hs.eg.db", 
-             malaria = "org.Pf.plasmo.db", mouse = "org.Mm.eg.db", 
-             pig = "org.Ss.eg.db", rat = "org.Rn.eg.db", rhesus = "org.Mmu.eg.db", 
-             xenopus = "org.Xl.eg.db", yeast = "org.Sc.sgd.db", zebrafish = "org.Dr.eg.db"
-             )
-    reactome_org <- names(orgs[orgs==metadata(ddsList[[1]])$organism$org])
-    reactome <- try(eval(substitute(compareCluster(genes, fun=fun, organism=reactome_org, universe=na.omit(metadata(ddsList[[1]])$entrez)), list(fun=fun))), silent=TRUE)
-  }
-  if (inherits(reactome,"try-error")) {
-    return(NULL)
-  }
-  enrich_table <- as.data.frame(reactome)[c("Cluster", "ID", "Description","GeneRatio","BgRatio")]
-  reactome@compareClusterResult$Description <- ifelse(
-    nchar(reactome@compareClusterResult$Description)>max_width,
-    reactome@compareClusterResult$ID,
-    reactome@compareClusterResult$Description)
-  pl <- dotplot(reactome, showCategory=showCategory) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, size=6),
-          axis.text.y = element_text(size=8)
-          )
-  list(plot=pl, table=enrich_table)
-}
 
 tidy_significant_dds <- function(dds, res, tidy_fn=NULL, weights=NULL) {
   ind <- grepl("\\*$", res$class)

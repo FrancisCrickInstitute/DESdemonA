@@ -37,6 +37,6 @@ Suggests:
     GO.db
 License: GPL-3
 LazyData: true
-git_last_commit: v0.17.0-3-g103a23e_altered
+git_last_commit: v0.17.1-0-gcc06369_altered
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1

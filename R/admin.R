@@ -134,6 +134,7 @@ ParamList <- R6::R6Class("ParamList",
 get_started <- function(files = dir(system.file("templates",package="DESdemonA")),
                 path=".",
                 yml="",
+                overwrite=FALSE,
                 ...
                 ) {
   args <- list(...)
@@ -155,10 +156,13 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
   args <- c(args, defaults[ind])
   args <- lapply(args, eval, args)
   pre_exist <- file.exists(file.path(path, files))
-  if (any(pre_exist)) {
+  if (any(pre_exist) && (!overwrite)) {
     stop(paste(file.path(path, files), collapse=", "), " already exist. Remove or rename them")
   }
   for (fname in files) {
+    if (file.exists(fname) && overwrite) {
+      unlink(fname)
+    }
     usethis::use_template(fname, save_as=fname, data=args, package="DESdemonA")
   }
 }

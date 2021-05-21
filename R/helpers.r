@@ -148,21 +148,21 @@ extract_colData <- function(object, dataset) {
 #' name of the current dataset
 #' 
 #' @title Wrap datasets from DESdemonA
-#' @param .dds A three-level list in the standard DESdemonA hierarchy dataset > model > comparison
+#' @param .dmc A three-level list in the standard DESdemonA hierarchy dataset > model > comparison
 #' @param .f The function that will be called on the output of the per_model or per_comparison.
 #' @param before A function that will be invoked before .f
 #' @param after A function that will be invoked after .f
 #' @return The return value of .f, as applied to the list of child outputs
 #' @author Gavin Kelly 
 #' @export
-per_dataset <- function(.dds, .f=identity, before=as.null, after=as.null, deepen=FALSE, ...) {
-  .data <- list(dds=.dds,
+per_dataset <- function(.dmc, .f=identity, before=as.null, after=as.null, deepen=FALSE, ...) {
+  .data <- list(dmc=.dmc,
                dataset_f=.f, dataset_before=before, dataset_after=after,
                model_f=identity, model_before=as.null, model_after=as.null
                )
   class(.data) <- "DesIterator"
-  if (class(.dds[[1]])=="DESeqDataSet") {
-    .data$dds <- lapply(.dds, function(x) list(model=list(comparison=x)))
+  if (class(.dmc[[1]])=="DESeqDataSet") {
+    .data$dmc <- lapply(.dmc, function(x) list(model=list(comparison=x)))
     .data$dataset_f=identity
     ret <- per_comparison(.data, .f, ...)
     if (deepen) {
@@ -203,8 +203,8 @@ per_model <- function(x, .f, before, after, deepen) {
 }
 
 #' @export
-per_model.list <- function(.dds, .f = identity, before=as.null, after=as.null, deepen=FALSE) {
-  .data <- list(dds=.dds,
+per_model.list <- function(.dmc, .f = identity, before=as.null, after=as.null, deepen=FALSE) {
+  .data <- list(dmc=.dmc,
                dataset_f=identity, dataset_before=as.null, dataset_after=as.null
                )
   class(.data) <- "DesIterator"
@@ -216,8 +216,8 @@ per_model.DesIterator <- function(.data, .f = identity, before=as.null, after=as
   .data$model_f <- .f
   .data$model_before=before
   .data$model_after=after
-  if (class(.data$dds[[1]][[1]])=="DESeqDataSet") {
-    .data$dds <- lapply(.data$dds, function(x) lapply(x, function(y) list(comparison=y)))
+  if (class(.data$dmc[[1]][[1]])=="DESeqDataSet") {
+    .data$dmc <- lapply(.data$dmc, function(x) lapply(x, function(y) list(comparison=y)))
     .data$model_f=identity
     ret <- per_comparison(.data, .f)
     if (deepen) {
@@ -261,8 +261,8 @@ per_comparison <- function(x, .f, before, after, ...) {
 }
 
 #' @export
-per_comparison.list <- function(.dds, .f=identity, before=as.null, after=as.null, ...) {
-  .data <- list(dds=.dds,
+per_comparison.list <- function(.dmc, .f=identity, before=as.null, after=as.null, ...) {
+  .data <- list(dmc=.dmc,
                dataset_f=identity, dataset_before=as.null, dataset_after=as.null,
                model_f=identity, model_before=as.null, model_after=as.null
                )
@@ -272,31 +272,31 @@ per_comparison.list <- function(.dds, .f=identity, before=as.null, after=as.null
 #' @export
 per_comparison.DesIterator <- function(.data, .f=identity, before=as.null, after=as.null, ...) {
   dataset_ret <- list()
-  for (.dataset in names(.data$dds)) {
+  for (.dataset in names(.data$dmc)) {
     assign(".dataset", .dataset, envir=environment(.data$dataset_before))
     assign(".dataset", .dataset, envir=environment(.data$dataset_after))
     rlang::as_function(.data$dataset_before)()
     model_ret <- list()
-    for (.model in names(.data$dds[[.dataset]])) {
+    for (.model in names(.data$dmc[[.dataset]])) {
       assign(".dataset", .dataset, envir=environment(.data$model_before))
       assign(".dataset", .dataset, envir=environment(.data$model_after))
       assign(".model", .model, envir=environment(.data$model_before))
       assign(".model", .model, envir=environment(.data$model_after))
       (rlang::as_function(.data$model_before))()
       comparison_ret <- list()
-      for (.comparison in names(.data$dds[[.dataset]][[.model]])) {
-        .dds <- .data$dds[[.dataset]][[.model]][[.comparison]]
+      for (.comparison in names(.data$dmc[[.dataset]][[.model]])) {
+        .x <- .data$dmc[[.dataset]][[.model]][[.comparison]]
         assign(".dataset", .dataset, envir=environment(before))
         assign(".dataset", .dataset, envir=environment(after))
         assign(".model", .model, envir=environment(before))
         assign(".model", .model, envir=environment(after))
         assign(".comparison", .comparison, envir=environment(before))
         assign(".comparison", .comparison, envir=environment(after))
-        for (i in setdiff(names(.data), "dds")) {
-          assign(".dds", .dds, envir=environment(.data[[i]]))
+        for (i in setdiff(names(.data), "dmc")) {
+          assign(".x", .x, envir=environment(.data[[i]]))
         }
         (rlang::as_function(before))()
-        comparison_ret[[.comparison]] <- (rlang::as_function(.f))(.dds, ...)
+        comparison_ret[[.comparison]] <- (rlang::as_function(.f))(.x, ...)
         (rlang::as_function(after))()
       }
       model_ret[[.model]] <- (rlang::as_function(.data$model_f))(comparison_ret)

@@ -198,7 +198,7 @@ param$set("clustering_distance_rows")
 param$set("clustering_distance_columns")
 
 per_dataset(ddsList, 
-            ~DESdemonA::qc_heatmap(.dds,
+            ~DESdemonA::qc_heatmap(.x,
               title=.dataset,
               caption=fig_caption,
               param=param$publish()
@@ -378,35 +378,31 @@ for (dataset in names(dds_model_comp)) {
 
 
 #'
-#' # Enrichment Analysis
+#' # Over-representation Analysis
 #'
 #' Here we look at which [Reactome](https://reactome.org/) and [GO molecular functions](http://geneontology.org/)
-#' are enriched in the various genelists we have created.
+#' are over-represented in the various genelists we have created.
 #'
-#+ enrich-init
 param$set("showCategory")
 
-#' ## Reactome Enrichment {.tabset} 
+#' ## Reactome Over-representation {.tabset} 
 #'
-#+ enrich-reactome
+#+ over-reactome
 
-
-
-enrich_plots <- map_depth(dds_model_comp[2], 2, DESdemonA::enrichment,
+over_rep_plots <- map_depth(dds_model_comp[2], 2, DESdemonA::over_representation,
                          fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
-
-for (dataset in names(enrich_plots)) {
-  has_enrich <- !sapply(enrich_plots[[dataset]], is.null)
-  if (!any(has_enrich)) {
+for (dataset in names(over_rep_plots)) {
+  has_over_rep <- !sapply(over_rep_plots[[dataset]], is.null)
+  if (!any(has_over_rep)) {
     next
   }
   cat("### ", dataset, " {.tabset} \n", sep="")
-  for (mdl in names(enrich_plots[[dataset]][has_enrich])) {
+  for (mdl in names(over_rep_plots[[dataset]][has_over_rep])) {
     cat("#### ", mdl, " \n", sep="")
-    print(enrich_plots[[dataset]][[mdl]]$plot)
+    print(over_rep_plots[[dataset]][[mdl]]$plot)
     lbl <- paste("Reactome for", mdl, dataset)
     fig_caption(lbl)
-    enrich_plots[[dataset]][[mdl]]$table %>%
+    over_rep_plots[[dataset]][[mdl]]$table %>%
       bookdown_label(dataset) %>%
       gt(caption=lbl) %>%
       tab_header(title="Reactome",
@@ -414,29 +410,28 @@ for (dataset in names(enrich_plots)) {
       DESdemonA::tab_link_caption() %>%
       print() %>%
       bookdown_label()
-
   }
 }
 
-#' ## GO MF Enrichment {.tabset} 
+#' ## GO MF Over-representation {.tabset} 
 #'
-#+ enrich-GO
+#+ over-GO
 
-enrich_plots <- map_depth(dds_model_comp, 2, DESdemonA::enrichment,
+over_rep_plots <- map_depth(dds_model_comp, 2, DESdemonA::over_representation,
   fun="enrichGO", showCategory = param$get("showCategory"), max_width=30)
 
-for (dataset in names(enrich_plots)) {
-  has_enrich <- !sapply(enrich_plots[[dataset]], is.null)
-  if (!any(has_enrich)) {
+for (dataset in names(over_rep_plots)) {
+  has_over_rep <- !sapply(over_rep_plots[[dataset]], is.null)
+  if (!any(has_over_rep)) {
     next
   }
   cat("### ", dataset, " {.tabset} \n", sep="")
-  for (mdl in names(enrich_plots[[dataset]][has_enrich])) {
+  for (mdl in names(over_rep_plots[[dataset]][has_over_rep])) {
     cat("#### ", mdl, " \n\n", sep="")
-    print(enrich_plots[[dataset]][[mdl]]$plot)
+    print(over_rep_plots[[dataset]][[mdl]]$plot)
     lbl <- paste("GO MF for", dataset, mdl)
     fig_caption(lbl)
-    enrich_plots[[dataset]][[mdl]]$table %>%
+    over_rep_plots[[dataset]][[mdl]]$table %>%
       bookdown_label(dataset) %>%
       gt(caption=lbl) %>%
       tab_header(title="GO Molecular Function",
@@ -444,12 +439,47 @@ for (dataset in names(enrich_plots)) {
       DESdemonA::tab_link_caption() %>%
       print() %>%
       bookdown_label()
-
   }
 }
 
 
+
+#'
+#' # Enrichment Analysis
+#'
+#' Here we look at which [Reactome](https://reactome.org/) and [GO
+#' molecular functions](http://geneontology.org/) are enriched in the
+#' various genelists we have created. Enrichment analysis looks at the
+#' fold-changes of the genes of interest (pathway/go term/...) and sees if they
+#' are different from the fold-changes of the remaining genes.
+#'
+
+#' ## Reactome Enrichment {.tabset} 
+#'
+#+ enrich-reactome
+
+enrich <- per_comparison(dds_model_comp,
+                        ~DESdemonA::over_representation(.x, fun="goPathway2")
+                        )
+
+enrich %>%
+  per_dataset(.before=~cat("### ", .dataset, "\n\n")) %>%
+  per_model(.before = ~cat("#### ", .model, "\n\n")) %>%
+  per_comparison(function(obj) {
+    as.data.frame(obj) %>%
+      bookdown_label(paste(.dataset, .model, .comparison, sep="-")) %>%
+      gt(caption=.comparison) %>%
+      tab_header(title="Reactome Enrichment",
+                 subtitle=paste(.dataset, .model, .comparison)) %>%
+      DESdemonA::tab_link_caption() %>%
+      print() %>%
+      bookdown_label()
+  })
+
+
   
+      
+    
 
 
 
