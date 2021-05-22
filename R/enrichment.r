@@ -25,7 +25,11 @@ enrichment <- function(dds, fun="gseGO") {
         genelist,
         organism = reactome_org)
     }
-    res
+    if (nrow(res)>0) {
+      res
+    } else {
+      NULL
+    }
 }
 
 
@@ -69,7 +73,11 @@ over_representation <- function(ddsList, fun, showCategory, max_width=30) {
     theme(axis.text.x = element_text(angle = 45, hjust = 1, size=6),
           axis.text.y = element_text(size=8)
           )
-  list(plot=pl, table=enrich_table)
+  if (nrow(enrich_table)>0) {
+    list(plot=pl, table=enrich_table)
+  } else {
+    NULL
+  }
 }
 
 

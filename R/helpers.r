@@ -273,38 +273,40 @@ per_comparison.list <- function(.dmc, .f=identity, before=as.null, after=as.null
 per_comparison.DesIterator <- function(.data, .f=identity, before=as.null, after=as.null, ...) {
   dataset_ret <- list()
   for (.dataset in names(.data$dmc)) {
-    assign(".dataset", .dataset, envir=environment(.data$dataset_before))
-    assign(".dataset", .dataset, envir=environment(.data$dataset_after))
-    rlang::as_function(.data$dataset_before)()
+    wth <- list(.dataset=.dataset)
+    with(wth, rlang::as_function(.data$dataset_before)())
     model_ret <- list()
     for (.model in names(.data$dmc[[.dataset]])) {
-      assign(".dataset", .dataset, envir=environment(.data$model_before))
-      assign(".dataset", .dataset, envir=environment(.data$model_after))
-      assign(".model", .model, envir=environment(.data$model_before))
-      assign(".model", .model, envir=environment(.data$model_after))
-      (rlang::as_function(.data$model_before))()
+      wth$.model <- .model
+      with(wth, (rlang::as_function(.data$model_before))())
       comparison_ret <- list()
       for (.comparison in names(.data$dmc[[.dataset]][[.model]])) {
         .x <- .data$dmc[[.dataset]][[.model]][[.comparison]]
-        assign(".dataset", .dataset, envir=environment(before))
-        assign(".dataset", .dataset, envir=environment(after))
-        assign(".model", .model, envir=environment(before))
-        assign(".model", .model, envir=environment(after))
-        assign(".comparison", .comparison, envir=environment(before))
-        assign(".comparison", .comparison, envir=environment(after))
-        for (i in setdiff(names(.data), "dmc")) {
-          assign(".x", .x, envir=environment(.data[[i]]))
-        }
-        (rlang::as_function(before))()
-        comparison_ret[[.comparison]] <- (rlang::as_function(.f))(.x, ...)
-        (rlang::as_function(after))()
+        wth$.x <- .x
+        wth$.comparison <- .comparison
+        with(wth, (rlang::as_function(before))())
+        comparison_ret[[.comparison]] <- with(wth, (rlang::as_function(.f))(.x, ...))
+        with(wth, (rlang::as_function(after))())
       }
-      model_ret[[.model]] <- (rlang::as_function(.data$model_f))(comparison_ret)
-      (rlang::as_function(.data$model_after))()
+      if (length(comparison_ret)>0) {
+        model_ret[[.model]] <- with(wth, (rlang::as_function(.data$model_f))(comparison_ret))
+      }
+      with(wth, (rlang::as_function(.data$model_after))())
     }
-    dataset_ret[[.dataset]] <- (rlang::as_function(.data$dataset_f))(model_ret)
-    (rlang::as_function(.data$dataset_after))()
+    if (length(model_ret)>0) {
+      dataset_ret[[.dataset]] <- with(wth, (rlang::as_function(.data$dataset_f))(model_ret))
+    }
+    with(wth, (rlang::as_function(.data$dataset_after))())
   }
   dataset_ret
 }
 
+
+dmc2frame <- function(dmc) {
+  df_rows <- per_comparison(dmc, ~data.frame(dataset=.dataset, model=.model, comparison=.comparison))
+  df <- unlist(unlist(df_rows, recursive=FALSE), recursive=FALSE)
+  dds <- unlist(unlist(dmc, recursive=FALSE), recursive=FALSE)[names(df)]
+  df <- do.call(rbind, df)
+  df$dds <- dds
+  df
+}
