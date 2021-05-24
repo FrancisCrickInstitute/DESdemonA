@@ -199,7 +199,7 @@ param$set("clustering_distance_columns")
 
 map_des(ddsList, 
             ~DESdemonA::qc_heatmap(.x,
-              title=.dataset,
+              title=dataset_name(.x),
               caption=fig_caption,
               param=param$publish()
             )
@@ -227,11 +227,11 @@ dds_model_comp <- map_des(
   ddsList,
   function(x) DESdemonA::fit_models(x,
                              minReplicatesForReplace = Inf)
-  
 )
 
+
 ## Now put results in each 3rd level mcols(dds)$results
-dds_model_comp <- per_comparison(
+dds_model_comp <- map_des(
   dds_model_comp,
   DESdemonA::get_result,
   filterFun=param$get("filterFun"),
@@ -279,13 +279,10 @@ iwalk(xl_files,
 #+ summary
 
 
-summaries <- per_comparison(
-  dds_model_comp,
-  DESdemonA::summarise_results
-)
-
-summary_per_dataset <- map(summaries, DESdemonA::rbind_summary,
-                  levels=c("Design","Comparison")) %>%
+summaries <- dds_model_comp %>%
+  map_des(DESdemonA::summarise_results) %>%
+  map_des(function(x) {bind_rows(x, .id="Comparison")}, depth="model") %>%
+  map_des(function(x) {bind_rows(x, .id="Model")}, depth="dataset") %>%
   map(function(x) {
     levels(x$Group) <- sub(".*<(.+<.+<0)$", "\\1", levels(x$Group))
     levels(x$Group) <- sub("^(0<.+?<.+?)<.*$", "\\1", levels(x$Group))
@@ -294,18 +291,19 @@ summary_per_dataset <- map(summaries, DESdemonA::rbind_summary,
   }
   )
 
-pval_frame <- map_depth(
-  dds_model_comp,
-  2,
-  ~map_dfr(.x, function(comp) {as.data.frame(mcols(comp)$results)}, .id="comparison")
-)
+pval_frame <- dds_model_comp %>%
+  map_des(~as.data.frame(mcols(.x)$results)) %>%
+  map_des(function(x) {bind_rows(x, .id="Comparison")}, depth="model")
+                      
+                      
 
-for (dataset in names(summary_per_dataset)) {
+for (dataset in names(summaries)) {
   options(htmltools.preserve.raw=TRUE)
   cat("### ", dataset, " \n", sep="")
-  summary_per_dataset[[dataset]] %>%
+  summaries[[dataset]] %>%
     bookdown_label(dataset) %>%
-    gt(caption=paste0("Size of gene-lists for ", dataset)) %>%
+    gt(caption=paste0("Size of gene-lists for ", dataset),
+       groupname_col="Model") %>%
     tab_header(title="Genelist summary",
                subtitle=dataset) %>%
     DESdemonA::tab_link_caption() %>%
@@ -315,12 +313,11 @@ for (dataset in names(summary_per_dataset)) {
   for (model in names(pval_frame[[dataset]])) {
     pl <- ggplot(pval_frame[[dataset]][[model]], aes(x=pvalue, fill=baseMean<1)) +
       geom_density(alpha=0.5) +
-      facet_wrap(~comparison) +
+      facet_wrap(~Comparison) +
       theme_bw()
     print(pl)
     fig_caption(caption=paste0("p-Diagnostic for", dataset, model))
   }
-  
 }
 
 
@@ -389,8 +386,11 @@ param$set("showCategory")
 #'
 #+ over-reactome
 
-over_rep_plots <- map_depth(dds_model_comp[2], 2, DESdemonA::over_representation,
-                         fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30)
+over_rep_plots <-
+  map_des(dds_model_comp,
+          ~DESdemonA::over_representation(.x, fun="enrichPathway", showCategory = param$get("showCategory"), max_width=30),
+          depth="model")
+
 for (dataset in names(over_rep_plots)) {
   has_over_rep <- !sapply(over_rep_plots[[dataset]], is.null)
   if (!any(has_over_rep)) {
@@ -417,8 +417,10 @@ for (dataset in names(over_rep_plots)) {
 #'
 #+ over-GO
 
-over_rep_plots <- map_depth(dds_model_comp, 2, DESdemonA::over_representation,
-  fun="enrichGO", showCategory = param$get("showCategory"), max_width=30)
+over_rep_plots <-
+  map_des(dds_model_comp,
+          ~DESdemonA::over_representation(.x, fun="enrichGO", showCategory = param$get("showCategory"), max_width=30),
+          depth="model")
 
 for (dataset in names(over_rep_plots)) {
   has_over_rep <- !sapply(over_rep_plots[[dataset]], is.null)
@@ -458,25 +460,67 @@ for (dataset in names(over_rep_plots)) {
 #'
 #+ enrich-reactome
 
-enrich <- per_comparison(dds_model_comp,
-                        ~DESdemonA::over_representation(.x, fun="gsePathway")
+enrich <- map_des(dds_model_comp,
+                        ~DESdemonA::enrichment(.x, fun="gsePathway")
                         )
 
-enrich %>%
-  per_dataset(before=~cat("### ", .dataset, "\n\n")) %>%
-  per_model(before = ~cat("#### ", .model, "\n\n")) %>%
-  per_comparison(function(obj) {
-    as.data.frame(obj) %>%
-      bookdown_label(paste(.dataset, .model, .comparison, sep="-")) %>%
-      gt(caption=.comparison) %>%
-      tab_header(title="Reactome Enrichment",
-                 subtitle=paste(.dataset, .model, .comparison)) %>%
-      DESdemonA::tab_link_caption() %>%
-      print() %>%
-      bookdown_label()
-  })
+for (dataset in names(enrich)) {
+  cat("### ", dataset, "\n\n")
+  for (model in names(enrich[[dataset]])) {
+    cat("#### ", model, "\n\n")
+    for (comparison in names(enrich[[dataset]][[model]][[comparison]])) {
+      obj <- enrich[[dataset]][[model]][[comparison]]
+      as.data.frame(obj) %>%
+        bookdown_label(paste(dataset, model, comparison, sep="-")) %>%
+        gt(caption=comparison) %>%
+        cols_hide(columns=c(core_enrichment)) %>%
+        fmt_scientific(
+          columns = c(pvalue, p.adjust, qvalues),
+          decimals=2) %>%
+        fmt_number(
+          columns = c(enrichmentScore, NES),
+          decimals=2) %>%
+        tab_header(title="Reactome Enrichment",
+                   subtitle=paste(dataset, model, comparison)) %>%
+        DESdemonA::tab_link_caption() %>%
+        print() %>%
+        bookdown_label()
+    }
+  }
+}
 
+#' ## GO Enrichment {.tabset} 
+#'
+#+ enrich-go
 
+enrich <- map_des(dds_model_comp,
+                        ~DESdemonA::enrichment(.x, fun="gseGO")
+                        )
+
+for (dataset in names(enrich)) {
+  cat("### ", dataset, "\n\n")
+  for (model in names(enrich[[dataset]])) {
+    cat("#### ", model, "\n\n")
+    for (comparison in names(enrich[[dataset]][[model]][[comparison]])) {
+      obj <- enrich[[dataset]][[model]][[comparison]]
+      as.data.frame(obj) %>%
+        bookdown_label(paste(dataset, model, comparison, sep="-")) %>%
+        gt(caption=comparison) %>%
+        cols_hide(columns=c(core_enrichment)) %>%
+        fmt_scientific(
+          columns = c(pvalue, p.adjust, qvalues),
+          decimals=2) %>%
+        fmt_number(
+          columns = c(enrichmentScore, NES),
+          decimals=2) %>%
+        tab_header(title="GO Enrichment",
+                   subtitle=paste(dataset, model, comparison)) %>%
+        DESdemonA::tab_link_caption() %>%
+        print() %>%
+        bookdown_label()
+    }
+  }
+}
   
       
     

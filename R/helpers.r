@@ -156,39 +156,36 @@ extract_colData <- function(object, dataset) {
 #' @author Gavin Kelly 
 
 #' @export
-map_des <- function(data, f=identity, depth="comparison", ...) {
-  if (depth=="top") {
-    return((rlang::as_function(f))(data, ...))
-  }
-  dataset_ret <- list()
-  for (dataset in names(data)) {
-    assign(".dataset", dataset, envir=environment(f))
-    if (class(data[[dataset]])=="list" && depth!="dataset") {
-      model_ret <- list()
-      for (model in names(data[[dataset]])) {
-        assign(".model", model, envir=environment(f))
-        if (class(data[[dataset]][[model]])=="list" && depth=="comparison") {
-          comparison_ret <- list()
-          for (comparison in names(data[[dataset]][[model]])) {
-            assign(".comparison", comparison, envir=environment(f))
-            comparison_ret[[comparison]] <- (rlang::as_function(f))(data[[dataset]][[model]][[comparison]], ...)
-          }
-          if (length(comparison_ret)>0) {
-            model_ret[[model]] <-comparison_ret
-          }
-        } else {
-          model_ret[[model]] <- (rlang::as_function(f))(data[[dataset]][[model]], ...)
-        }
-      }
-      if (length(model_ret)>0) {
-        dataset_ret[[dataset]] <- model_ret
-      }
-    } else {
-      dataset_ret[[dataset]] <- (rlang::as_function(f))(data[[dataset]], ...)
-    }
-  }
-  dataset_ret
-}
+## map_des <- function(data, f=identity, depth="comparison", ...) {
+##   if (depth=="top") {
+##     return((rlang::as_function(f))(data, ...))
+##   }
+##   dataset_ret <- list()
+##   for (dataset in names(data)) {
+##     if (class(data[[dataset]])=="list" && depth!="dataset") {
+##       model_ret <- list()
+##       for (model in names(data[[dataset]])) {
+##         if (class(data[[dataset]][[model]])=="list" && depth=="comparison") {
+##           comparison_ret <- list()
+##           for (comparison in names(data[[dataset]][[model]])) {
+##             comparison_ret[[comparison]] <- (rlang::as_function(f))(data[[dataset]][[model]][[comparison]], ...)
+##           }
+##           if (length(comparison_ret)>0) {
+##             model_ret[[model]] <-comparison_ret
+##           }
+##         } else {
+##           model_ret[[model]] <- (rlang::as_function(f))(data[[dataset]][[model]], ...)
+##         }
+##       }
+##       if (length(model_ret)>0) {
+##         dataset_ret[[dataset]] <- model_ret
+##       }
+##     } else {
+##       dataset_ret[[dataset]] <- (rlang::as_function(f))(data[[dataset]], ...)
+##     }
+##   }
+##   dataset_ret
+## }
 
 
 map_des <- function(data, f, depth="comparison",...) {
@@ -200,6 +197,15 @@ map_des <- function(data, f, depth="comparison",...) {
   }
   map_depth(data, 3, f)
 }
+
+trim_map <- function(data) {
+  deeper <- !sapply(data, is.null)
+  if (!any(deeper)) {
+    return(NULL)
+  }
+  lapply(data[deeper], function(x) {if (class(x)=="list") trim_map(x) else x})
+}
+  
   
 #' @export
 dataset_name <- function(dds) {
