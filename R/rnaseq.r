@@ -135,7 +135,7 @@ build_dds_list <- function(dds, spec) {
     )
   }
   metadata(colData(dds))$palette <- default_palette
-  lapply(spec$sample_sets, function(set) {
+  ddsList <- lapply(spec$sample_sets, function(set) {
     mdlList <- spec$models
     if (is.list(set)) {
       ind <- set$subset
@@ -169,6 +169,12 @@ build_dds_list <- function(dds, spec) {
     }
     obj
   })
+  ddsList <- imap(ddsList,
+                   function(obj, dname) {
+                     metadata(obj)$dmc <- list(dataset=dname)
+                     obj
+                   }
+                   )
 }
 
 ##' Calculate dimension reduction 
@@ -260,10 +266,15 @@ fit_models <- function(dds, ...) {
                      )
         out <- c(out, lrt)
       }
+      out <- imap(out, function(obj, cname) {metadata(obj)$dmc$comparison <- cname; obj})
       out
     }
   )
-  model_comp[sapply(model_comp, length)!=0] 
+  model_comp <- model_comp[sapply(model_comp, length)!=0]
+  model_comp <- imap(model_comp, function(obj, mname) {
+    lapply(obj, function(y) {metadata(y)$dmc$model <- mname; y})
+  })
+  model_comp
 }
 
 ##' .. content for \description{} (no empty lines) ..

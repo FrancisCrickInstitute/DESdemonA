@@ -78,16 +78,16 @@ ddsList <- DESdemonA::build_dds_list(dds, specs)
 
 #Which features are zero across all samples in all datasets
 all_zero <- Reduce(f=`&`,
-                  x=per_dataset(ddsList, function(x) apply(counts(x)==0,1, all)),
+                  x=map_des(ddsList, function(x) apply(counts(x)==0,1, all)),
                   init=TRUE)
-ddsList <- per_dataset(ddsList, function(dds) dds[!all_zero,])
+ddsList <- map_des(ddsList, function(dds) dds[!all_zero,])
 
 
 
-ddsList <- per_dataset(ddsList, estimateSizeFactors)
+ddsList <- map_des(ddsList, estimateSizeFactors)
 param$set("baseMeanMin")
 if (param$get("baseMeanMin")>0) {
-  ddsList <- per_dataset(ddsList,
+  ddsList <- map_des(ddsList,
                    function(x) x[rowMeans(counts(x, normalized=TRUE)) >= param$get("baseMeanMin"),]
                    )
 }
@@ -191,13 +191,13 @@ data.frame(
 #+ qc-visualisation
 
 
-ddsList <- per_dataset(ddsList, DESdemonA::add_dim_reduct)
+ddsList <- map_des(ddsList, function(x) DESdemonA::add_dim_reduct(x))
 
 param$set("top_n_variable")
 param$set("clustering_distance_rows")
 param$set("clustering_distance_columns")
 
-per_dataset(ddsList, 
+map_des(ddsList, 
             ~DESdemonA::qc_heatmap(.x,
               title=.dataset,
               caption=fig_caption,
@@ -223,12 +223,12 @@ param$set("lfcThreshold")
 param$set("filterFun")
 
 ## For each dataset, fit all its models
-dds_model_comp <- per_dataset(
+dds_model_comp <- map_des(
   ddsList,
-  DESdemonA::fit_models,
-  minReplicatesForReplace = Inf
+  function(x) DESdemonA::fit_models(x,
+                             minReplicatesForReplace = Inf)
+  
 )
-
 
 ## Now put results in each 3rd level mcols(dds)$results
 dds_model_comp <- per_comparison(
