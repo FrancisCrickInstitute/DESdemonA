@@ -462,13 +462,15 @@ for (dataset in names(over_rep_plots)) {
 
 enrich <- map_des(dds_model_comp,
                         ~DESdemonA::enrichment(.x, fun="gsePathway")
-                        )
+                 ) %>%
+  DESdemonA:::trim_map()
+  
 
 for (dataset in names(enrich)) {
   cat("### ", dataset, "\n\n")
   for (model in names(enrich[[dataset]])) {
     cat("#### ", model, "\n\n")
-    for (comparison in names(enrich[[dataset]][[model]][[comparison]])) {
+    for (comparison in names(enrich[[dataset]][[model]])) {
       obj <- enrich[[dataset]][[model]][[comparison]]
       as.data.frame(obj) %>%
         bookdown_label(paste(dataset, model, comparison, sep="-")) %>%
@@ -495,13 +497,15 @@ for (dataset in names(enrich)) {
 
 enrich <- map_des(dds_model_comp,
                         ~DESdemonA::enrichment(.x, fun="gseGO")
-                        )
+                        ) %>%
+  DESdemonA:::trim_map()
+  
 
 for (dataset in names(enrich)) {
   cat("### ", dataset, "\n\n")
   for (model in names(enrich[[dataset]])) {
     cat("#### ", model, "\n\n")
-    for (comparison in names(enrich[[dataset]][[model]][[comparison]])) {
+    for (comparison in names(enrich[[dataset]][[model]])) {
       obj <- enrich[[dataset]][[model]][[comparison]]
       as.data.frame(obj) %>%
         bookdown_label(paste(dataset, model, comparison, sep="-")) %>%
@@ -521,7 +525,7 @@ for (dataset in names(enrich)) {
     }
   }
 }
-  
+
       
     
 

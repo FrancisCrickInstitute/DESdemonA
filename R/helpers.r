@@ -198,6 +198,7 @@ map_des <- function(data, f, depth="comparison",...) {
   map_depth(data, 3, f)
 }
 
+#' @export
 trim_map <- function(data) {
   deeper <- !sapply(data, is.null)
   if (!any(deeper)) {
