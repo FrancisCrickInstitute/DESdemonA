@@ -9,7 +9,7 @@
 ##' @return A list of file paths to the excel files
 ##' @author Gavin Kelly
 #' @export
-write_results <- function(ddsList, param, dir=".") {
+write_results <- function(ddsList, param, dir=".", assays=NULL) {
   si <- session_info()
   crick_colours <-list(
     primary=list(red="#e3001a",yellow="#ffe608",blue="#4066aa",green="#7ab51d",purple="#bb90bd"),
@@ -44,9 +44,21 @@ write_results <- function(ddsList, param, dir=".") {
     ## Differential gene-lists
     for (design_ind in 1:length(ddsList[[dataset]])) {
       for (contrast_name in names(ddsList[[dataset]][[design_ind]])) {
-        dframe <- as.data.frame(mcols(ddsList[[dataset]][[design_ind]][[contrast_name]])$results) %>%
+        dframe <- as.data.frame(mcols(ddsList[[dataset]][[design_ind]][[contrast_name]])$results)
+        for (assay_name in assays) {
+          if (!assay_name %in% assayNames(ddsList[[dataset]][[design_ind]][[contrast_name]])) {
+            warning(assay_name, " not an assay, so not added to output")
+            next
+          }
+          this_assay <- assay(ddsList[[dataset]][[design_ind]][[contrast_name]], assay_name)
+          if (length(assays)>1) {
+            names(this_assay) <- paste(this_assay, names(this_assay), sep="_")
+          }
+          dframe <- cbind(dframe, this_assay)
+        }
+        dframe <- dframe %>%
           tibble::rownames_to_column("id") %>%
-          dplyr::filter(padj<param$get("alpha")) %>%
+#          dplyr::filter(padj<param$get("alpha")) %>%
           dplyr::arrange(desc(abs(shrunkLFC))) %>%
           dplyr::select(-pvalue, -padj)
         if (length(ddsList[[dataset]])==1) {
@@ -55,7 +67,17 @@ write_results <- function(ddsList, param, dir=".") {
           sn <- paste0(contrast_name, ", ", names(ddsList[[dataset]])[design_ind])
         }
         addWorksheet(wb, sn, tabColour=crick_colours$secondary[[design_ind]])
-        writeData(wb, sn, dframe, headerStyle=hs1)
+        writeData(wb, sn, dframe, headerStyle=hs1, withFilter=TRUE)
+        groupRows(wb, sn, rows=which(!grepl("\\*$", dframe$class))+1, hidden=TRUE)
+        filtCol <- match("class", names(dframe))
+        if (!is.na(filtCol)) {
+          filt_string <- sprintf(
+            '><filterColumn colId="%s"><customFilters><customFilter val="*~*"/></customFilters></filterColumn></autoFilter>',
+            filtCol-1
+          )
+          sheet_n <- match(sn, names(wb))
+          wb$worksheets[[sheet_n]]$autoFilter <- sub("/>$", filt_string, wb$worksheets[[sheet_n]]$autoFilter)
+        }
       }
     }
     ## sn <- "GO terms"
@@ -71,7 +93,7 @@ write_results <- function(ddsList, param, dir=".") {
                                  stringsAsFactors = FALSE),
               headerStyle=hs2)
     out[[dataset]] <- file.path(dir, paste0("differential_", param$get("spec"), "_", dataset, ".xlsx"))
-    (saveWorkbook(wb, out[[dataset]], overwrite=TRUE,returnValue=TRUE))
+    (saveWorkbook(wb, out[[dataset]], overwrite=TRUE))
   }
   out
 }
@@ -96,3 +118,4 @@ write_all_results <- function(ddsList, dir=".") {
     }
   }
 }
+
