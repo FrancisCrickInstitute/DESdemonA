@@ -159,12 +159,14 @@ build_dds_list <- function(dds, spec) {
       colData(obj) <- S4Vectors::DataFrame(eval(tr))
       metadata(colData(obj)) <- metadata(colData(dds))
       colnames(obj) <- cnames
-      new_cols <- intersect(modelled_terms, setdiff(names(colData(obj)), names(default_palette)))
+      new_cols <- intersect(modelled_terms, setdiff(names(colData(obj)), names(default_palette$Heatmap)))
       if (length(new_cols)>0) {
-       metadata(colData(obj))$palette[new_cols] <- DESdemonA:::df2colorspace(
-         colData(obj)[, new_cols, drop=FALSE],
-         spec$settings$palette
-       )
+        new_meta <- DESdemonA:::df2colorspace(
+          colData(obj)[, new_cols, drop=FALSE],
+          spec$settings$palette
+        )
+        metadata(colData(obj))$palette$Heatmap[new_cols] <- new_meta$Heatmap
+        metadata(colData(obj))$palette$ggplot[new_cols] <- new_meta$ggplot
       }
     }
     obj

@@ -42,10 +42,11 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
     clustering_distance_rows=param$clustering_distance_rows,
     #    cluster_columns=dend,
     heatmap_legend_param = list(direction = "horizontal" ),
-#    col=colorspace::diverging_hcl(5, palette="Blue-Red"),
-#    col = circlize::colorRamp2(sym_colour(plotDat), colors=c("blue", "white", "red")),
-    top_annotation=ComplexHeatmap::HeatmapAnnotation(df=colDat[vars$fixed],
-                                                     col = metadata(colData(dds))$palette[vars$fixed]),
+    #    col=colorspace::diverging_hcl(5, palette="Blue-Red"),
+    #    col = circlize::colorRamp2(sym_colour(plotDat), colors=c("blue", "white", "red")),
+    top_annotation=ComplexHeatmap::HeatmapAnnotation(
+      df=colDat[vars$fixed],
+      col = metadata(colData(dds))$palette$Heatmap[vars$fixed]),
     show_row_names=FALSE, show_column_names=TRUE)
   draw(pl, heatmap_legend_side="top")
   caption("Heatmap of variable genes")
@@ -75,7 +76,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
     clustering_distance_columns = function(x) {poisd$dd},
     heatmap_legend_param = list(direction = "horizontal" ),
     top_annotation=ComplexHeatmap::HeatmapAnnotation(df=colDat[vars$fixed],
-                                                     col = metadata(colData(dds))$palette[vars$fixed]
+                                                     col = metadata(colData(dds))$palette$Heatmap[vars$fixed]
                                                      )
   )
   draw(pl, heatmap_legend_side="top")
@@ -120,21 +121,32 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
   
   for (j in vars$fixed[is_vary]) {
     pc.df <- data.frame(PC1=pc[,pc_x], PC2=pc[,pc_y], col=colDat[[j]], sample=rownames(colDat))
-    pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
+    pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=5) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
       ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
-      scale_colour_manual(values=metadata(colData(dds))$palette[[j]]) + 
-      labs(colour=j)
+      labs(colour=j) + theme_bw()
+    if (is.numeric(colDat[[j]])) {
+      pal_col <- metadata(colData(dds))$palette$ggplot[[j]]
+      pl <- pl + scale_colour_gradient(low=pal_col[1], high=pal_col[2])
+    } else {
+      pl <- pl + scale_colour_manual(values=metadata(colData(dds))$palette$ggplot[[j]])
+    }
     if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
     print(pl)
     caption(paste0("Coloured by ", j))
     if (do_batch) {
       pc.df <- data.frame(PC1=pc_resid$pc[,pc_x], PC2=pc_resid$pc[,pc_y], col=colDat[[j]], sample=rownames(colDat))
-      pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=3) +
+      pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=5) +
         xlab(paste0("PC ", pc_x, ": ", pc_resid$percent[pc_x], "% variance")) +
         ylab(paste0("PC ", pc_y, ": ", pc_resid$percent[pc_y], "% variance")) +
-        scale_colour_manual(values=metadata(colData(dds))$palette[[j]]) + 
-        labs(colour=j)
+        labs(colour=j) + theme_bw()
+      if (is.numeric(colDat[[j]])) {
+        pal_col <- metadata(colData(dds))$palette$ggplot[[j]]
+        pl <- pl + scale_colour_gradient(low=pal_col[1], high=pal_col[2])
+      } else {
+        pl <- pl + scale_colour_manual(values=metadata(colData(dds))$palette$ggplot[[j]])
+      }
+
       if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
       print(pl)
       caption(paste0("Coloured by ", j, ", correcting for ", paste(batch_vars, collapse=", ")))
@@ -146,11 +158,17 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
         annotate("text", x = Inf, y = -Inf, label = "PROOF ONLY",
                  hjust=1.1, vjust=-1.1, col="white", cex=6,
                  fontface = "bold", alpha = 0.8) + 
-        geom_point(size=3) +
-        scale_colour_manual(values=metadata(colData(dds))$palette[[j]]) + 
+        geom_point(size=5) +
         xlab(paste0("PC ", pc_x, ": ", pc_resid[[j]]$percent[pc_x], "% variance")) +
         ylab(paste0("PC ", pc_y, ": ", pc_resid[[j]]$percent[pc_y], "% variance")) +
-        labs(colour=j)
+        labs(colour=j)+ theme_bw()
+      if (is.numeric(colDat[[j]])) {
+        pal_col <- metadata(colData(dds))$palette$ggplot[[j]]
+        pl <- pl + scale_colour_gradient(low=pal_col[1], high=pal_col[2])
+      } else {
+        pl <- pl + scale_colour_manual(values=metadata(colData(dds))$palette$ggplot[[j]])
+      }
+
       if (do_labels) {pl <- pl + geom_text_repel(aes(label=sample))}
       print(pl)
       caption(paste0("Focussed on ", j))
@@ -189,7 +207,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
       geom_raster() +
       facet_wrap(~wrap, scales="free_x", ncol=1) + 
       scale_fill_gradient2(low="#4575b4", mid="grey90", high="#d73027") +
-      theme_classic() + theme(aspect.ratio = length(unique(plotFrame$Covariate)) / min(20, npc))
+      theme_bw() + theme(aspect.ratio = length(unique(plotFrame$Covariate)) / min(20, npc))
     print(pl)
     caption("Covariate-PC association")
     
@@ -217,27 +235,42 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
         pc.df$col <-  colDat[,inter_vars[2]]
         if (length(inter_vars)==2) {
           pl <- ggplot(pc.df, aes(x=X, y=coord, colour=col, group=col)) +
-            scale_colour_manual(values=metadata(colData(dds))$palette[[inter_vars[2]]]) +
             stat_summary(fun = mean, geom="line") + 
             labs(
               x=inter_vars[1],
               colour=paste(inter_vars[-1],collapse="x"),
-              y="Residual")
+              y="Residual")+ theme_bw()
+          if (is.numeric(pc.df$col)) {
+            pal_col <- metadata(colData(dds))$palette$ggplot[[inter_vars[2]]]
+            pl <- pl + scale_colour_gradient(low=pal_col[1], high=pal_col[2])
+          } else {
+            pl <- pl + scale_colour_manual(metadata(colData(dds))$palette$ggplot[[inter_vars[2]]])
+          }
         } else {
           pc.df$grp <- Reduce(interaction, colDat[,inter_vars[-1]])
           pl <- ggplot(pc.df, aes(x=X, y=coord, colour=col, group=grp)) +
-            scale_colour_manual(values=metadata(colData(dds))$palette[[inter_vars[2]]]) + 
             stat_summary(fun = mean, geom="line") + 
             labs(
               x=inter_vars[1],
               colour=paste(inter_vars[-1],collapse="x"),
-              y="Residual")
+              y="Residual")+ theme_bw()
+          if (is.numeric(pc.df$col)) {
+            pal_col <- metadata(colData(dds))$palette$ggplot[[inter_vars[2]]]
+            pl <- pl + scale_colour_gradient(low=pal_col[1], high=pal_col[2])
+          } else {
+            pl <- pl + scale_colour_manual(metadata(colData(dds))$palette$ggplot[[inter_vars[2]]])
+          }
         }
       } else {
         pl <- ggplot(pc.df, aes(x=X, y=coord, colour=X, group=1)) + 
-          scale_colour_manual(values=metadata(colData(dds))$palette[[inter_vars[1]]]) +
           stat_summary(fun = mean, geom="line", colour="black") + 
-          labs(colour=j,x=inter_vars[1], y="Residual")
+          labs(colour=j,x=inter_vars[1], y="Residual")+ theme_bw()
+        if (is.numeric(pc.df$X)) {
+          pal_col <- metadata(colData(dds))$palette$ggplot[[inter_vars[1]]]
+          pl <- pl + scale_colour_gradient(low=pal_col[1], high=pal_col[2])
+        } else {
+          pl <- pl + scale_colour_manual(metadata(colData(dds))$palette$ggplot[[inter_vars[1]]])
+        }
       }
       pl <- pl  + geom_point(size=2) +
         facet_wrap(~label, scales="free_y") 
@@ -338,7 +371,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
     
     ha <- ComplexHeatmap::HeatmapAnnotation(
       df=pdat,
-      col=metadata(colData(ddsList[[i]]))$palette[names(pdat)])
+      col=metadata(colData(ddsList[[i]]))$palette$Heatmap[names(pdat)])
     pl <- ComplexHeatmap::Heatmap(
       tidied_data$mat,
       col=sym_colour(tidied_data$mat),
@@ -441,7 +474,7 @@ differential_MA <- function(ddsList, caption) {
       geom_point() +
       scale_x_log10() + scale_colour_manual(values=cols) + scale_size_identity() +
       theme(legend.position=lpos) +
-      labs(x="Mean of normalised counts", y=yax)
+      labs(x="Mean of normalised counts", y=yax)+ theme_bw()
     ind <- order(res$shrunkLFC)[c(1:5, nrow(res)-(0:4))]
     pl <- pl+ggrepel::geom_text_repel(size=4, data=res[ind,])
     print(pl)
@@ -472,3 +505,39 @@ df2colorspace <- function(df, palette) {
               }
               )
 }
+
+df2colorspace <- function(df, palette) {
+  pal <- RColorBrewer::brewer.pal(RColorBrewer::brewer.pal.info[palette, "maxcolors"], palette)
+  df <- dplyr::mutate_if(as.data.frame(df), is.character, as.factor)
+  seq_cols <-c("Blues", "Greens", "Oranges", "Purples", "Reds")
+  df <- df[,order(sapply(df, is.numeric)),drop=FALSE] # move factors to the front
+  # for factors, zero-based starting index for colours
+  start_levels <- cumsum(c(0,sapply(df, nlevels)))[1:length(df)] 
+  is_num <- sapply(df, is.numeric)
+  # for numerics, which seq palette shall we use for this factor
+  start_levels[is_num] <- (cumsum(is_num[is_num])-1) %% length(seq_cols) + 1
+  res <- list()
+  res$Heatmap <- purrr::map2(df, start_levels,
+              function(column, start_level) {
+                if (is.factor(column)) {
+                  setNames(pal[(seq(start_level, length=nlevels(column)) %% length(pal)) + 1],
+                                     levels(column))
+                } else {
+                  my_cols <- RColorBrewer::brewer.pal(3, seq_cols[start_level])[-2]
+                  circlize::colorRamp2(range(column), my_cols)
+                }
+              }
+              )
+  res$ggplot <- purrr::map2(df, start_levels,
+              function(column, start_level) {
+                if (is.factor(column)) {
+                  setNames(pal[(seq(start_level, length=nlevels(column)) %% length(pal)) + 1],
+                                     levels(column))
+                } else {
+                  RColorBrewer::brewer.pal(3, seq_cols[start_level])[-2]
+                }
+              }
+              )
+  res
+}
+  
