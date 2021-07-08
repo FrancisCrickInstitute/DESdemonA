@@ -244,7 +244,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
             pal_col <- metadata(colData(dds))$palette$ggplot[[inter_vars[2]]]
             pl <- pl + scale_colour_gradient(low=pal_col[1], high=pal_col[2])
           } else {
-            pl <- pl + scale_colour_manual(metadata(colData(dds))$palette$ggplot[[inter_vars[2]]])
+            pl <- pl + scale_colour_manual(values=metadata(colData(dds))$palette$ggplot[[inter_vars[2]]])
           }
         } else {
           pc.df$grp <- Reduce(interaction, colDat[,inter_vars[-1]])
@@ -258,7 +258,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
             pal_col <- metadata(colData(dds))$palette$ggplot[[inter_vars[2]]]
             pl <- pl + scale_colour_gradient(low=pal_col[1], high=pal_col[2])
           } else {
-            pl <- pl + scale_colour_manual(metadata(colData(dds))$palette$ggplot[[inter_vars[2]]])
+            pl <- pl + scale_colour_manual(values=metadata(colData(dds))$palette$ggplot[[inter_vars[2]]])
           }
         }
       } else {
@@ -269,7 +269,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
           pal_col <- metadata(colData(dds))$palette$ggplot[[inter_vars[1]]]
           pl <- pl + scale_colour_gradient(low=pal_col[1], high=pal_col[2])
         } else {
-          pl <- pl + scale_colour_manual(metadata(colData(dds))$palette$ggplot[[inter_vars[1]]])
+          pl <- pl + scale_colour_manual(values=metadata(colData(dds))$palette$ggplot[[inter_vars[1]]])
         }
       }
       pl <- pl  + geom_point(size=2) +
