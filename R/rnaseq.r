@@ -454,6 +454,7 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfc
       fit <- ashr::ash(r$maxLog2FoldChange, maxlfcSE, mixcompdist = "normal", 
                       method = "shrink")
       r$shrunkLFC <- fit$result$PosteriorMean
+      r$shrunkSE <- fit$result$PosteriorSD
       r$class <- paste(colnames(effect_matrix)[imax], "V", colnames(effect_matrix)[imin])
     } else {
       warning("Couldn't work out relevant group ordering in LRT")
