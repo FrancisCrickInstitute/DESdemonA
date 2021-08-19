@@ -467,8 +467,8 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfc
   }
   ind <- which(r$padj<metadata(r)$alpha)
   r$class[ind] <- paste0(r$class[ind], "*")
-  r$class[is.na(r$pvalue)] <- "Outlier"
   r$class[is.na(r$padj)] <- "Low Count"
+  r$class[is.na(r$pvalue)] <- "Outlier"
   r$class[r$baseMean==0] <- "Zero Count"
   mcols(dds)$results <- r
   dds

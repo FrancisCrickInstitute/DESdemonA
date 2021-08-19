@@ -1,7 +1,8 @@
 defaults <- list(
   nfcore      = "{{{nfcore}}}",     ## directory that contains nfcore output
   metadata    = "{{{metadata}}}",    ## Path to  spreadsheet containing covariates
-  file_col    = "{{{file_col}}}",    ## Column in that spreadsheet that identifies the basename of count file for each sample
+  file_col    = {{{file_col}}},    ## Column in that spreadsheet that identifies the basename of count file for each sample
+  name_col    = {{{name_col}}},    ## Column in that spreadsheet that identifies the basename of count file for each sample
   counts      = "{{{counts}}}",      ## directory that contains the quantified gene counts
   org_package = "{{{org_package}}}", ## NULL will derive org.*.eg.db from nfcore info, otherwise specifcy string identifying annotation package of relevant species.
   spec_prefix = ""
@@ -19,23 +20,25 @@ library(R.utils)
 args <- R.utils::cmdArgs(args=defaults)
 
 sample_sheet <- readxl::read_excel(args$metadata, sheet=1)
+file_col <- args$file_col[args$file_col %in% names(sample_sheet)][1]
+if (is.na(file_col)) {
+  stop("Metadata has none of: ", paste(args$file_col, collapse=", "))
+}
+name_col <- args$name_col[args$name_col %in% names(sample_sheet)][1]
+if (is.na(name_col)) {
+  stop("Metadata has none of: ", paste(args$name_col, collapse=", "))
+}
 
-if (is.null(sample_sheet[[args$file_col]])) {
-  sample_sheet[[args$file_col]]  <- paste0(sample_sheet$LIMSID, "_R1") # that annoying nfcore '_R1' suffix may disappear
-}  
-  
+
 sample_sheet[sapply(sample_sheet, is.character)] <- lapply(sample_sheet[sapply(sample_sheet, is.character)], 
                                        as.factor)
 
 tx_path <-   file.path(
   args$counts,
-  paste0(as.character(sample_sheet[[args$file_col]]), ".genes.results")
+  paste0(as.character(sample_sheet[[file_col]]), ".genes.results")
 )
-if ("name" %in% names(sample_sheet)) {
-  names(tx_path) <- as.character(sample_sheet$name)
-} else {
-  names(tx_path) <- as.character(sample_sheet[[args$file_col]])
-}
+
+names(tx_path) <- as.character(sample_sheet$name_col)
 
 txi <- tximport(tx_path, type="rsem")
 txi$length[txi$length==0] <- 1

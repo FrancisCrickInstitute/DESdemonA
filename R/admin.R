@@ -135,6 +135,8 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
                 path=".",
                 yml="",
                 overwrite=FALSE,
+                file_col="filename",
+                name_col="name",
                 ...
                 ) {
   args <- list(...)
@@ -146,7 +148,7 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
   defaults <- list(
     nfcore="results",
     metadata=system.file("extdata/metadata.xlsx", package="babsrnaseq"),
-    file_col="filename",
+    file_col=deparse(substitute(file_col)),
     counts=quote(file.path(nfcore, "star_rsem")),
     org_package="",
     project=basename(getwd()),
