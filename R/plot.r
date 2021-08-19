@@ -508,6 +508,7 @@ df2colorspace <- function(df, palette) {
 
 df2colorspace <- function(df, palette) {
   pal <- RColorBrewer::brewer.pal(RColorBrewer::brewer.pal.info[palette, "maxcolors"], palette)
+  if (ncol(df)==0) return(list(Heatmap=list(), ggplot=list()))
   df <- dplyr::mutate_if(as.data.frame(df), is.character, as.factor)
   seq_cols <-c("Blues", "Greens", "Oranges", "Purples", "Reds")
   df <- df[,order(sapply(df, is.numeric)),drop=FALSE] # move factors to the front
