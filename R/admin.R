@@ -149,6 +149,7 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
     nfcore="results",
     metadata=system.file("extdata/metadata.xlsx", package="babsrnaseq"),
     file_col=deparse(substitute(file_col)),
+    name_col=deparse(substitute(name_col)),
     counts=quote(file.path(nfcore, "star_rsem")),
     org_package="",
     project=basename(getwd()),
