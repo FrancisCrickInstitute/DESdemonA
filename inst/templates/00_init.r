@@ -31,14 +31,14 @@ if (is.na(name_col)) {
 
 
 sample_sheet[sapply(sample_sheet, is.character)] <- lapply(sample_sheet[sapply(sample_sheet, is.character)], 
-                                       as.factor)
+                                                          as.factor)
 
 tx_path <-   file.path(
   args$counts,
   paste0(as.character(sample_sheet[[file_col]]), ".genes.results")
 )
 
-names(tx_path) <- as.character(sample_sheet$name_col)
+names(tx_path) <- as.character(sample_sheet[[name_col]])
 
 txi <- tximport(tx_path, type="rsem")
 txi$length[txi$length==0] <- 1
