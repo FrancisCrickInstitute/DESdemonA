@@ -97,21 +97,7 @@ if (param$get("baseMeanMin")>0) {
 #' The sample annotations are as follows:
 #'
 #+ inputs
-samp <- as.data.frame(colData(dds))
-is_in_subset <- as.data.frame(
-  lapply(
-    ddsList,
-    function(x) ifelse(colnames(dds) %in% colnames(x), "✓", "")
-  )
-)
-                      
-gt(cbind(samp, is_in_subset),
-   caption="Sample annotation") %>%
-  tab_spanner(label="Metadata",
-              columns=seq_along(samp)) %>%
-  tab_spanner(label="In Subset",
-              columns=ncol(samp)+seq_along(is_in_subset)) %>%
-    DESdemonA::tab_link_caption() %>%
+DESdemonA::table1(dds, ddsList) %>%
   print()
 
 #' We may examine the samples in different combinations, and leave out

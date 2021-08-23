@@ -119,3 +119,55 @@ write_all_results <- function(ddsList, dir=".") {
   }
 }
 
+##' Produce Table 1 of sample metadata
+##'
+##' Make a GT object representing all the original metadata and, for
+##' each sample subset, the sample's presence and any extra columns introduced by a
+##' transform.
+##' 
+##' @title Table One
+##' @param dds The reference dds object
+##' @param ddsList The DESdemonA list of datasets derived from the reference object
+##' @return a GT object
+##' @author Gavin Kelly
+#' @export
+table1 <- function(dds, ddsList) {
+  samp <- as.data.frame(colData(dds))
+  # Columns for in/out of dataset
+  ## is_in_subset <- as.data.frame(
+  ##   lapply(
+  ##     ddsList,
+  ##     function(x) ifelse(colnames(dds) %in% colnames(x), "✓", "")
+  ##   )
+  ## )
+  # Extra columns introduced by datasets
+  extra_meta <- lapply(
+    names(ddsList),
+    function(x) cbind(
+      setNames(data.frame(ifelse(colnames(dds) %in% colnames(ddsList[[x]]), "✓", "")), x),
+      as.data.frame(colData(ddsList[[x]])[rownames(colData(dds)),
+                                          setdiff(names(colData(ddsList[[x]])), names(colData(dds)))])
+      )
+  )
+  
+  extra_meta <- extra_meta[sapply(extra_meta, function(x) ncol(x)!=0 & nrow(x)!=0)]
+  # Generate tab_spanner parameters for each dataset's extra columns
+  ts_extra <- lapply(names(extra_meta),
+                    function(x) list(name=x,
+                              cols=1:ncol(extra_meta[[x]]))
+                    )
+  # Cummulatively offset the columns to be spanned
+  ts_extra <- Reduce(function(ts, x) {
+    x$cols <- x$cols+max(ts$cols)
+    x},
+    ts_extra,
+    accumulate=TRUE)
+  
+  
+  gt(data=cbind(samp, do.call(cbind, unname(extra_meta))),
+     caption="Sample annotation") %>%
+    tab_spanner(label="Metadata",
+                columns=seq_along(samp)) %>%
+    Reduce(f=function(gti, x) tab_spanner(gti, label=x$name,columns=x$cols + ncol(samp)), x=ts_extra, init=.) %>%
+    DESdemonA::tab_link_caption()
+}
