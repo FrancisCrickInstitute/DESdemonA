@@ -417,14 +417,18 @@ residual_heatmap_transform <- function(mat, cdata, fml) {
   fit1 <- fit
   class(fit1) <- "lm"
   ind <- c("coefficients","residuals","effects","fitted.values")
-  fit1[ind] <- lapply(fit[ind], function(x) x[,1])
-  p1 <- predict(fit1, type="terms")
-  out <- array(0, c(dim(fit$residuals), ncol(p1)), dimnames=c(dimnames(fit$residuals), list(colnames(p1))))
-  const <- numeric(dim(out)[2])
-  for (i in 1:(dim(out)[2])) {
-    fit1[ind] <- lapply(fit[ind], function(x) x[,i])
+  for (i in 1:nrow(mat)) {
+    if (nrow(mat)==1) {
+      fit1 <- fit
+    } else {
+      fit1[ind] <- lapply(fit[ind], function(x) x[,i])
+    }
     pred <- predict(fit1, type="terms")
-    out[,i,] <- predict(fit1, type="terms")
+    if (i==1) {
+      out <- array(0, c(rev(dim(mat)), ncol(pred)), dimnames=c(rev(dimnames(mat)), list(colnames(pred))))
+      const <- numeric(dim(out)[2])
+    }
+    out[,i,] <- pred
     const[i] <- attr(pred, "constant")
   }
   list(terms=out, const=const, resid=fit$residuals)
