@@ -529,7 +529,7 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
   } else {
     facts <- c(tidy_fn$by, tidy_fn$rhs, setdiff(tidy_fn$all, unlist(tidy_fn[c("by", "rhs")])))
     ord <- do.call(order, as.list(pdat[,facts, drop=FALSE]))
-    return(list(mat=mat[,ord], pdat=pdat[ord,facts,drop=FALSE]))
+    return(list(mat=mat[,ord, drop=FALSE], pdat=pdat[ord,facts,drop=FALSE]))
   }
   ## pdat$.value <- mat[1,]
   ## tidy_mat <- apply(mat, 1, function(x) {pdat$.value=x; tidy_fn(pdat)$.value})
