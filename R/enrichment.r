@@ -46,6 +46,7 @@ enrichment <- function(dds, fun="gseGO") {
 ##' @return 
 ##' @author Gavin Kelly
 ##' @export
+
 over_representation <- function(ddsList, fun, showCategory, max_width=30) {
   genes <- lapply(ddsList, function(dds) {
     res <- mcols(dds)$results
@@ -69,6 +70,10 @@ over_representation <- function(ddsList, fun, showCategory, max_width=30) {
     nchar(reactome@compareClusterResult$Description)>max_width,
     reactome@compareClusterResult$ID,
     reactome@compareClusterResult$Description)
+  is_dup <- duplicated(reactome@compareClusterResult$Description)
+  if (any(is_dup)) {
+    reactome@compareClusterResult$Description[is_dup] <- reactome@compareClusterResult$ID[is_dup]
+  }
   pl <- dotplot(reactome, showCategory=showCategory) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1, size=6),
           axis.text.y = element_text(size=8)
