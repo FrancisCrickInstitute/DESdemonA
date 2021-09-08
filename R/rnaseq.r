@@ -165,8 +165,8 @@ build_dds_list <- function(dds, spec) {
           colData(obj)[, new_cols, drop=FALSE],
           spec$settings$palette
         )
-        metadata(colData(obj))$palette$Heatmap[new_cols] <- new_meta$Heatmap
-        metadata(colData(obj))$palette$ggplot[new_cols] <- new_meta$ggplot
+        metadata(colData(obj))$palette$Heatmap[new_cols] <- new_meta$Heatmap[new_cols]
+        metadata(colData(obj))$palette$ggplot[new_cols] <- new_meta$ggplot[new_cols]
       }
     }
     obj
