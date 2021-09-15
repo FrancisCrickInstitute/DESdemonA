@@ -42,6 +42,8 @@ write_results <- function(ddsList, param, dir=".", assays=NULL) {
     )
     writeData(wb, sn, dframe, headerStyle=hs2)
     ## Differential gene-lists
+    comparison_name_lookup <- list()
+    addWorksheet(wb, "Comparison Key")
     for (design_ind in 1:length(ddsList[[dataset]])) {
       for (contrast_name in names(ddsList[[dataset]][[design_ind]])) {
         dframe <- as.data.frame(mcols(ddsList[[dataset]][[design_ind]][[contrast_name]])$results)
@@ -66,6 +68,11 @@ write_results <- function(ddsList, param, dir=".", assays=NULL) {
         } else {
           sn <- paste0(contrast_name, ", ", names(ddsList[[dataset]])[design_ind])
         }
+        if (nchar(sn)>31) {
+          alpha_key <- DESdemonA:::to_letter(length(comparison_name_lookup)+1)
+          comparison_name_lookup$alpha_key <- sn
+          sn <- alpha_key
+        }
         addWorksheet(wb, sn, tabColour=crick_colours$secondary[[design_ind]])
         writeData(wb, sn, dframe, headerStyle=hs1, withFilter=TRUE)
         groupRows(wb, sn, rows=which(!grepl("\\*$", dframe$class))+1, hidden=TRUE)
@@ -79,6 +86,14 @@ write_results <- function(ddsList, param, dir=".", assays=NULL) {
           wb$worksheets[[sheet_n]]$autoFilter <- sub("/>$", filt_string, wb$worksheets[[sheet_n]]$autoFilter)
         }
       }
+    }
+    if (length(comparison_name_lookup)==0) {
+      removeWorksheet(wb, "Comparison Key")
+    } else {
+      writeData(wb, "Comparison Key", data.frame(Key=names(comparison_name_lookup),
+                                                 Comparison=unlist(comparison_name_lookup)
+                                                 )
+                )
     }
     ## sn <- "GO terms"
     ## addWorksheet(wb, sn)
@@ -119,6 +134,16 @@ write_all_results <- function(ddsList, dir=".") {
   }
 }
 
+
+
+to_letter <- function(i, so_far="") {
+  if (i<27)
+    paste0(LETTERS[i], so_far)
+  else
+    to_letter((i %/% 26), LETTERS[((i-1) %% 26) + 1])
+}
+
+
 ##' Produce Table 1 of sample metadata
 ##'
 ##' Make a GT object representing all the original metadata and, for
@@ -133,13 +158,6 @@ write_all_results <- function(ddsList, dir=".") {
 #' @export
 table1 <- function(dds, ddsList) {
   samp <- as.data.frame(colData(dds))
-  # Columns for in/out of dataset
-  ## is_in_subset <- as.data.frame(
-  ##   lapply(
-  ##     ddsList,
-  ##     function(x) ifelse(colnames(dds) %in% colnames(x), "✓", "")
-  ##   )
-  ## )
   # Extra columns introduced by datasets
   extra_meta <- lapply(
     names(ddsList),
@@ -151,7 +169,7 @@ table1 <- function(dds, ddsList) {
   )
   
   extra_meta <- extra_meta[sapply(extra_meta, function(x) ncol(x)!=0 & nrow(x)!=0)]
-  # Generate tab_spanner parameters for each dataset's extra columns
+  # Generate tab_spanner parameters for each datasets extra columns
   ts_extra <- lapply(names(extra_meta),
                     function(x) list(name=x,
                               cols=1:ncol(extra_meta[[x]]))
