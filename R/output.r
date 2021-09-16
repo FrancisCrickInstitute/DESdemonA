@@ -161,11 +161,11 @@ table1 <- function(dds, ddsList) {
   # Extra columns introduced by datasets
   extra_meta <- lapply(
     names(ddsList),
-    function(x) cbind(
-      setNames(data.frame(ifelse(colnames(dds) %in% colnames(ddsList[[x]]), "✓", "")), x),
-      as.data.frame(colData(ddsList[[x]])[rownames(colData(dds)),
-                                          setdiff(names(colData(ddsList[[x]])), names(colData(dds)))])
-      )
+    function(x) merge(
+      setNames(data.frame(ifelse(colnames(dds) %in% colnames(ddsList[[x]]), "✓", ""), row.names=row.names(colData(dds))), x),
+      as.data.frame(colData(ddsList[[x]])[, setdiff(names(colData(ddsList[[x]])), names(colData(dds)))]),
+      by=0, all.x=TRUE
+      )[,-1,drop=FALSE]
   )
   
   extra_meta <- extra_meta[sapply(extra_meta, function(x) ncol(x)!=0 & nrow(x)!=0)]
