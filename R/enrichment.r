@@ -79,7 +79,7 @@ over_representation <- function(ddsList, fun, showCategory, max_width=30) {
           axis.text.y = element_text(size=8)
           )
   if (nrow(enrich_table)>0) {
-    list(plot=pl, table=enrich_table)
+    list(plot=pl, table=enrich_table[1:showCategory,])
   } else {
     NULL
   }

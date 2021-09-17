@@ -169,6 +169,11 @@ build_dds_list <- function(dds, spec) {
         metadata(colData(obj))$palette$ggplot[new_cols] <- new_meta$ggplot[new_cols]
       }
     }
+    if ("collapse" %in% names(set)) {
+      mm <- model.matrix(set$collapse, data.frame(colData(obj)))
+      grp <- factor(apply(mm, 1, paste, collapse="_"))
+      obj <- collapseReplicates(obj, groupby=grp)
+    }
     obj
   })
   ddsList <- imap(ddsList,
