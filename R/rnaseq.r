@@ -359,10 +359,10 @@ emcontrasts <- function(dds, spec, extra=NULL) {
   emfit <- do.call(emmeans::emmeans, c(list(object=mdl$lm, specs= spec),extra))
   contr_frame <- as.data.frame(summary(emfit$contrasts))
   ind_est <- !is.na(contr_frame$estimate)
-  contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1), drop=FALSE]
   if (!is.na(keep[1])) {
-    contr_frame <- subset(contr_frame, contrast %in% keep)
+    ind_est  <- ind_est && contr_frame$contrast %in% keep
   }
+  contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1), drop=FALSE]
   contr_mat <- emfit$contrast@linfct[ind_est, !mdl$dropped, drop=FALSE]
   colnames(contr_mat) <- DESdemonA:::.resNames(colnames(contr_mat))
   contr <- lapply(seq_len(nrow(contr_frame)), function(i) contr_mat[i,,drop=TRUE])
