@@ -360,7 +360,7 @@ emcontrasts <- function(dds, spec, extra=NULL) {
   contr_frame <- as.data.frame(summary(emfit$contrasts))
   ind_est <- !is.na(contr_frame$estimate)
   if (!is.na(keep[1])) {
-    ind_est  <- ind_est && contr_frame$contrast %in% keep
+    ind_est  <- ind_est & contr_frame$contrast %in% keep
   }
   contr_frame <- contr_frame[ind_est,1:(which(names(contr_frame)=="estimate")-1), drop=FALSE]
   contr_mat <- emfit$contrast@linfct[ind_est, !mdl$dropped, drop=FALSE]
