@@ -170,9 +170,10 @@ build_dds_list <- function(dds, spec) {
       }
     }
     if ("collapse" %in% names(set)) {
-      mm <- model.matrix(set$collapse, data.frame(colData(obj)))
-      grp <- factor(apply(mm, 1, paste, collapse="_"))
-      obj <- collapseReplicates(obj, groupby=grp)
+      mf <- model.frame(set$collapse, data.frame(colData(obj)))
+      ind <- match(do.call(paste, c(mf, sep="\r")),
+                  do.call(paste, c(unique(mf), sep="\r")))
+      obj <- collapseReplicates(obj, groupby=factor(ind), renameCols=FALSE)
     }
     obj
   })
