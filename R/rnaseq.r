@@ -445,6 +445,16 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfc
     # take the biggest fold-change vs baseline, for MA and reporting?
     if (all(term %in% names(mcols(dds)))) {
       effect_matrix <- cbind(I=rep(0, nrow(dds)),as.matrix(mcols(dds)[,term,drop=FALSE]))
+      split_effects <- strsplit(term, "_vs_")
+      # if a main effect is dropped, then all the terms are probably named A vs (intercept)
+      # we can make the class a bit more interpretable by renaming the case where e.g.
+      # B vs A is the largest and C vs A the smallest as B v C. So change effect columns to
+      # enable this.
+      if (all(sapply(split_effects, length)==2)) {
+        if (length(unique(sapply(split_effects, "[", 2)))==1) {
+          colnames(effect_matrix) <- c(split_effects[[1]][2], sapply(split_effects, "[", 1))
+        }
+      }
       maxmin <- cbind(
         apply(effect_matrix, 1, which.max),
         apply(effect_matrix, 1, which.min))
