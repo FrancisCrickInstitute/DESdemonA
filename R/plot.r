@@ -353,6 +353,9 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
       weights <- t(metadata(ddsList[[i]])$comparison %*% MASS::ginv(mmat))
       is_denom <- weights < -sqrt(.Machine$double.eps)
       weights[!is_denom] <- 0
+    } else if (is.formula(comp)) {
+      weights <- comp
+      var_roles <- list(lhs="", rhs=all.vars(fml), by=NULL, all=all.vars(fml))
     } else {
       var_roles <- list(lhs="", rhs=all.vars(fml), by=NULL, all=all.vars(fml))
       weights <- NULL
