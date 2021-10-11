@@ -341,24 +341,28 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
     }
     comp <- metadata(ddsList[[i]])$comparison
     fml <- metadata(ddsList[[i]])$model$design
+    mdl <- metadata(ddsList[[i]])$model
+    if ("mat" %in% names(mdl)) {
+      mmat <- mdl$mat
+    } else {
+      mmat <- model.matrix(mdl$design, colData(ddsList[[i]]))
+    }
     if ("spec" %in% names(attributes(comp))) {
       var_roles <- emmeans:::.parse.by.formula(attr(comp, "spec"))
       var_roles$all <- c(var_roles$by, var_roles$rhs, setdiff(all.vars(fml), unlist(var_roles)))
-      mdl <- metadata(ddsList[[i]])$model
-      if ("mat" %in% names(mdl)) {
-        mmat <- mdl$mat
-      } else {
-        mmat <- model.matrix(mdl$design, colData(ddsList[[i]]))
-      }
       weights <- t(metadata(ddsList[[i]])$comparison %*% MASS::ginv(mmat))
       is_denom <- weights < -sqrt(.Machine$double.eps)
       weights[!is_denom] <- 0
     } else if (is_formula(comp)) {
-      weights <- comp
+      weights <-  -MASS::ginv(mmat)[1,]
+      is_denom <- weights < -sqrt(.Machine$double.eps)
+      weights[!is_denom] <- 0
       var_roles <- list(lhs="", rhs=all.vars(fml), by=NULL, all=all.vars(fml))
     } else {
       var_roles <- list(lhs="", rhs=all.vars(fml), by=NULL, all=all.vars(fml))
-      weights <- NULL
+      weights <- t(retrieve_contrast(ddsList[[i]]) %*% MASS::ginv(mmat))
+      is_denom <- weights < -sqrt(.Machine$double.eps)
+      weights[!is_denom] <- 0
     }
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, var_roles, weights=weights)
     pdat <- tidied_data$pdat

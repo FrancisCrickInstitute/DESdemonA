@@ -524,9 +524,6 @@ tidy_significant_dds <- function(dds, res, tidy_fn=NULL, weights=NULL) {
       offset <- mat %*%  weights
       mat <- mat + as.vector(offset)
     }
-    if (is_formula(weights)) {
-      mat <- residuals(limma::lmFit(mat, model.matrix(weights, as.data.frame(colData(dds)))), mat)
-    }
   }
   tidy_dat <- tidy_per_gene(mat, as.data.frame(colData(dds)), tidy_fn)
   return(tidy_dat)
@@ -561,4 +558,73 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
 full_model <- function(mdlList) {
   rhs <- lapply(mdlList, function(mdl) deparse(mdl$design[[2]]))
   fml <- update(as.formula(paste("~", paste(rhs, collapse=" + "))), ~ . )
+}
+
+
+retrieve_contrast <- function (object, expanded = FALSE, listValues=c(1,-1)) {
+  comparison <- metadata(object)$comparison
+  resNames <- resultsNames(object)
+  resReady <- FALSE
+  if (is.character(comparison)) {
+    if (length(comparison)==1) {
+      contrast <- ifelse(resNames==comparison, 1, 0)
+      resReady <- TRUE
+    } else {
+      contrastFactor <- comparison[1]
+      contrastNumLevel <- comparison[2]
+      contrastDenomLevel <- comparison[3]
+      contrastBaseLevel <- levels(colData(object)[, contrastFactor])[1]
+      hasIntercept <- attr(terms(design(object)), "intercept") == 1
+      firstVar <- contrastFactor == all.vars(design(object))[1]
+      noInterceptPullCoef <- !hasIntercept & !firstVar & (contrastBaseLevel %in% 
+                                                           c(contrastNumLevel, contrastDenomLevel))
+      if (!expanded & (hasIntercept | noInterceptPullCoef)) {
+        contrastNumColumn <- make.names(paste0(contrastFactor, "_", contrastNumLevel, "_vs_", contrastBaseLevel))
+        contrastDenomColumn <- make.names(paste0(contrastFactor, "_", contrastDenomLevel, "_vs_", contrastBaseLevel))
+        if (contrastDenomLevel == contrastBaseLevel) {
+          name <- if (!noInterceptPullCoef) {
+            make.names(paste0(contrastFactor, "_", contrastNumLevel, "_vs_", contrastDenomLevel))
+          }
+          else {
+            make.names(paste0(contrastFactor, contrastNumLevel))
+          }
+          contrast <- ifelse(resNames==name, 1,0)
+          resReady <- TRUE
+        }
+        else if (contrastNumLevel == contrastBaseLevel) {
+          swapName <- if (!noInterceptPullCoef) {
+            make.names(paste0(contrastFactor, "_", contrastDenomLevel, 
+                              "_vs_", contrastNumLevel))
+          }
+          else {
+            make.names(paste0(contrastFactor, contrastDenomLevel))
+          }
+          contrast <- ifelse(resNames==swapName, -1, 0)
+          resReady <- TRUE
+        }
+      }
+      else {
+        contrastNumColumn <- make.names(paste0(contrastFactor, contrastNumLevel))
+        contrastDenomColumn <- make.names(paste0(contrastFactor, contrastDenomLevel))
+      }
+    }
+  }
+  if (!resReady) {
+    if (is.numeric(comparison)) {
+      contrast <- comparison
+    }
+    else if (is.list(comparison)) {
+      contrastNumeric <- rep(0, length(resNames))
+      contrastNumeric[resNames %in% comparison[[1]]] <- listValues[1]
+      contrastNumeric[resNames %in% comparison[[2]]] <- listValues[2]
+      contrast <- contrastNumeric
+    }
+    else if (is.character(comparison)) {
+      contrastNumeric <- rep(0, length(resNames))
+      contrastNumeric[resNames == contrastNumColumn] <- 1
+      contrastNumeric[resNames == contrastDenomColumn] <- -1
+      contrast <- contrastNumeric
+    }
+  }
+  contrast
 }
