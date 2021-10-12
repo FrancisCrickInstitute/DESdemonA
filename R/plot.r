@@ -354,7 +354,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
       weights <- apply(mmat, 1, function(x) all(x==mmat[most_decreasing,]))
       weights <- weights/sum(weights)
     } else if (is_formula(comp)) {
-      most_decreasing <- which.min(MASS::ginv(mmat)[1,])
+      most_decreasing <- which.max(MASS::ginv(mmat)[1,])
       weights <- apply(mmat, 1, function(x) all(x==mmat[most_decreasing,]))
       weights <- weights/sum(weights)
       var_roles <- list(lhs="", rhs=all.vars(fml), by=NULL, all=all.vars(fml))
@@ -364,6 +364,8 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
       weights <- apply(mmat, 1, function(x) all(x==mmat[most_decreasing,]))
       weights <- weights/sum(weights)
     }
+    baseline_df <- colData(ddsList[[i]])[most_decreasing, var_roles$all]
+    baseline_str <- paste(names(baseline_df), baseline_df[1,], sep="=", collapse=",")
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, var_roles, weights=weights)
     pdat <- tidied_data$pdat
     pdat[sapply(pdat, is.character)] <- lapply(pdat[sapply(pdat, is.character)], 
@@ -392,8 +394,8 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
       row_names_gp = gpar(fontsize = 6),
       show_row_names = nrow(tidied_data$mat)<100)
     draw(pl, heatmap_legend_side="top")
-    caption(paste0("Heatmap on ", name, "-differential genes "))
-    if (length(all.vars(fml))>1) {
+    caption(paste0("Heatmap on ", name, "-differential genes. White for ", baseline_str))
+    if (FALSE) {#length(all.vars(fml))>1) {
       part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, fml)
       term_names <- intersect(dimnames(part_resid$terms)[[3]], var_roles$rhs)
       for (term_name in term_names) {
