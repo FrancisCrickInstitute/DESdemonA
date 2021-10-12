@@ -1,5 +1,5 @@
 sym_colour <- function(dat, lo="blue",zero="white", hi="red") {
-  mx <- quantile(abs(dat), 0.95)
+  mx <- quantile(abs(dat), 0.8)
   circlize::colorRamp2(c(-mx, 0, mx), colors=c(lo, zero, hi))
 }
 
