@@ -1,5 +1,5 @@
 sym_colour <- function(dat, lo="blue",zero="white", hi="red") {
-  mx <- quantile(abs(dat), 0.8)
+  mx <- quantile(abs(dat), 0.9)
   circlize::colorRamp2(c(-mx, 0, mx), colors=c(lo, zero, hi))
 }
 
@@ -392,7 +392,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
       row_names_gp = gpar(fontsize = 6),
       show_row_names = nrow(tidied_data$mat)<100)
     draw(pl, heatmap_legend_side="top")
-    caption(paste0("Heatmap on differential genes ", name))
+    caption(paste0("Heatmap on ", name, "-differential genes "))
     if (length(all.vars(fml))>1) {
       part_resid <- residual_heatmap_transform(tidied_data$mat, pdat, fml)
       term_names <- intersect(dimnames(part_resid$terms)[[3]], var_roles$rhs)
