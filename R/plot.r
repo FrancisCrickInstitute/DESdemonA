@@ -364,7 +364,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
       weights <- apply(mmat, 1, function(x) all(x==mmat[most_decreasing,]))
       weights <- weights/sum(weights)
     }
-    baseline_df <- colData(ddsList[[i]])[most_decreasing, var_roles$all]
+    baseline_df <- as.data.frame(colData(ddsList[[i]])[most_decreasing, var_roles$all])
     baseline_str <- paste(names(baseline_df), baseline_df[1,], sep="=", collapse=",")
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, var_roles, weights=weights)
     pdat <- tidied_data$pdat
