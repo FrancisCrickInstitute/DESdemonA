@@ -522,8 +522,11 @@ tidy_significant_dds <- function(dds, res, tidy_fn=NULL, weights=NULL) {
   if (!is.null(weights)) {
     if (is.numeric(weights)) {
       offset <- mat %*%  weights
-      mat <- mat + as.vector(offset)
+      mat <- mat - as.vector(offset)
     }
+    ## if (is_formula(weights)) {
+    ##   mat <- residuals(limma::lmFit(mat, model.matrix(weights, as.data.frame(colData(dds)))), mat)
+    ## }
   }
   tidy_dat <- tidy_per_gene(mat, as.data.frame(colData(dds)), tidy_fn)
   return(tidy_dat)

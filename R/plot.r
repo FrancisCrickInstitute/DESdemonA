@@ -1,5 +1,5 @@
 sym_colour <- function(dat, lo="blue",zero="white", hi="red") {
-  mx <- max(abs(dat))
+  mx <- quantile(abs(dat), 0.95)
   circlize::colorRamp2(c(-mx, 0, mx), colors=c(lo, zero, hi))
 }
 
@@ -350,19 +350,19 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
     if ("spec" %in% names(attributes(comp))) {
       var_roles <- emmeans:::.parse.by.formula(attr(comp, "spec"))
       var_roles$all <- c(var_roles$by, var_roles$rhs, setdiff(all.vars(fml), unlist(var_roles)))
-      weights <- t(metadata(ddsList[[i]])$comparison %*% MASS::ginv(mmat))
-      is_denom <- weights < -sqrt(.Machine$double.eps)
-      weights[!is_denom] <- 0
+      most_decreasing <- which.min(metadata(ddsList[[i]])$comparison %*% MASS::ginv(mmat))
+      weights <- apply(mmat, 1, function(x) all(x==mmat[most_decreasing,]))
+      weights <- weights/sum(weights)
     } else if (is_formula(comp)) {
-      weights <-  -MASS::ginv(mmat)[1,]
-      is_denom <- weights < -sqrt(.Machine$double.eps)
-      weights[!is_denom] <- 0
+      most_decreasing <- which.min(MASS::ginv(mmat)[1,])
+      weights <- apply(mmat, 1, function(x) all(x==mmat[most_decreasing,]))
+      weights <- weights/sum(weights)
       var_roles <- list(lhs="", rhs=all.vars(fml), by=NULL, all=all.vars(fml))
     } else {
       var_roles <- list(lhs="", rhs=all.vars(fml), by=NULL, all=all.vars(fml))
-      weights <- t(retrieve_contrast(ddsList[[i]]) %*% MASS::ginv(mmat))
-      is_denom <- weights < -sqrt(.Machine$double.eps)
-      weights[!is_denom] <- 0
+      most_decreasing <- which.min(retrieve_contrast(ddsList[[i]]) %*% MASS::ginv(mmat))
+      weights <- apply(mmat, 1, function(x) all(x==mmat[most_decreasing,]))
+      weights <- weights/sum(weights)
     }
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, var_roles, weights=weights)
     pdat <- tidied_data$pdat
