@@ -181,9 +181,13 @@ table1 <- function(dds, ddsList) {
     ts_extra,
     accumulate=TRUE)
   
-  
-  gt(data=cbind(samp, do.call(cbind, unname(extra_meta))),
+  df <- cbind(samp, do.call(cbind, unname(extra_meta)))
+  clabel <- setNames(as.list(names(df)), 1:ncol(df))
+  names(df) <- names(clabel)
+             
+  gt(data=df,
      caption="Sample annotation") %>%
+    cols_label(.list=clabel) %>%
     tab_spanner(label="Metadata",
                 columns=seq_along(samp)) %>%
     Reduce(f=function(gti, x) tab_spanner(gti, label=x$name,columns=x$cols + ncol(samp)), x=ts_extra, init=.) %>%
