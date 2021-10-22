@@ -62,7 +62,7 @@ write_results <- function(ddsList, param, dir=".", assays=NULL) {
           tibble::rownames_to_column("id") %>%
 #          dplyr::filter(padj<param$get("alpha")) %>%
           dplyr::arrange(desc(abs(shrunkLFC))) %>%
-          dplyr::select(pvalue, -padj)
+          dplyr::select(-padj)
         if (length(ddsList[[dataset]])==1) {
           sn <- contrast_name
         } else {
