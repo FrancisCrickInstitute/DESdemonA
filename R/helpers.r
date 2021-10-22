@@ -190,12 +190,12 @@ extract_colData <- function(object, dataset) {
 
 map_des <- function(data, f, depth="comparison",...) {
   if (class(data[[1]])!="list" || depth=="dataset") {
-    return(map(data,f))
+    return(map(data,f, ...))
   }
   if (class(data[[1]][[1]])!="list" || depth=="model") {
-    return(map_depth(data, 2, f))
+    return(map_depth(data, 2, f, ...))
   }
-  map_depth(data, 3, f)
+  map_depth(data, 3, f, ...)
 }
 
 #' @export
