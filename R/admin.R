@@ -4,7 +4,7 @@
 ParamList <- R6::R6Class("ParamList",
                     private = list(
                       params=list(),
-                      descriptions=list(alpha="The threshold of statistical significance is {}",
+                      descriptions=list(alpha="The threshold of statistical significance is {deparse(alpha)}",
                                         lfcThreshold="The threshold for absolute effect size is {}",
                                         title="The name of the project is '{}'",
                                         top_n_variable="Only use {} genes for unsupervised clustering",
