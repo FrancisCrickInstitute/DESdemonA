@@ -421,23 +421,44 @@ fitLRT <- function(dds, mdl, reduced, ...) {
 ##' @return 
 ##' @author Gavin Kelly
 ##' @export
-get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfcThreshold=0,  ...) {
+get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfcThreshold=0, alpha=0.1, ...) {
   if (is.null(filterFun)) filterFun <- rlang::missing_arg()
   comp <- metadata(dds)$comparison
+  if (length(alpha)>1) {
+    alpha <- sort(alpha)
+    alpha1 <- alpha[1]
+  } else {
+    alpha1 <- alpha
+  }
   if (!is_formula(comp)) {
     if (is.character(comp) && length(comp)==1) { #  it's a name
-      r <- DESeq2::results(dds, filterFun=filterFun, lfcThreshold=lfcThreshold, name=metadata(dds)$comparison, ...)
+      r <- DESeq2::results(dds, filterFun=filterFun, lfcThreshold=lfcThreshold, name=metadata(dds)$comparison, alpha=alpha1, ...)
     } else { # it's a contrast
       if (is.list(comp) && "listValues" %in% names(comp)) {
-        r <- DESeq2::results(dds, filterFun=filterFun, lfcThreshold=lfcThreshold, contrast=metadata(dds)$comparison[names(comp) != "listValues"], listValues=comp$listValues, ...)
+        r <- DESeq2::results(dds, filterFun=filterFun, lfcThreshold=lfcThreshold, contrast=metadata(dds)$comparison[names(comp) != "listValues"], listValues=comp$listValues, alpha=alpha1, ...)
       } else {
-        r <- DESeq2::results(dds, filterFun=filterFun, lfcThreshold=lfcThreshold, contrast=metadata(dds)$comparison, ...)
+        r <- DESeq2::results(dds, filterFun=filterFun, lfcThreshold=lfcThreshold, contrast=metadata(dds)$comparison, alpha=alpha1, ...)
       }
     }
   } else { # it's LRT
-    r <- results(dds, filterFun=filterFun, ...)
+    r <- results(dds, filterFun=filterFun, alpha=alpha1, ...)
+  }
+  sigs <- rep("NS", nrow(r))
+  sigs[r$padj <= alpha1] <- paste("<=", alpha1)
+  prev_alpha <- alpha1
+  for (a in alpha[-1]) {
+    if (missing(filterFun)) {
+      res_alpha <- DESeq2:::pvalueAdjustment(r, independentFiltering=TRUE, alpha=a, pAdjustMethod="BH")$padj
+    }
+    else {
+      res_alpha <- filterFun(r, alpha=a)$padj
+    }
+    ind <- sigs=="NS" & res_alpha <= a
+    sigs[ind] <- paste0(prev_alpha, "-", a)
+    prev_alpha <- a
   }
   r[mcols] <- mcols(dds)[mcols]
+  r$sig <- sigs
   if ("LRTPvalue" %in% names(mcols(dds))) {
     r$class <- mcols(dds)$class
     r$class[is.na(r$padj) | is.na(r$pvalue) | r$baseMean==0] <- NA
