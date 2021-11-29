@@ -5,7 +5,7 @@ defaults <- list(
   name_col    = {{{name_col}}},    ## Column in that spreadsheet that identifies the basename of count file for each sample
   counts      = "{{{counts}}}",      ## directory that contains the quantified gene counts
   org_package = "{{{org_package}}}", ## NULL will derive org.*.eg.db from nfcore info, otherwise specifcy string identifying annotation package of relevant species.
-  spec_prefix = ""
+  spec_suffix = "{{{spec_suffix}}}"
 )
 
 
@@ -17,9 +17,14 @@ library(DESdemonA)
 library(R.utils)
 
 
-args <- R.utils::cmdArgs(args=defaults)
+args <- R.utils::cmdArgs(defaults=defaults)
 
-sample_sheet <- readxl::read_excel(args$metadata, sheet=1)
+
+if (grepl("\\.csv$", args$metadata)) {
+  sample_sheet <- read.csv(args$metadata, header=TRUE, check.names=FALSE)
+} else {
+  sample_sheet <- readxl::read_excel(args$metadata, sheet=1)
+}
 file_col <- args$file_col[args$file_col %in% names(sample_sheet)][1]
 if (is.na(file_col)) {
   stop("Metadata has none of: ", paste(args$file_col, collapse=", "))
@@ -39,6 +44,12 @@ tx_path <-   file.path(
 )
 
 names(tx_path) <- as.character(sample_sheet[[name_col]])
+not_here <- !file.exists(tx_path)
+if (any(not_here)) {
+  warning("Dropping samples", tx_path[not_here])
+  tx_path <- tx_path[!not_here]
+  sample_sheet <- sample_sheet[!not_here,]
+}
 
 txi <- tximport(tx_path, type="rsem")
 txi$length[txi$length==0] <- 1
@@ -69,6 +80,7 @@ if (args$org_package=="") {
 }
 metadata(dds)$organism <- organism
 metadata(dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
+metadata(dds)$count_source <- args$spec_suffix
 
 library(organism$org, character.only=TRUE)
 
@@ -86,5 +98,5 @@ mcols(dds)$entrez <- mapIds(
   keytype="ENSEMBL",
   multiVals="first")[row.names(dds)]
 
-save(dds, file=file.path("data",paste0("dds", args$spec_suffix, ".rda")))
-saveRDS(dds, file=file.path("data",paste0("dds", args$spec_suffix, ".rds")))
+save(dds, file=file.path("data",paste0("counts_", args$spec_suffix, ".rda")))
+saveRDS(dds, file=file.path("data",paste0("counts_", args$spec_suffix, ".rds")))

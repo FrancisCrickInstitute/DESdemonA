@@ -58,7 +58,7 @@ if (!isTRUE(getOption('knitr.in.progress'))) {
 
 #+ read
 
-data(list=paste0("dds", params$spec_suffix))
+data(list=paste0("counts_", params$spec_suffix))
 
 library(metadata(dds)$organism$org, character.only=TRUE)
 metadata(dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
@@ -227,7 +227,7 @@ dds_model_comp <- map_des(
 
 
 
-dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_dds")
+dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_x_", params$spec_suffix)
 save(dds_model_comp,
      file=file.path("data", paste0(dds_name, ".rda")),
      eval.promises=FALSE
