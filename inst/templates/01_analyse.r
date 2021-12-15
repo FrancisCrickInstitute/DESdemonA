@@ -85,6 +85,21 @@ ddsList <- map_des(ddsList, function(dds) dds[!all_zero,])
 
 
 ddsList <- map_des(ddsList, estimateSizeFactors)
+for (i in names(ddsList)) {
+  content_frame <- cbind(mcols(ddsList[[i]]),
+                        counts(ddsList[[i]], norm=TRUE))
+  head_frame <- as.data.frame(colData(ddsList[[i]]))
+  head_frame[] <- sapply(head_frame, as.character)
+  spacer_frame <- as.data.frame(mcols(ddsList[[i]]))[rep(1, ncol(head_frame)),]
+  spacer_frame[] <- ""
+  row.names(spacer_frame) <- colnames(head_frame)
+  fname <- file.path(params$res_dir, paste0(i, ".txt"))
+  fname <- file.path("outputs/v0.2.0", paste0(i, ".txt"))
+  write.table(cbind(spacer_frame, t(head_frame)), file=fname, quote=FALSE, sep="\t", col.names=NA)
+  write.table(content_frame, file=fname,
+              quote=FALSE, sep="\t", append=TRUE, col.names=NA)
+}
+
 param$set("baseMeanMin")
 if (param$get("baseMeanMin")>0) {
   ddsList <- map_des(ddsList,
@@ -239,6 +254,7 @@ xl_files <- DESdemonA::write_results(dds_model_comp, param, dir=params$res_dir)
 iwalk(xl_files,
      ~cat("\n\n<a class=\"download-excel btn btn-primary\" href=\"", sub(paste0("^", params$res_dir, "/?"), "", .x), "\"> Open Spreadsheet '", .y,"'</a>", sep="")
      )
+
 #DESdemonA::write_all_results(dds_model_comp, dir=params$res_dir)
 
 
