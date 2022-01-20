@@ -193,3 +193,92 @@ table1 <- function(dds, ddsList) {
     Reduce(f=function(gti, x) tab_spanner(gti, label=x$name,columns=x$cols + ncol(samp)), x=ts_extra, init=.) %>%
     DESdemonA::tab_link_caption()
 }
+
+export_biologics <- function(result_object, path) {
+  obj <- readRDS(result_object)
+  comparison_table <- list()
+  definition_table <- list()
+  models_list <- list()
+  coldata_list <- list()
+  rsem_raw <- NULL
+  rsem_norm <- NULL
+  for (subset_name in names(obj)) {
+    this_subset <- obj[[subset_name]]
+    first_dds <- this_subset[[1]][[1]]
+    coldata_list <- c(coldata_list, list(as.data.frame(colData(first_dds))))
+    this_raw_counts <- counts(first_dds, norm=FALSE)
+    this_norm_counts <- counts(first_dds, norm=TRUE)
+    novel_samples <- setdiff(colnames(this_raw_counts), colnames(rsem_raw))
+    if (length(novel_samples)!=0) {
+      rsem_raw <- cbind(rsem_raw, this_raw_counts[, novel_samples])
+      rsem_norm <- cbind(rsem_norm, this_norm_counts[, novel_samples])
+    }
+    for (model_name in names(this_subset)) {
+      this_model <- this_subset[[model_name]]
+      for (comparison_name in names(obj[[subset_name]][[model_name]])) {
+        dds <- this_model[[comparison_name]]
+        ## Results file
+        results_frame <- as.data.frame(mcols(dds)$results)
+        write.table(results_frame,
+#                    file=file.path(path, paste0(name_sanitizer(paste(subset_name, model_name, comparison_name, sep="_")), ".txt")),
+                    file=file.path(path, paste0(name_sanitizer(paste(comparison_name, sep="_")), ".txt")),
+                    sep="\t", col.names=NA
+                    )
+        ## Model file
+        is_lrt <- rlang::is_formula(metadata(dds)$models$comparisons[[1]])
+        comparison_row <- data.frame(
+          comparison=name_sanitizer(metadata(dds)$dmc$comparison),
+          test=ifelse(is_lrt, "LRT", "Wald"),
+          type=ifelse(is_lrt, "LRT", "DGE"),
+          model=capture.output(dput(metadata(dds)$model$design)),
+          reducedModel=ifelse(is_lrt, capture.output(dput(metadata(dds)$model$comparisons[[1]])), "")
+        )
+        comparison_table <- c(comparison_table, list(comparison_row))
+        ## Definition file
+        models_list <- c(models_list,list(metadata(dds)$model$lm$model[,-1,drop=FALSE]))
+      }
+    }
+  }
+
+  #  colnames(rsem_raw) <- coldata_frame(
+  write.table(rsem_raw,
+              file=file.path(path, "rsem_raw.txt"),
+              sep="\t", row.names=TRUE, col.names=NA
+              )
+
+  write.table(rsem_norm,
+              file=file.path(path, "rsem_norm.txt"),
+              sep="\t", row.names=TRUE, col.names=NA
+              )
+  
+  comparison_frame <- do.call(rbind, comparison_table)
+  write.table(comparison_frame,
+              file=file.path(path, "design.model.file.txt"),
+              sep="\t", row.names=FALSE
+              )
+  
+  sample_id_list <- lapply(coldata_list, function(df) data.frame(sampleID=df[[1]], sample.id=df$sample_label))
+  definition_frame <- do.call(cbind, sample_id_list[!duplicated(sample_id_list)])
+  coldata_list <- lapply(coldata_list, function(df) {
+    df[!grepl("^\\.PCA\\.PC", names(df))]
+  })
+  coldata_frame <- do.call(cbind, coldata_list[!duplicated(coldata_list)])
+  n_unique <- sapply(coldata_frame, function(x) length(unique(x)))
+  interesting <- (n_unique!=1 & n_unique!=nrow(coldata_frame)) | sapply(coldata_frame, is.numeric)
+  definition_frame <- cbind(data.frame(sample.groups= do.call(paste, coldata_frame[,interesting,drop=FALSE])),
+                           definition_frame)
+  comparisons_for_def <- as.data.frame(matrix("", nrow=nrow(definition_frame), ncol=nrow(comparison_frame),
+                                             dimnames=list(row.names(definition_frame), name_sanitizer(comparison_frame$comparison))
+                                             ))
+  definition_frame <- cbind(definition_frame, comparisons_for_def)
+  write.table(definition_frame,
+              file=file.path(path, "design.dge.lrt.definition.file.txt"),
+              sep="\t", row.names=FALSE
+              )
+  
+
+
+}
+
+name_sanitizer <- function(str) {  gsub("[^a-zA-Z0-9\\._]", "_", str) }
+
