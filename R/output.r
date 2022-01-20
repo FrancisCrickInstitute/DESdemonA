@@ -194,7 +194,20 @@ table1 <- function(dds, ddsList) {
     DESdemonA::tab_link_caption()
 }
 
-export_biologics <- function(result_object, path) {
+##' Generate text files require for Biologic
+##'
+##' The visualisation part of 'Biologic' requires a set of text files
+##' which represent the differential results and the models and
+##' contrasts that were used to derive the results.  This function
+##' generates them from a previous run of DESdemonA.
+##' 
+##' @title Export Biologic files
+##' @param result_object Path to the rds of the DESdemonA result object
+##' @param path Where to write the files for Biologic to read
+##' @return nothing
+##' @author Gavin Kelly
+#' @export
+export_biologic <- function(result_object, path) {
   obj <- readRDS(result_object)
   comparison_table <- list()
   definition_table <- list()
@@ -275,8 +288,6 @@ export_biologics <- function(result_object, path) {
               file=file.path(path, "design.dge.lrt.definition.file.txt"),
               sep="\t", row.names=FALSE
               )
-  
-
 
 }
 
