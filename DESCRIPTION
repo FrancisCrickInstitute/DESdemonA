@@ -1,6 +1,6 @@
 Package: DESdemonA
 Title: DESeq2 Wrapper For Pre-Specified Analyses
-Version: 0.20.4
+Version: 0.20.5
 Authors@R: person("Gavin", "Kelly",  email = "gavin.kelly@crick.ac.uk", role = c("aut", "cre"))
 Description: Use DESeq2 to automate RNASeq analysis
  using a standard '.spec' template file to specify multiple
@@ -8,7 +8,6 @@ Description: Use DESeq2 to automate RNASeq analysis
  tools to help generate comparisons according to 'emmeans' specification formulae.
  Produces a nested list of DESeqDataSet objects (with their results embedded) and a
  markdown report containing visualisations of the datasets.
-biocViews:
 Depends: R (>= 3.1.0)
 Imports:
     ashr,
@@ -49,7 +48,7 @@ Suggests:
     tximport
 License: GPL-3
 LazyData: true
-git_last_commit: v0.20.4-0-g5c2d9b9_altered
+git_last_commit: v0.20.5-0-g4cd25ac_altered
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Encoding: UTF-8
