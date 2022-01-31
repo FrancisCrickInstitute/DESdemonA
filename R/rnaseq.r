@@ -285,9 +285,9 @@ fit_models <- function(dds, ...) {
   model_comp
 }
 
-##' .. content for \description{} (no empty lines) ..
+##' Check model
 ##'
-##' .. content for \details{} ..
+##' Run formula through an lm to check it
 ##' @title Check model
 ##' @param mdl 
 ##' @param coldat 
@@ -322,9 +322,9 @@ check_model <- function(dds) {
 }
 
 
-##' .. content for \description{} (no empty lines) ..
+##' Post-hoc generator
 ##'
-##' .. content for \details{} ..
+##' Wrap a formula so that emmeans can auto-expand it
 ##' @title Mark a formula as a multiple comparison
 ##' @param spec 
 ##' @param ... 
@@ -338,13 +338,12 @@ mult_comp <- function(spec, ...) {
   obj
 }
 
-##' .. content for \description{} (no empty lines) ..
+##' Expand post-hoc comparisons
 ##'
-##' .. content for \details{} ..
+##' Use emmeans to expand keywords
 ##' @title Expand multiple comparisons into their contrasts
 ##' @param dds The original DESeq2 object containing all samples
 ##' @param spec 
-##' @param ... 
 ##' @return 
 ##' @author Gavin Kelly
 ##' @export
@@ -372,11 +371,9 @@ emcontrasts <- function(dds, spec, extra=NULL) {
 }
 
 
-## Do likelihood ratio test, and classify in order of effect size
-## Doesn't work for interactions, obviously
-##' .. content for \description{} (no empty lines) ..
+##' Fit an LRT model
 ##'
-##' .. content for \details{} ..
+##' Insert the 'comparison' formula into the reduced slot
 ##' @title Fit LRT
 ##' @param dds The original DESeq2 object containing all samples
 ##' @param reduced 
@@ -409,9 +406,9 @@ fitLRT <- function(dds, mdl, reduced, ...) {
 }
 
 ## apply contrast, and transfer across interesting mcols from the dds
-##' .. content for \description{} (no empty lines) ..
+##' Generate results object
 ##'
-##' .. content for \details{} ..
+##' Insert results columns into mcols
 ##' @title Generate the results for a model and comparison
 ##' @param dds The original DESeq2 object containing all samples
 ##' @param mcols 
@@ -516,9 +513,9 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfc
  make.names(names)
 }
 
-##' .. content for \description{} (no empty lines) ..
+##' Tabulate genelists
 ##'
-##' .. content for \details{} ..
+##' Get genelist sizes - up, down and classed
 ##' @title Tabulate the size of the differential lists
 ##' @param dds 
 ##' @return 

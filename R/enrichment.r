@@ -1,6 +1,6 @@
-##' .. content for \description{} (no empty lines) ..
+##' Geneset enrichment analysis
 ##'
-##' .. content for \details{} ..
+##' Do reactomePA-like analyses
 ##' @title Geneset enrichment analysis
 ##' @param ddsList 
 ##' @param fun 
