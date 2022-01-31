@@ -8,7 +8,7 @@ Description: Use DESeq2 to automate RNASeq analysis
  tools to help generate comparisons according to 'emmeans' specification formulae.
  Produces a nested list of DESeqDataSet objects (with their results embedded) and a
  markdown report containing visualisations of the datasets.
-biocViews:
+biocViews: RNASeq
 Depends: R (>= 3.1.0)
 Imports:
     ashr,
