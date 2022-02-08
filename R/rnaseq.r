@@ -649,3 +649,23 @@ retrieve_contrast <- function (object, expanded = FALSE, listValues=c(1,-1)) {
   }
   contrast
 }
+
+##' Change a factor's reference level
+##'
+##' Rather than change the order of the levels, this changes the way
+##' the factor is parametrised, so that the levels are in the natural order
+##' but the coefficients can reflect experimental design considerations
+##' @title Rebase a factor's level
+##' @param x A factor to be rebased 
+##' @param lev The level of the factor that is to be regarded as the 'control' to which all others will be compared
+##' @return A factor with a new contrast attribute
+##' @author Gavin Kelly
+##' @export
+rebase <- function(x, lev) {
+  i <- which(levels(x)==lev)
+  if (length(i)==0) {
+    stop(lev, " is not a level of your factor ", deparse(substitute(x)))
+  }
+  contrasts(x) <- contr.treatment(nlevels(x), i)
+  x
+ }

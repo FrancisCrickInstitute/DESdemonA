@@ -1,0 +1,78 @@
+reference:
+- title: "Spec-file helpers"
+  desc: >
+    Functions that can help in make it easier to capture experimental design
+    features in a spec-file.
+  contents: 
+  - mult_comp
+  - rebase
+  - recode_within
+- title: "Report Helpers - Initialisation"
+  desc: >
+    Used in the analysis report script to initialise the data
+    prior to it being analysed. Creating a list of DESeqDataSet objects from
+    the spec file, for instance.
+  contents:
+  - add_dim_reduct
+  - build_dds_list
+  - load_specs
+  - table1
+- title: "Report Helpers - Model Fitting"
+  desc: >
+    DESdemonA's wrappers around DESeq() and results()
+    that allow for multiple datasets, models and comparisons.
+  contents:
+  - fit_models
+  - get_result
+  - results_apply
+- title: "Report Helpers - Result summary"
+  desc: >
+    Functions to help report/tabulate the results of differential analysis
+  contents:
+  - rbind_summary
+  - summarise_results
+  - emcontrasts
+  - extract_results
+  - write_results
+  - write_all_results
+- title: "Report Helpers - Plots"
+  desc: >
+    Plotting functions for use within the report, both QC and summarising
+    the differential results.
+  contents:
+  - differential_MA
+  - differential_heatmap
+  - qc_heatmap
+- title: "Report Helpers - Functional Annotation"
+  desc: >
+    Functions for producing enrichment and over-representation reports
+  contents:
+  - over_representation
+  - enrichment
+- title: Miscellaneous functions for producing the report
+  contents:
+  - ParamList
+  - bookdown_label
+  - captioner
+  - check_model
+  - df2colorspace
+  - export_biologic
+  - extract_assay
+  - extract_colData
+  - extract_pca_x
+  - fitLRT
+  - get_started
+  - klabel
+  - map_des
+  - subsample
+  - tab_link_caption 
+- title: "Unused widget functions"
+  desc: >
+    Various widgets that allow interactive scatter plots so
+    the scientist can select how the PC plots are coloured. These
+    aren't currently used in the report.
+  contents:
+  - d3_iMetric-shiny
+  - d3_iMetric
+  - d3_iScatter-shiny
+  - d3_iScatter

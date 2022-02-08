@@ -1,6 +1,3 @@
-* table of contents
-{:toc}
-
 ## DESDemonA Philosophy
 
 > Desdemona: Not to pick bad from bad, but by bad mend!  
