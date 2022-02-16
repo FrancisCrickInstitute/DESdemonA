@@ -41,12 +41,19 @@ Imports:
     usethis
 Suggests:
     clusterProfiler,
+    devtools,
+    equatiomatic,
+    ggrepel,
     GO.db,
     knitr,
+    R.utils,
     ReactomePA,
+    readxl,
     rtracklayer,
     remotes,
     tximport
+
+
 License: GPL-3
 LazyData: true
 git_last_commit: v0.20.8-0-g978a6a5_altered

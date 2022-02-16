@@ -24,9 +24,7 @@ library(tidyverse)       # Language
 library(devtools)
 library(openxlsx)        # IO
 library(ggrepel)         # General Vis.
-library(grid)
 library(RColorBrewer)
-library(pheatmap)
 library(ComplexHeatmap)
 library(gt)
 library(DESeq2)          # Assay-specific
