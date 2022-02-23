@@ -160,6 +160,17 @@ build_dds_list <- function(dds, spec) {
       metadata(colData(obj)) <- metadata(colData(dds))
       colnames(obj) <- cnames
       new_cols <- intersect(modelled_terms, setdiff(names(colData(obj)), names(default_palette$Heatmap)))
+      old_cols <- setdiff(modelled_terms, new_cols)
+      if (length(old_cols)>0) {
+        is_modified <- sapply(old_cols,
+                               function(x) {
+                                 if (class(colData(obj)[[x]]) != class(colData(dds)[[x]])) return(TRUE)
+                                 if (is.factor(colData(obj)[[x]])) return(!all(levels(colData(obj)[[x]]) %in%  levels(colData(dds)[[x]])))
+                                 if (is.character(colData(obj)[[x]])) return(!all(unique(colData(obj)[[x]]) %in%  levels(unique(dds)[[x]])))
+                                 return(!all(range(colData(obj)[[x]])==range(colData(obj)[[x]])))
+                               })
+        new_cols <- c(new_cols, old_cols[is_modified])
+      }
       if (length(new_cols)>0) {
         new_meta <- DESdemonA:::df2colorspace(
           colData(obj)[, new_cols, drop=FALSE],

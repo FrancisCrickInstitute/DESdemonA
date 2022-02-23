@@ -505,22 +505,6 @@ differential_MA <- function(ddsList, caption) {
 ##' @author Gavin Kelly
 df2colorspace <- function(df, palette) {
   pal <- RColorBrewer::brewer.pal(RColorBrewer::brewer.pal.info[palette, "maxcolors"], palette)
-  df <- dplyr::mutate_if(as.data.frame(df), is.character, as.factor)
-  purrr::map2(df,
-              cumsum(c(0,purrr::map(df, nlevels)))[1:length(df)],
-              function(column, start_level) {
-                if (is.factor(column)) {
-                  setNames(pal[(seq(start_level, length=nlevels(column)) %% length(pal)) + 1],
-                           levels(column))
-                } else {
-                  circlize::colorRamp2(range(column), c("white","red"))
-                }
-              }
-              )
-}
-
-df2colorspace <- function(df, palette) {
-  pal <- RColorBrewer::brewer.pal(RColorBrewer::brewer.pal.info[palette, "maxcolors"], palette)
   if (ncol(df)==0) return(list(Heatmap=list(), ggplot=list()))
   df <- dplyr::mutate_if(as.data.frame(df), is.character, as.factor)
   seq_cols <-c("Blues", "Greens", "Oranges", "Purples", "Reds")

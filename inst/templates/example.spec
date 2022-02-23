@@ -2,7 +2,7 @@ specification(
     settings=settings(     ## analysis parameters
 	alpha          = 0.01,    ## p-value cutoff
 	lfcThreshold   = 0,       ## abs lfc threshold
-	baseMeanMin    = 1,       ## discard transcripts with average normalised counts lower than this
+	baseMeanMin    = 0,       ## discard transcripts with average normalised counts lower than this
 	top_n_variable = 500,     ## For PCA
 	showCategory   = 25,      ## For enrichment analyses
 	seed           = 1,       ## random seed gets set at start of script, just in case.
