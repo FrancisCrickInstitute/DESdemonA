@@ -364,11 +364,11 @@ for (dataset in names(dds_model_comp)) {
   cat("## ", dataset, " {.tabset} \n", sep="") 
   for (mdl in names(dds_model_comp[[dataset]])) {
     cat("### ", mdl, "\n", sep="")
-    DESdemonA::differential_heatmap(dds_model_comp[[dataset]][[mdl]],
-                                    . %>% mutate(.value=.value - mean(.value)),
-                                    param=param$publish(),
-                                    caption=fig_caption
-                                    )
+    DESdemonA::differential_heatmap(
+      ddsList=dds_model_comp[[dataset]][[mdl]],
+      param=param$publish(),
+      caption=fig_caption
+    )
   }
 }
 

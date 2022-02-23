@@ -542,9 +542,6 @@ tidy_significant_dds <- function(dds, res, tidy_fn=NULL, weights=NULL) {
       offset <- mat %*%  weights
       mat <- mat - as.vector(offset)
     }
-    ## if (is_formula(weights)) {
-    ##   mat <- residuals(limma::lmFit(mat, model.matrix(weights, as.data.frame(colData(dds)))), mat)
-    ## }
   }
   tidy_dat <- tidy_per_gene(mat, as.data.frame(colData(dds)), tidy_fn)
   return(tidy_dat)
@@ -570,9 +567,6 @@ tidy_per_gene <- function(mat, pdat,  tidy_fn) {
     ord <- do.call(order, as.list(pdat[,facts, drop=FALSE]))
     return(list(mat=mat[,ord, drop=FALSE], pdat=pdat[ord,facts,drop=FALSE]))
   }
-  ## pdat$.value <- mat[1,]
-  ## tidy_mat <- apply(mat, 1, function(x) {pdat$.value=x; tidy_fn(pdat)$.value})
-  ## tidy_pdat <- tidy_fn(pdat) %>% dplyr::select(-.value)
   list(mat=tidy_mat, pdat=tidy_pdat)
 }
 
