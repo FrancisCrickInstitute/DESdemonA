@@ -421,7 +421,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
 
 residual_heatmap_transform <- function(mat, cdata, fml) {
   assign("tmat", t(mat), envir=environment(fml))
-  fml <- update(fml, tmat ~ .)
+  fml <- stats::update(fml, tmat ~ .)
   fit <- lm(fml, data=cdata)
   fit1 <- fit
   class(fit1) <- "lm"

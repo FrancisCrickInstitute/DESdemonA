@@ -70,7 +70,7 @@ write_results <- function(ddsList, param, dir=".", assays=NULL) {
         }
         if (nchar(sn)>31) {
           alpha_key <- DESdemonA:::to_letter(length(comparison_name_lookup)+1)
-          comparison_name_lookup$alpha_key <- sn
+          comparison_name_lookup[[alpha_key]] <- sn
           sn <- alpha_key
         }
         addWorksheet(wb, sn, tabColour=crick_colours$secondary[[design_ind]])
