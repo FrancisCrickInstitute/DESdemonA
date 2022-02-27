@@ -1,3 +1,37 @@
+##' Text file of assay data
+##'
+##' Write all sample data, with the colData as a header
+##' @title Text file of assay data
+##' @param ddsList A list of [DESeq2::DESeqDataSet-class()] objects 
+##' @param assay The assay to be output (or 'norm' for normalised counts)
+##' @param path Where to put the text files
+##' @return A list of file paths to the excel files
+##' @author Gavin Kelly
+##' @export
+write_assay <- function(ddsList, assay="norm", path="results") {
+  out <- list()
+  for (i in names(ddsList)) {
+    if (assay=="norm") {
+      x <- counts(ddsList[[i]], norm=TRUE)
+    } else {
+      x <- assay(ddsList[[i]], assay)
+    }
+    content_frame <- cbind(mcols(ddsList[[i]]),x)
+    head_frame <- as.data.frame(colData(ddsList[[i]]))
+    head_frame[] <- sapply(head_frame, as.character)
+    spacer_frame <- as.data.frame(mcols(ddsList[[i]]))[rep(1, ncol(head_frame)),]
+    spacer_frame[] <- ""
+    row.names(spacer_frame) <- colnames(head_frame)
+    fname <- file.path(path, paste0(i, ".txt"))
+    out[[i]] <- fname
+    write.table(cbind(spacer_frame, t(head_frame)), file=fname, quote=FALSE, sep="\t", col.names=NA)
+    write.table(content_frame, file=fname,
+                quote=FALSE, sep="\t", append=TRUE, col.names=NA)
+  }
+  out
+}
+
+
 ##' Xlsx reporting of results
 ##'
 ##' Store all the differential gene-lists and supporting materials

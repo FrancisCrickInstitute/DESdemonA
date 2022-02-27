@@ -3,8 +3,8 @@
 #' author: "{{{author}}}"
 #' params:
 #'   res_dir: "results"
-#'   spec_file: ""
-#'   spec_suffix: ""
+#'   spec_file: "{{{specfile}}}"
+#'   spec_suffix: "{{{spec_suffix}}}"
 #' output:
 #'   bookdown::html_document2:
 #'     toc: true
@@ -83,20 +83,6 @@ ddsList <- map_des(ddsList, function(dds) dds[!all_zero,])
 
 
 ddsList <- map_des(ddsList, estimateSizeFactors)
-for (i in names(ddsList)) {
-  content_frame <- cbind(mcols(ddsList[[i]]),
-                        counts(ddsList[[i]], norm=TRUE))
-  head_frame <- as.data.frame(colData(ddsList[[i]]))
-  head_frame[] <- sapply(head_frame, as.character)
-  spacer_frame <- as.data.frame(mcols(ddsList[[i]]))[rep(1, ncol(head_frame)),]
-  spacer_frame[] <- ""
-  row.names(spacer_frame) <- colnames(head_frame)
-  fname <- file.path(params$res_dir, paste0(i, ".txt"))
-  fname <- file.path("outputs/v0.2.0", paste0(i, ".txt"))
-  write.table(cbind(spacer_frame, t(head_frame)), file=fname, quote=FALSE, sep="\t", col.names=NA)
-  write.table(content_frame, file=fname,
-              quote=FALSE, sep="\t", append=TRUE, col.names=NA)
-}
 
 param$set("baseMeanMin")
 if (param$get("baseMeanMin")>0) {
