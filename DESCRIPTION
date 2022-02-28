@@ -58,5 +58,5 @@ License: GPL-3
 LazyData: true
 git_last_commit: v0.20.10-1-g57c12bc_altered
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Encoding: UTF-8

@@ -173,6 +173,10 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
 
 ##' Run DESdemonA Report on existing counts object
 ##'
+##' This will generate a standard report on the DESeq2 data object you
+##' provide it. It will store data objects in the `data` directory, so
+##' that will need to be created, as will the results folder.
+##'
 ##' 
 ##' @param dds The DESeqDataSet object that you want to run the report
 ##'   on. It needs the basic set of `colData` columns that are used in
@@ -185,22 +189,31 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
 ##'   columns in the `mcols` property.
 ##' 
 ##' @param spec_file The Analaysis Plan
-##' @param results Directory in which to store the html files
+##' @param results Directory in which to store excel results
+##' @param output_file The name of the html report.
 ##' @param title HTML Title of the document
 ##' @param autor The name of the author to appear on the report
 ##' @return 
 ##' @author Gavin Kelly
 #' 
-##' @export
-run_report <- function(dds, spec_file, results="results", title="RNASeq Analysis", author=Sys.info["user"]) {
+#' @export
+
+run_report <- function(dds, spec_file, results="results", output_file="analyse.html", title="RNASeq Analysis", author=Sys.info["user"]) {
   count_source=deparse1(substitute(dds))
-  rmarkdown::render(system.file("templates/01_analyse.r", package="DESdemonA"),
+  repeat{
+    fname <- paste0(tempfile("analyse", tmpdir="."), ".r")
+    if (!file.exists(fname)) break
+  }
+  file.copy(system.file("templates/01_analyse.r", package="DESdemonA"), fname)
+  rmarkdown::render(fname,
+                    output_file=output_file,
                     params=list(res_dir=results,
                                 spec_file=spec_file,
                                 count_source=dds,
                                 param_call=list(count_source=count_source)
                                 )
                     )
+  unlink(fname)
 }
 
 

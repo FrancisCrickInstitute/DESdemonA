@@ -466,7 +466,7 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfc
     prev_alpha <- a
   }
   my_mcols <- intersect(mcols, colnames(mcols(dds)))
-  if (any(my_mcols)) {
+  if (length(my_mcols)>0) {
     r[my_mcols] <- mcols(dds)[my_mcols]
   }
   r$sig <- sigs
