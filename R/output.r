@@ -304,7 +304,7 @@ export_biologic <- function(result_object, path) {
               sep="\t", row.names=FALSE
               )
   
-  sample_id_list <- lapply(coldata_list, function(df) data.frame(sampleID=df[[1]], sample.id=df$sample_label))
+  sample_id_list <- lapply(coldata_list, function(df) data.frame(sampleID=df[[1]], sample.id=row.names(df)))
   definition_frame <- do.call(cbind, sample_id_list[!duplicated(sample_id_list)])
   coldata_list <- lapply(coldata_list, function(df) {
     df[!grepl("^\\.PCA\\.PC", names(df))]

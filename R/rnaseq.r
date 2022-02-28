@@ -465,7 +465,10 @@ get_result <- function(dds, mcols=c("symbol", "entrez"), filterFun=IHW::ihw, lfc
     sigs[ind] <- paste0(prev_alpha, "-", a)
     prev_alpha <- a
   }
-  r[mcols] <- mcols(dds)[mcols]
+  my_mcols <- intersect(mcols, colnames(mcols(dds)))
+  if (any(my_mcols)) {
+    r[my_mcols] <- mcols(dds)[my_mcols]
+  }
   r$sig <- sigs
   if ("LRTPvalue" %in% names(mcols(dds))) {
     r$class <- mcols(dds)$class

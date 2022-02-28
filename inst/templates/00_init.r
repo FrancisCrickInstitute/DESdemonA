@@ -5,7 +5,7 @@ defaults <- list(
   name_col    = {{{name_col}}},    ## Column in that spreadsheet that identifies the basename of count file for each sample
   counts      = "{{{counts}}}",      ## directory that contains the quantified gene counts
   org_package = "{{{org_package}}}", ## NULL will derive org.*.eg.db from nfcore info, otherwise specifcy string identifying annotation package of relevant species.
-  spec_suffix = "{{{spec_suffix}}}"
+  count_source = "{{{count_source}}}"
 )
 
 
@@ -80,7 +80,7 @@ if (args$org_package=="") {
 }
 metadata(dds)$organism <- organism
 metadata(dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
-metadata(dds)$count_source <- args$spec_suffix
+metadata(dds)$count_source <- args$count_source
 
 library(organism$org, character.only=TRUE)
 
@@ -98,5 +98,5 @@ mcols(dds)$entrez <- mapIds(
   keytype="ENSEMBL",
   multiVals="first")[row.names(dds)]
 
-save(dds, file=file.path("data",paste0("counts_", args$spec_suffix, ".rda")))
-saveRDS(dds, file=file.path("data",paste0("counts_", args$spec_suffix, ".rds")))
+save(dds, file=file.path("data",paste0("counts_", args$count_source, ".rda")))
+saveRDS(dds, file=file.path("data",paste0("counts_", args$count_source, ".rds")))

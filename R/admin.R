@@ -171,6 +171,37 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
 }
 
 
+##' Run DESdemonA Report on existing counts object
+##'
+##' 
+##' @param dds The DESeqDataSet object that you want to run the report
+##'   on. It needs the basic set of `colData` columns that are used in
+##'   the analysis plan. `colnames(dds)` will be used as labels in
+##'   plot, etc. In addition, if its `mcols` has columns of the that
+##'   are set to `entrez` and/or `symbol`, these will get added to the
+##'   report.  `metadata(dds)$org <- "org.Mm.eg.db"` will ensure that
+##'   the correct annotation libraries are used, but this is only strictly
+##'   necessary for functional annotation (which also requires those additional
+##'   columns in the `mcols` property.
+##' 
+##' @param spec_file The Analaysis Plan
+##' @param results Directory in which to store the html files
+##' @param title HTML Title of the document
+##' @param autor The name of the author to appear on the report
+##' @return 
+##' @author Gavin Kelly
+#' 
+##' @export
+run_report <- function(dds, spec_file, results="results", title="RNASeq Analysis", author=Sys.info["user"]) {
+  count_source=deparse1(substitute(dds))
+  rmarkdown::render(system.file("templates/01_analyse.r", package="DESdemonA"),
+                    params=list(res_dir=results,
+                                spec_file=spec_file,
+                                count_source=dds,
+                                param_call=list(count_source=count_source)
+                                )
+                    )
+}
 
 
 read_yml <- function(file) {

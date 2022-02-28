@@ -4,7 +4,8 @@
 #' params:
 #'   res_dir: "results"
 #'   spec_file: "{{{specfile}}}"
-#'   spec_suffix: "{{{spec_suffix}}}"
+#'   count_source: "{{{count_source}}}"
+#'   param_call: !r as.list(sys.call(1))$params
 #' output:
 #'   bookdown::html_document2:
 #'     toc: true
@@ -51,14 +52,20 @@ if (!isTRUE(getOption('knitr.in.progress'))) {
   params <- list(
     spec_file=dir(pattern="*.spec")[1],
     res_dir="results",
-    spec_suffix="")
+    count_source="")
 }
 
 #+ read
 
-data(list=paste0("counts_", params$spec_suffix))
+if (is.character(params$count_source)) {
+  data(list=paste0("counts_", params$count_source))
+} else {
+  dds <- params$count_source
+}
 
-library(metadata(dds)$organism$org, character.only=TRUE)
+if (!is.null(metadata(dds)$organism$org)) {
+  library(metadata(dds)$organism$org, character.only=TRUE)
+}
 metadata(dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
 
 specs   <- DESdemonA::load_specs(file=params$spec_file, context=dds)
@@ -69,7 +76,11 @@ set.seed(param$set("seed"))
 param$set("title", "{{{project}}}")
 param$set("script", file.path(getwd(),"01_analyse.r"))
 param$set("spec", sub("\\.spec$", "", params$spec_file), "Using analysis plan '{}'.")
-param$set("spec_suffix", params$spec_suffix, "Using alignment settings '{}'")
+if (is.character(params$count_source)) {
+  param$set("count_source", params$count_source, "Using alignment settings '{}'")
+} else {
+  param$set("count_source", params$param_call$count_source, "Using counts from '{}'")
+}  
   
 ddsList <- DESdemonA::build_dds_list(dds, specs)
 
@@ -226,7 +237,7 @@ dds_model_comp <- map_des(
 
 
 
-dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_x_", params$spec_suffix)
+dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_x_", params$count_source)
 save(dds_model_comp,
      file=file.path("data", paste0(dds_name, ".rda")),
      eval.promises=FALSE
