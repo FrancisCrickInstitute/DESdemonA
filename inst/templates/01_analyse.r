@@ -237,7 +237,7 @@ dds_model_comp <- map_des(
 
 
 
-dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_x_", params$count_source)
+dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_x_", param$count_source)
 save(dds_model_comp,
      file=file.path("data", paste0(dds_name, ".rda")),
      eval.promises=FALSE
