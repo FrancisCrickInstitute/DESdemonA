@@ -10,7 +10,7 @@
 ##' @author Gavin Kelly
 ##' @export
 enrichment <- function(dds, fun="gseGO") {
-  if (!("entrez" %in% colnames(mcols(dds)))) {
+  if (!("entrez" %in% colnames(mcols(dds))) || is.null(metadata(dds)$organism$org)) {
     return(NULL)
   }
     ord <- order(mcols(dds)$results$shrunkLFC, decreasing=TRUE)
@@ -51,7 +51,7 @@ enrichment <- function(dds, fun="gseGO") {
 ##' @export
 
 over_representation <- function(ddsList, fun, showCategory, max_width=30) {
-  ddsList <- ddsList[sapply(ddsList, function(x) "entrez" %in% colnames(x))]
+  ddsList <- ddsList[sapply(ddsList, function(x) "entrez" %in% colnames(x) && !is.null(metadata(x)$organism$org))]
   genes <- lapply(ddsList, function(dds) {
     res <- mcols(dds)$results
     na.omit(res$entrez[grepl("\\*", res$class)])
