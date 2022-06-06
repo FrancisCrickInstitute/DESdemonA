@@ -52,7 +52,7 @@ if (!isTRUE(getOption('knitr.in.progress'))) {
   params <- list(
     spec_file=dir(pattern="*.spec")[1],
     res_dir="results",
-    count_source="")
+    count_source=gsub("counts_(.*).rda", "\\1", dir("data", pattern="counts_.*.rda")[1]))
 }
 
 #+ read
@@ -189,6 +189,10 @@ data.frame(
 
 ddsList <- map_des(ddsList, function(x) DESdemonA::add_dim_reduct(x))
 
+for (assay in c("raw", "norm", "vst")) {
+  DESdemonA::write_assay(ddsList, assay=assay, path=params$res_dir)
+}
+                       
 param$set("top_n_variable")
 param$set("clustering_distance_rows")
 param$set("clustering_distance_columns")
@@ -237,7 +241,7 @@ dds_model_comp <- map_des(
 
 
 
-dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_x_", param$count_source)
+dds_name <- paste0(basename(tools::file_path_sans_ext(params$spec_file)),"_x_", params$count_source)
 save(dds_model_comp,
      file=file.path("data", paste0(dds_name, ".rda")),
      eval.promises=FALSE
