@@ -5,11 +5,12 @@
 ##' @param ddsList A list of [DESeq2::DESeqDataSet-class()] objects 
 ##' @param assay The assay to be output (or 'norm' for normalised counts)
 ##' @param path Where to put the text files
-##' @param formula 
+##' @param formula The model that will be used to estimate the normalisation offsets
+##' @param terms_to_remove The 'Terms' estimated from the above model that will be removed (subtracted) from values of the assay.
 ##' @return A list of file paths to the excel files
 ##' @author Gavin Kelly
 ##' @export
-write_assay <- function(ddsList, assay="norm", path="results", formula=NULL, terms_to_keep=NULL) {
+write_assay <- function(ddsList, assay="vst", path="results", formula=NULL, terms_to_remove=NULL) {
   out <- list()
   for (i in names(ddsList)) {
     if (assay=="norm") {
@@ -17,9 +18,9 @@ write_assay <- function(ddsList, assay="norm", path="results", formula=NULL, ter
     } else {
       x <- assay(ddsList[[i]], assay)
     }
-    if (!is.null(fml)) {
-      part_resid <- DESdemonA:::residual_heatmap_transform(x, as.data.frame(colData(ddsList[[i]])), fml)
-      x <- x - apply(part_resid$terms[,,terms_to_keep, drop=FALSE], 1:2,sum)
+    if (!is.null(formula)) {
+      part_resid <- DESdemonA:::residual_heatmap_transform(x, as.data.frame(colData(ddsList[[i]])), formula)
+      x <- x - t(apply(part_resid$terms[,,terms_to_keep, drop=FALSE], 1:2,sum))
     }
     content_frame <- cbind(mcols(ddsList[[i]]),x)
     head_frame <- as.data.frame(colData(ddsList[[i]]))
@@ -27,7 +28,7 @@ write_assay <- function(ddsList, assay="norm", path="results", formula=NULL, ter
     spacer_frame <- as.data.frame(mcols(ddsList[[i]]))[rep(1, ncol(head_frame)),]
     spacer_frame[] <- ""
     row.names(spacer_frame) <- colnames(head_frame)
-    fname <- file.path(path, paste0(i, ".txt"))
+    fname <- file.path(path, paste0(i,"_",assay, ".txt"))
     out[[i]] <- fname
     write.table(cbind(spacer_frame, t(head_frame)), file=fname, quote=FALSE, sep="\t", col.names=NA)
     write.table(content_frame, file=fname,
