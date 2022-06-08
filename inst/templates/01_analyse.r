@@ -189,7 +189,7 @@ data.frame(
 
 ddsList <- map_des(ddsList, function(x) DESdemonA::add_dim_reduct(x))
 
-for (assay in c("raw", "norm", "vst")) {
+for (assay in c("counts", "norm", "vst")) {
   DESdemonA::write_assay(ddsList, assay=assay, path=params$res_dir)
 }
                        
