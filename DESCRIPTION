@@ -26,7 +26,6 @@ Imports:
     IHW,
     knitr,
     limma,
-    lme4,
     MASS,
     openxlsx,
     PoiClaClu,
