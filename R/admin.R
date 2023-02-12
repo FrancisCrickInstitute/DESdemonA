@@ -120,54 +120,22 @@ ParamList <- R6::R6Class("ParamList",
 ##'
 ##' The recommended usage is, at the start of project development,
 ##' to simply call 'DESdemonA::get_started()' in the relevant directory,
-##' as the defaults path and files are sufficient - it will refuse
-##' to overwrite existing files, so is safe in that sense.
+##' as the defaults path and files are sufficient.
+##' 
 ##' 
 ##' @title Initiate a DESdemonA project
 ##' @param files Which files to retreive from the DESdemonA project
-##' @param path Where to copy the files to
+##' @param dest Where to copy the files to
 ##' @return 
 ##' @author Gavin Kelly
 #' 
 #' @export
 
-get_started <- function(files = dir(system.file("templates",package="DESdemonA")),
-                path=".",
-                yml="",
-                overwrite=FALSE,
-                file_col="filename",
-                name_col="name",
-                ...
-                ) {
-  args <- list(...)
-  if (yml!="") {
-    yml_args <- read_yml(yml)
-    ind <- setdiff(yml_args, args)
-    args[ind] <- yml_args[ind]
-  }
-  defaults <- list(
-    nfcore="results",
-    metadata=system.file("extdata/metadata.xlsx", package="babsrnaseq"),
-    file_col=deparse(substitute(file_col)),
-    name_col=deparse(substitute(name_col)),
-    counts=quote(file.path(nfcore, "star_rsem")),
-    org_package="",
-    project=basename(getwd()),
-    author=getOption("usethis.full_name")
+get_started <- function(files = dir(system.file("templates",package="DESdemonA")), dest=".") {
+  file.copy(
+    system.file(files, package=package),
+    dest
   )
-  ind <- setdiff(names(defaults), names(args))
-  args <- c(args, defaults[ind])
-  args <- lapply(args, eval, args)
-  pre_exist <- file.exists(file.path(path, files))
-  if (any(pre_exist) && (!overwrite)) {
-    stop(paste(file.path(path, files), collapse=", "), " already exist. Remove or rename them")
-  }
-  for (fname in files) {
-    if (file.exists(fname) && overwrite) {
-      unlink(fname)
-    }
-    usethis::use_template(fname, save_as=fname, data=args, package="DESdemonA")
-  }
 }
 
 

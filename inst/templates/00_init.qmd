@@ -1,0 +1,106 @@
+---
+metadata-files: 
+author: 
+  - name: Gavin Kelly
+    affiliations: BABS - Francis Crick Institute
+format:
+  html:
+    theme: cerulean
+    fontsize: 1.1em
+    linestretch: 1.7
+code-fold: true
+echo: false
+code-summary: "Show the code"
+params:
+#PARAMS_FROM_MAKE
+
+---
+```{r}
+#| label: load1
+
+library(readxl)
+library(tidyverse)
+library(tximport)
+library(DESeq2)
+
+```
+
+
+```{r}
+#| label: load2
+
+if (!isTRUE(getOption('knitr.in.progress'))) {
+  params <- yaml::read_yaml("{{YAML_FROM_MAKE}}")
+} else {
+  gt(data.frame(Setting=names(params),
+                Value=unlist(params)))
+}
+
+
+
+if (grepl("\\.csv$", params$metadata)) {
+  sample_sheet <- read.csv(params$metadata, header=TRUE, check.names=FALSE)
+} else {
+  sample_sheet <- readxl::read_excel(params$metadata, sheet=1)
+}
+file_col <- params$file_col[params$file_col %in% names(sample_sheet)][1]
+if (is.na(file_col)) {
+  stop("Metadata has none of: ", paste(params$file_col, collapse=", "))
+}
+name_col <- params$name_col[params$name_col %in% names(sample_sheet)][1]
+if (is.na(name_col)) {
+  stop("Metadata has none of: ", paste(params$name_col, collapse=", "))
+}
+
+
+sample_sheet[sapply(sample_sheet, is.character)] <- lapply(
+  sample_sheet[sapply(sample_sheet, is.character)], 
+  as.factor)
+
+tx_path <-   file.path(
+  params$counts,
+  paste0(as.character(sample_sheet[[file_col]]), ".genes.results")
+)
+
+names(tx_path) <- as.character(sample_sheet[[name_col]])
+not_here <- !file.exists(tx_path)
+if (any(not_here)) {
+  warning("Dropping samples", tx_path[not_here])
+  tx_path <- tx_path[!not_here]
+  sample_sheet <- sample_sheet[!not_here,]
+}
+
+txi <- tximport(tx_path, type="rsem")
+txi$length[txi$length==0] <- 1
+
+dds <- DESeqDataSetFromTximport(txi, sample_sheet, ~ 1) # ok to have fixed trivial design - it'll get swapped out
+ind <- rowSums(counts(dds)!=0) > 0
+dds <- dds[ind,]
+
+txi[c("abundance", "counts", "length")] <- map(txi[c("abundance", "counts", "length")], ~ .[ind,])
+
+
+organism <- list(org=params$org_package)
+metadata(dds)$organism <- organism
+metadata(dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
+metadata(dds)$count_source <- params$count_source
+
+library(organism$org, character.only=TRUE)
+
+mcols(dds)$symbol <- mapIds(
+  eval(parse(text = organism$org)), 
+  keys=row.names(dds),
+  column="SYMBOL",
+  keytype="ENSEMBL",
+  multiVals="first")[row.names(dds)]
+
+mcols(dds)$entrez <- mapIds(
+  eval(parse(text = organism$org)),
+  keys=row.names(dds),
+  column="ENTREZID",
+  keytype="ENSEMBL",
+  multiVals="first")[row.names(dds)]
+
+save(dds, file=file.path("data",paste0("counts_", params$count_source, ".rda")))
+saveRDS(dds, file=file.path("data",paste0("counts_", params$count_source, ".rds")))
+```
