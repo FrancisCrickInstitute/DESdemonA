@@ -230,49 +230,51 @@ add_dim_reduct  <-  function(dds, n=Inf, family="norm", batch=~1) {
 fit_models <- function(dds, ...) {
   model_comp <- lapply(
     metadata(dds)$models,
-    function(mdl)  {
-      this_dds <- dds
-      design(this_dds) <- mdl$design
-      metadata(this_dds)$model <- mdl
-      this_dds <- check_model(this_dds) 
-      out <- list()
-      is_lrt <- sapply(mdl$comparisons, is_formula)
-      if (any(!is_lrt)) {
-        comps <- mdl$comparisons[!is_lrt]
-        is_post_hoc <- sapply(comps, class)=="post_hoc"
-        if (any(is_post_hoc)) {
-          comps[is_post_hoc] <- lapply(
-            comps[is_post_hoc],
-            function(ph) {emcontrasts(dds=this_dds, spec=ph$spec, extra=ph[-1])}
-          )
-          comps[!is_post_hoc] <- lapply(comps[!is_post_hoc], list) # protect existing lists from unlist
-          comps <- unlist(comps, recursive=FALSE)
-        }
-        if (any(metadata(this_dds)$model$dropped)) {
-          design(this_dds) <- metadata(this_dds)$model$mat
-        }
-        this_dds <- DESeq2::DESeq(this_dds, test="Wald", ...)
-        metadata(this_dds)$models <- NULL
-        metadata(this_dds)$comparisons <- NULL
-        out <- lapply(comps, function(cntr) {
-          metadata(this_dds)$comparison <- cntr
-          this_dds})
-      }
-      if (any(is_lrt)) {
-        lrt <- lapply(mdl$comparisons[is_lrt],
-                     function(reduced) {DESdemonA:::fitLRT(this_dds, mdl=mdl, reduced=reduced, ...)}
-                     )
-        out <- c(out, lrt)
-      }
-      out <- imap(out, function(obj, cname) {metadata(obj)$dmc$comparison <- cname; obj})
-      out
-    }
+    function(mdl) fit_model(mdl, dds)
   )
   model_comp <- model_comp[sapply(model_comp, length)!=0]
   model_comp <- imap(model_comp, function(obj, mname) {
     lapply(obj, function(y) {metadata(y)$dmc$model <- mname; y})
   })
   model_comp
+}
+
+fit_model <- function(mdl, dds) {
+  this_dds <- dds
+  design(this_dds) <- mdl$design
+  metadata(this_dds)$model <- mdl
+  this_dds <- check_model(this_dds) 
+  out <- list()
+  is_lrt <- sapply(mdl$comparisons, is_formula)
+  if (any(!is_lrt)) {
+    comps <- mdl$comparisons[!is_lrt]
+    is_post_hoc <- sapply(comps, class)=="post_hoc"
+    if (any(is_post_hoc)) {
+      comps[is_post_hoc] <- lapply(
+        comps[is_post_hoc],
+        function(ph) {emcontrasts(dds=this_dds, spec=ph$spec, extra=ph[-1])}
+      )
+      comps[!is_post_hoc] <- lapply(comps[!is_post_hoc], list) # protect existing lists from unlist
+      comps <- unlist(comps, recursive=FALSE)
+    }
+    if (any(metadata(this_dds)$model$dropped)) {
+      design(this_dds) <- metadata(this_dds)$model$mat
+    }
+    this_dds <- DESeq2::DESeq(this_dds, test="Wald", ...)
+    metadata(this_dds)$models <- NULL
+    metadata(this_dds)$comparisons <- NULL
+    out <- lapply(comps, function(cntr) {
+      metadata(this_dds)$comparison <- cntr
+      this_dds})
+  }
+  if (any(is_lrt)) {
+    lrt <- lapply(mdl$comparisons[is_lrt],
+                 function(reduced) {DESdemonA:::fitLRT(this_dds, mdl=mdl, reduced=reduced, ...)}
+                 )
+    out <- c(out, lrt)
+  }
+  out <- imap(out, function(obj, cname) {metadata(obj)$dmc$comparison <- cname; obj})
+  out
 }
 
 ##' Check model

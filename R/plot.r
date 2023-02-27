@@ -32,7 +32,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
   plotDat <- var_stab[top,]
   plotDat <- plotDat-rowMeans(plotDat)
   vars <- get_terms(dds)
-  colDat <- data.frame(colData(dds), check.names=FALSE)
+  colDat <- as.data.frame(colData(dds))
   colnames(plotDat) <- rownames(colDat)
   pl <- ComplexHeatmap::Heatmap(
     plotDat, name="Mean Centred", column_title="Samples", row_title="Genes",
@@ -93,7 +93,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
   if (do_focus) {
     sample_gene_factor <- residual_heatmap_transform(
       assay(dds, "vst"),
-      colDat,
+      colData(dds),
       models_for_qc[[1]]$design)
     if ("batch" %in% names(models_for_qc[[1]])) {
       batch_vars <- all.vars(models_for_qc[[1]]$batch)
@@ -119,7 +119,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
   do_labels <- nrow(colDat)<10
   
   for (j in vars$fixed[is_vary]) {
-    pc.df <- data.frame(PC1=pc[,pc_x], PC2=pc[,pc_y], col=colDat[[j]], sample=rownames(colDat), check.names=FALSE)
+    pc.df <- data.frame(PC1=pc[,pc_x], PC2=pc[,pc_y], col=colDat[[j]], sample=rownames(colDat))
     pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=5) +
       xlab(paste0("PC ", pc_x, ": ", percentVar[pc_x], "% variance")) +
       ylab(paste0("PC ", pc_y, ": ", percentVar[pc_y], "% variance")) +
@@ -134,7 +134,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
     print(pl)
     caption(paste0("Coloured by ", j))
     if (do_batch) {
-      pc.df <- data.frame(PC1=pc_resid$pc[,pc_x], PC2=pc_resid$pc[,pc_y], col=colDat[[j]], sample=rownames(colDat), check.names=FALSE)
+      pc.df <- data.frame(PC1=pc_resid$pc[,pc_x], PC2=pc_resid$pc[,pc_y], col=colDat[[j]], sample=rownames(colDat))
       pl <- ggplot(pc.df, aes(x=PC1, y=PC2, colour=col))  + geom_point(size=5) +
         xlab(paste0("PC ", pc_x, ": ", pc_resid$percent[pc_x], "% variance")) +
         ylab(paste0("PC ", pc_y, ": ", pc_resid$percent[pc_y], "% variance")) +
@@ -331,7 +331,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
     if ("mat" %in% names(mdl)) {
       mmat <- mdl$mat
     } else {
-      mmat <- model.matrix(mdl$design, data.frame(colData(ddsList[[i]]), check.names=FALSE))
+      mmat <- model.matrix(mdl$design, colData(ddsList[[i]]))
     }
     if ("spec" %in% names(attributes(comp))) {
       var_roles <- emmeans:::.parse.by.formula(attr(comp, "spec"))
@@ -350,7 +350,7 @@ differential_heatmap <- function(ddsList, tidy_fn=NULL, param, caption) {
       weights <- apply(mmat, 1, function(x) all(x==mmat[most_decreasing,]))
       weights <- weights/sum(weights)
     }
-    baseline_df <- data.frame(colData(ddsList[[i]])[most_decreasing, var_roles$all], check.names=FALSE)
+    baseline_df <- as.data.frame(colData(ddsList[[i]])[most_decreasing, var_roles$all])
     baseline_str <- paste(names(baseline_df), baseline_df[1,], sep="=", collapse=",")
     tidied_data <- tidy_significant_dds(ddsList[[i]], mcols(ddsList[[i]])$results, var_roles, weights=weights)
     pdat <- tidied_data$pdat
@@ -492,7 +492,7 @@ differential_MA <- function(ddsList, caption) {
 df2colorspace <- function(df, palette) {
   pal <- RColorBrewer::brewer.pal(RColorBrewer::brewer.pal.info[palette, "maxcolors"], palette)
   if (ncol(df)==0) return(list(Heatmap=list(), ggplot=list()))
-  df <- dplyr::mutate_if(data.frame(df, check.names=FALSE), is.character, as.factor)
+  df <- dplyr::mutate_if(as.data.frame(df), is.character, as.factor)
   seq_cols <-c("Blues", "Greens", "Oranges", "Purples", "Reds")
   df <- df[,order(sapply(df, is.numeric)),drop=FALSE] # move factors to the front
   # for factors, zero-based starting index for colours
