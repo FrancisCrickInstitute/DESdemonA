@@ -14,32 +14,23 @@ get_started(
 
 \item{dest}{Where to copy the files to}
 }
+\value{
+Nothing - purely for its side effect.
+}
 \description{
 Populate a folder with DESdemonA starter scripts
 }
 \details{
 To start a DESdemonA-based project, we provide a sample set
 of scripts to point you in the right direction. Firstly there is
-an '00_init.r' file that will create a universal DESeqDataSet object
+an '00_init.qmd' file that will create a universal DESeqDataSet object
 from your quantified counts file.  You may need to edit this to link
 it to where your quantification pipeline stores its results, and to
 ensure that the full set of metadata is inserted into the colData.
 
-There is an example '.spec' file - rename and use this as a basis
-for your statistical analysis plan, or if you have an existing one,
-delete the example one and copy the existing one into the folder instead.
-
-The main analysis is run via "01_analyse.r" - you should render this
-via rmarkdown.  It will look for every '.spec' file in the current
+The main analysis is run via "01_analyse.qmd" - you should render this
+via quarto.  It will look for every '.spec' file in the current
 directory.
-
-There will also be a "02_further_steps.r" script at some point. This
-will give concrete examples of how you might want to extract results
-for further programmatic use, to build upon the html report that
-rendering the "01_analyse.r" will provide.
-
-There's also a DESCRIPTION file, so that it is easy to turn your
-analysis into a re-distributable R package.
 
 The recommended usage is, at the start of project development,
 to simply call 'DESdemonA::get_started()' in the relevant directory,

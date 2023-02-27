@@ -15,6 +15,9 @@ over_representation(ddsList, fun, showCategory, max_width = 30)
 
 \item{max_width}{}
 }
+\value{
+A list containing the plot object and table
+}
 \description{
 .. content for \description{} (no empty lines) ..
 }
