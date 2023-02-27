@@ -15,9 +15,6 @@ enrichment(dds, fun = "gseGO")
 
 \item{max_width}{}
 }
-\value{
-
-}
 \description{
 Geneset enrichment analysis
 }

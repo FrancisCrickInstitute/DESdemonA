@@ -11,9 +11,6 @@ emcontrasts(dds, spec, extra = NULL)
 
 \item{spec}{}
 }
-\value{
-
-}
 \description{
 Expand post-hoc comparisons
 }

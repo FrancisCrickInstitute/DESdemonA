@@ -13,9 +13,6 @@ mult_comp(spec, ...)
 
 \item{dds}{The original DESeq2 object containing all samples}
 }
-\value{
-
-}
 \description{
 Post-hoc generator
 }

@@ -11,9 +11,6 @@ write_all_results(ddsList, dir = ".")
 
 \item{dir}{Directory to store the results in}
 }
-\value{
-
-}
 \description{
 Store results as text files
 }

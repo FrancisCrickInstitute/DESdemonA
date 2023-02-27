@@ -15,9 +15,6 @@ data so that all values are relative to a particular condition.}
 
 \item{caption}{The function to use to create captions}
 }
-\value{
-
-}
 \description{
 Heatmaps of expression for differential genes
 }

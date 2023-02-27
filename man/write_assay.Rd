@@ -4,7 +4,13 @@
 \alias{write_assay}
 \title{Text file of assay data}
 \usage{
-write_assay(ddsList, assay = "norm", path = "results")
+write_assay(
+  ddsList,
+  assay = "vst",
+  path = "results",
+  formula = NULL,
+  terms_to_remove = NULL
+)
 }
 \arguments{
 \item{ddsList}{A list of \code{\link[DESeq2:DESeqDataSet]{DESeq2::DESeqDataSet-class()}} objects}
@@ -12,6 +18,10 @@ write_assay(ddsList, assay = "norm", path = "results")
 \item{assay}{The assay to be output (or 'norm' for normalised counts)}
 
 \item{path}{Where to put the text files}
+
+\item{formula}{The model that will be used to estimate the normalisation offsets}
+
+\item{terms_to_remove}{The 'Terms' estimated from the above model that will be removed (subtracted) from values of the assay.}
 }
 \value{
 A list of file paths to the excel files

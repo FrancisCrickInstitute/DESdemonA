@@ -9,9 +9,6 @@ klabel(lbl)
 \arguments{
 \item{lbl}{the label}
 }
-\value{
-
-}
 \description{
 Deprecated
 }

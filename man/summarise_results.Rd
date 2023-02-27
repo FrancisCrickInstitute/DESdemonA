@@ -9,9 +9,6 @@ summarise_results(dds)
 \arguments{
 \item{dds}{}
 }
-\value{
-
-}
 \description{
 Tabulate genelists
 }

@@ -11,9 +11,6 @@ differential_MA(ddsList, caption)
 
 \item{caption}{The function to use to create captions}
 }
-\value{
-
-}
 \description{
 Generate MA Plots
 }

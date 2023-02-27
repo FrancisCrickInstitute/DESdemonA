@@ -6,9 +6,6 @@
 \usage{
 df2colorspace(df, palette)
 }
-\value{
-
-}
 \description{
 Heatmap colour-scheme generator
 }

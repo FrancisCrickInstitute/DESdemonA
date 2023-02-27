@@ -6,7 +6,7 @@
 ##' @param fun 
 ##' @param showCategory 
 ##' @param max_width 
-##' @return 
+##' @return gseaResult object
 ##' @author Gavin Kelly
 ##' @export
 enrichment <- function(dds, fun="gseGO") {
@@ -46,7 +46,7 @@ enrichment <- function(dds, fun="gseGO") {
 ##' @param fun 
 ##' @param showCategory 
 ##' @param max_width 
-##' @return 
+##' @return A list containing the plot object and table
 ##' @author Gavin Kelly
 ##' @export
 

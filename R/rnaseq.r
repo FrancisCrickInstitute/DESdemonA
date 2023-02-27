@@ -88,27 +88,6 @@ recode_within <- function(inner, ...) {
 
 
 
-##' Subsample
-##'
-##' Think this should probably be deprecated
-##' @title subsample
-##' @param dds Not Sure
-##' @param subs Not Sure
-##' @return Not Sure
-##' @author Gavin Kelly
-##' @export
-subsample <- function(dds, subs) {
-  if (is_formula(subs)) {
-    grps <- Reduce(interaction, colData(dds)[all.vars(subs)])
-    grps <- names(table(grps))[table(grps)!=0]
-    out <- lapply(setNames(grps,grps),  function(x) DESdemonA::subsample(dds, grps==x))
-  } else {
-    out <- dds[,subs]
-    colData(out) <- droplevels(colData(out))
-    out
-  }
-  out
-}
 ##' Expand an analysis specification into its corresponding subset list
 ##'
 ##' Generate a list of DESeq2 objects corresponding to the different

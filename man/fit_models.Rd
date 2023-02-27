@@ -9,9 +9,6 @@ fit_models(dds, ...)
 \arguments{
 \item{dds}{The original DESeq2 object containing all samples}
 }
-\value{
-
-}
 \description{
 Fit the models of expression
 }

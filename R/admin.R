@@ -83,7 +83,7 @@ ParamList <- R6::R6Class("ParamList",
                       #' @param id Name of the value you want to access.
                       describe = function(id) {
                         if (missing(id)) {
-                          map(private$descriptions[names(private$params)],  function(d) glue::glue_data(.x =private$params, d))
+                          purrr::map(private$descriptions[names(private$params)],  function(d) glue::glue_data(.x =private$params, d))
                         } else {
                           glue::glue_data(private$params,
                                           private$descriptions[[id]])
@@ -97,36 +97,23 @@ ParamList <- R6::R6Class("ParamList",
 ##'
 ##' To start a DESdemonA-based project, we provide a sample set
 ##' of scripts to point you in the right direction. Firstly there is
-##' an '00_init.r' file that will create a universal DESeqDataSet object
+##' an '00_init.qmd' file that will create a universal DESeqDataSet object
 ##' from your quantified counts file.  You may need to edit this to link
 ##' it to where your quantification pipeline stores its results, and to
 ##' ensure that the full set of metadata is inserted into the colData.
 ##'
-##' There is an example '.spec' file - rename and use this as a basis
-##' for your statistical analysis plan, or if you have an existing one,
-##' delete the example one and copy the existing one into the folder instead.
-##' 
-##' The main analysis is run via "01_analyse.r" - you should render this
-##' via rmarkdown.  It will look for every '.spec' file in the current
+##' The main analysis is run via "01_analyse.qmd" - you should render this
+##' via quarto.  It will look for every '.spec' file in the current
 ##' directory.
-##'
-##' There will also be a "02_further_steps.r" script at some point. This
-##' will give concrete examples of how you might want to extract results
-##' for further programmatic use, to build upon the html report that
-##' rendering the "01_analyse.r" will provide.
-##'
-##' There's also a DESCRIPTION file, so that it is easy to turn your
-##' analysis into a re-distributable R package.
 ##'
 ##' The recommended usage is, at the start of project development,
 ##' to simply call 'DESdemonA::get_started()' in the relevant directory,
 ##' as the defaults path and files are sufficient.
 ##' 
-##' 
 ##' @title Initiate a DESdemonA project
 ##' @param files Which files to retreive from the DESdemonA project
 ##' @param dest Where to copy the files to
-##' @return 
+##' @return Nothing - purely for its side effect.
 ##' @author Gavin Kelly
 #' 
 #' @export
@@ -139,56 +126,4 @@ get_started <- function(files = dir(system.file("templates",package="DESdemonA")
 }
 
 
-##' Run DESdemonA Report on existing counts object
-##'
-##' This will generate a standard report on the DESeq2 data object you
-##' provide it. It will store data objects in the `data` directory, so
-##' that will need to be created, as will the results folder.
-##'
-##' 
-##' @param dds The DESeqDataSet object that you want to run the report
-##'   on. It needs the basic set of `colData` columns that are used in
-##'   the analysis plan. `colnames(dds)` will be used as labels in
-##'   plot, etc. In addition, if its `mcols` has columns of the that
-##'   are set to `entrez` and/or `symbol`, these will get added to the
-##'   report.  `metadata(dds)$org <- "org.Mm.eg.db"` will ensure that
-##'   the correct annotation libraries are used, but this is only strictly
-##'   necessary for functional annotation (which also requires those additional
-##'   columns in the `mcols` property.
-##' 
-##' @param spec_file The Analaysis Plan
-##' @param results Directory in which to store excel results
-##' @param output_file The name of the html report.
-##' @param title HTML Title of the document
-##' @param autor The name of the author to appear on the report
-##' @return 
-##' @author Gavin Kelly
-#' 
-#' @export
 
-run_report <- function(dds, spec_file, results="results", output_file="analyse.html", title="RNASeq Analysis", author=Sys.info["user"]) {
-  count_source=deparse1(substitute(dds))
-  repeat{
-    fname <- paste0(tempfile("analyse", tmpdir="."), ".r")
-    if (!file.exists(fname)) break
-  }
-  file.copy(system.file("templates/01_analyse.r", package="DESdemonA"), fname)
-  rmarkdown::render(fname,
-                    output_file=output_file,
-                    params=list(res_dir=results,
-                                spec_file=spec_file,
-                                count_source=dds,
-                                param_call=list(count_source=count_source)
-                                )
-                    )
-  unlink(fname)
-}
-
-
-read_yml <- function(file) {
-  lines <- readLines(file)
-  lines <- lines[grepl("  .*:", lines)]
-  field <- gsub("  (*[^:]*):.*", "\\1", lines)
-  value <- gsub("  *[^:]*: *", "", lines)
-  setNames(as.list(value), field)
-}  

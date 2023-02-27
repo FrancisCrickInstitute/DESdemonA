@@ -17,9 +17,6 @@ add_dim_reduct(dds, n = Inf, family = "norm", batch = ~1)
 
 \item{spec}{The analysis specificiation}
 }
-\value{
-
-}
 \description{
 Calculate dimension reduction
 }

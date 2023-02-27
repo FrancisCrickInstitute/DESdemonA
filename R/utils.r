@@ -26,15 +26,26 @@ rbind_summary <- function(x, levels=c("Dataset", "Design", "Comparison")) {
 }
 
 
+## classify_terms <- function(fml) {
+##   has_random <- any(c("|", "||") %in% all.names(fml))
+##   if (!has_random) {
+##     return(list(fixed=all.vars(fml),groups=list() ))
+##   }
+##   rterms <- lme4:::barnames(lme4::findbars(fml))
+##   rterms <- sub(":.*", "", rterms)
+##   fvars <- setdiff(all.vars(lme4::subbars(fml)), rterms)
+##   list(fixed=fvars, groups=rterms)
+## }
+
 classify_terms <- function(fml) {
-  has_random <- any(c("|", "||") %in% all.names(fml))
-  if (!has_random) {
-    return(list(fixed=all.vars(fml),groups=list() ))
-  }
-  rterms <- lme4:::barnames(lme4::findbars(fml))
-  rterms <- sub(":.*", "", rterms)
-  fvars <- setdiff(all.vars(lme4::subbars(fml)), rterms)
-  list(fixed=fvars, groups=rterms)
+  rhs <- as.character(fml)[length(fml)]
+  spl <- strsplit(rhs, "|", fixed=TRUE)[[1]]
+  rv <- all.vars(stats::reformulate(spl[1]))
+  list(
+    fixed=rv,
+    groups=setdiff(all.vars(stats::reformulate(rhs)), rv)
+  )
 }
+
   
   

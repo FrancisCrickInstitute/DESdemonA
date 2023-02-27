@@ -22,6 +22,7 @@ library(readxl)
 library(tidyverse)
 library(tximport)
 library(DESeq2)
+library(gt)
 
 ```
 
@@ -30,12 +31,19 @@ library(DESeq2)
 #| label: load2
 
 if (!isTRUE(getOption('knitr.in.progress'))) {
-  params <- yaml::read_yaml("{{YAML_FROM_MAKE}}")
+  my_params_yml <- "resources/00_init.yml"
+  if (file.exists(my_params_yml)) {
+    params <- yaml::read_yaml(my_params_yml)
+    if (is.null(names(params))) {
+      params <- params[1]$params
+    }
+  } else {
+    params <- list()
+  }
 } else {
   gt(data.frame(Setting=names(params),
                 Value=unlist(params)))
 }
-
 
 
 if (grepl("\\.csv$", params$metadata)) {
@@ -57,10 +65,10 @@ sample_sheet[sapply(sample_sheet, is.character)] <- lapply(
   sample_sheet[sapply(sample_sheet, is.character)], 
   as.factor)
 
-tx_path <-   file.path(
+tx_path <-   normalizePath(file.path(
   params$counts,
-  paste0(as.character(sample_sheet[[file_col]]), ".genes.results")
-)
+  paste0(as.character(sample_sheet[[name_col]]), ".genes.results")
+))
 
 names(tx_path) <- as.character(sample_sheet[[name_col]])
 not_here <- !file.exists(tx_path)

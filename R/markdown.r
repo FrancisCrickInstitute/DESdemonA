@@ -16,6 +16,7 @@ captioner <- function() {
     function(caption) {
       if (missing(caption)) {
         ret <- captions
+        if (length(ret)==0) ret <- ""
         captions <<- character()
         return(ret)
       } else {
@@ -83,13 +84,4 @@ bookdown_label <- function(data, label="") {
 }
     
     
-
-##' Deprecated
-##'
-##' To be replaced by tab_link_caption
-##' @title deprecated
-##' @param lbl the label
-##' @return 
-##' @author Gavin Kelly
-klabel <- function(lbl) paste0(knitr::opts_current$get('label'), "-", lbl)
 

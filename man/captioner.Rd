@@ -6,9 +6,6 @@
 \usage{
 captioner()
 }
-\value{
-
-}
 \description{
 Make captioning function that generates hyperlinks
 }

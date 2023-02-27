@@ -15,9 +15,6 @@ extract_results(object, dataset, model, comparison)
 
 \item{comparison}{The name of the comparison you want to restrict the traversal to - optional, and if omitted all comparisons will be traversed.}
 }
-\value{
-
-}
 \description{
 Return all results contained in a result list
 }

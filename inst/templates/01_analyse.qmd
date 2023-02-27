@@ -59,7 +59,15 @@ link2path <- function(lname) {  file.path(knitr::opts_knit$get("output.dir"),lna
 ```{r}
 #| label: load2
 if (!isTRUE(getOption('knitr.in.progress'))) {
-  params <- yaml::read_yaml("{{YAML_FROM_MAKE}}")
+  my_params_yml <- "resources/01_analyse.yml"
+  if (file.exists(my_params_yml)) {
+    params <- yaml::read_yaml(my_params_yml)
+    if (is.null(names(params))) {
+      params <- params[1]$params
+    }
+  } else {
+    params <- list()
+  }
 } else {
   gt(data.frame(Setting=names(params),
                 Value=unlist(params)))
@@ -145,7 +153,7 @@ for (dataset in names(specs$sample_sets)) {
     cat("\n\n####", dataset, mdl, "{-}\n\n")
     print(extract_eq(lm(
       update(mdls[[mdl]], Expression ~ .),
-      cbind(as.data.frame(colData(ddsList[[dataset]])), Expression=1:ncol(ddsList[[dataset]]))
+      data=cbind(data.frame(colData(ddsList[[dataset]]), check.names=FALSE), Expression=1:ncol(ddsList[[dataset]]))
     )
     ))
   }

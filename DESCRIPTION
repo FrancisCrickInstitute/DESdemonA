@@ -1,6 +1,6 @@
 Package: DESdemonA
 Title: DESeq2 Wrapper For Pre-Specified Analyses
-Version: 0.22.0
+Version: 0.23.0.9000
 Authors@R: person("Gavin", "Kelly",  email = "gavin.kelly@crick.ac.uk", role = c("aut", "cre"))
 Description: Use DESeq2 to automate RNASeq analysis
  using a standard '.spec' template file to specify multiple
@@ -12,8 +12,16 @@ biocViews: RNASeq
 Depends: R (>= 3.1.0)
 Imports:
     ashr,
+    BiocManager,
+    BiocParallel,
+    BH,
+    bookdown,
     circlize,
+    cluster,
+    clusterProfiler,
     ComplexHeatmap,
+    devtools,
+    downloader,
     DESeq2,
     dplyr,
     emmeans,
@@ -26,18 +34,23 @@ Imports:
     IHW,
     knitr,
     limma,
+    lazyeval,
     MASS,
     openxlsx,
+    png,
     PoiClaClu,
     purrr,
+    renv,
     R6,
+    RSQLite,
     RColorBrewer,
     readr,
     rlang,
     S4Vectors,
     tibble,
     tidyr,
-    usethis
+    usethis,
+    viridis
 Suggests:
     bookdown,
     clusterProfiler,
@@ -55,7 +68,7 @@ Suggests:
     tximport
 License: GPL-3
 LazyData: true
-git_last_commit: v0.22.0-0-g9c9e2a4_altered
+git_last_commit: v0.23.0.9000-0-gbb6da4e_altered
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
 Encoding: UTF-8

@@ -24,9 +24,6 @@ get_result(
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Generate results object
 }

@@ -34,9 +34,6 @@ columns in the \code{mcols} property.}
 
 \item{autor}{The name of the author to appear on the report}
 }
-\value{
-
-}
 \description{
 This will generate a standard report on the DESeq2 data object you
 provide it. It will store data objects in the \code{data} directory, so

@@ -6,21 +6,13 @@
 \usage{
 get_started(
   files = dir(system.file("templates", package = "DESdemonA")),
-  path = ".",
-  yml = "",
-  overwrite = FALSE,
-  file_col = "filename",
-  name_col = "name",
-  ...
+  dest = "."
 )
 }
 \arguments{
 \item{files}{Which files to retreive from the DESdemonA project}
 
-\item{path}{Where to copy the files to}
-}
-\value{
-
+\item{dest}{Where to copy the files to}
 }
 \description{
 Populate a folder with DESdemonA starter scripts
@@ -51,8 +43,7 @@ analysis into a re-distributable R package.
 
 The recommended usage is, at the start of project development,
 to simply call 'DESdemonA::get_started()' in the relevant directory,
-as the defaults path and files are sufficient - it will refuse
-to overwrite existing files, so is safe in that sense.
+as the defaults path and files are sufficient.
 }
 \author{
 Gavin Kelly

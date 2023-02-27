@@ -13,9 +13,6 @@ fitLRT(dds, mdl, reduced, ...)
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Fit an LRT model
 }

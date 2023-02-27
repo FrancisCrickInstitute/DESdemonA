@@ -13,9 +13,6 @@ check_model(dds)
 
 \item{coldat}{}
 }
-\value{
-
-}
 \description{
 Check model
 }

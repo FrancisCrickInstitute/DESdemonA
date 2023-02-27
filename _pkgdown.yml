@@ -4,7 +4,6 @@ reference:
     Top-level functions that run a report
   contents:
   - get_started
-  - run_report
 - title: "Spec-file helpers"
   desc: >
     Functions that can help in make it easier to capture experimental design

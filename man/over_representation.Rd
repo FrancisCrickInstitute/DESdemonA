@@ -15,9 +15,6 @@ over_representation(ddsList, fun, showCategory, max_width = 30)
 
 \item{max_width}{}
 }
-\value{
-
-}
 \description{
 .. content for \description{} (no empty lines) ..
 }

@@ -13,9 +13,6 @@ extract_assay(object, dataset, assay)
 
 \item{assay}{The name of the assay you want to extract from each dataset}
 }
-\value{
-
-}
 \description{
 Return an assay from a result-list
 }

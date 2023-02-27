@@ -11,17 +11,17 @@ R6 class representing the set of parameters used in an analysis
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-new}{\code{ParamList$new()}}
-\item \href{#method-set}{\code{ParamList$set()}}
-\item \href{#method-get}{\code{ParamList$get()}}
-\item \href{#method-publish}{\code{ParamList$publish()}}
-\item \href{#method-describe}{\code{ParamList$describe()}}
-\item \href{#method-clone}{\code{ParamList$clone()}}
+\item \href{#method-ParamList-new}{\code{ParamList$new()}}
+\item \href{#method-ParamList-set}{\code{ParamList$set()}}
+\item \href{#method-ParamList-get}{\code{ParamList$get()}}
+\item \href{#method-ParamList-publish}{\code{ParamList$publish()}}
+\item \href{#method-ParamList-describe}{\code{ParamList$describe()}}
+\item \href{#method-ParamList-clone}{\code{ParamList$clone()}}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-new"></a>}}
-\if{latex}{\out{\hypertarget{method-new}{}}}
+\if{html}{\out{<a id="method-ParamList-new"></a>}}
+\if{latex}{\out{\hypertarget{method-ParamList-new}{}}}
 \subsection{Method \code{new()}}{
 Create a new set of parameters.
 \subsection{Usage}{
@@ -40,8 +40,8 @@ An object that will store all future values of analysis parameters.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-set"></a>}}
-\if{latex}{\out{\hypertarget{method-set}{}}}
+\if{html}{\out{<a id="method-ParamList-set"></a>}}
+\if{latex}{\out{\hypertarget{method-ParamList-set}{}}}
 \subsection{Method \code{set()}}{
 Set the value of a parameter
 \subsection{Usage}{
@@ -63,8 +63,8 @@ Set the value of a parameter
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get"></a>}}
-\if{latex}{\out{\hypertarget{method-get}{}}}
+\if{html}{\out{<a id="method-ParamList-get"></a>}}
+\if{latex}{\out{\hypertarget{method-ParamList-get}{}}}
 \subsection{Method \code{get()}}{
 Get the value that the parameter is currently set to.
 \subsection{Usage}{
@@ -80,8 +80,8 @@ Get the value that the parameter is currently set to.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-publish"></a>}}
-\if{latex}{\out{\hypertarget{method-publish}{}}}
+\if{html}{\out{<a id="method-ParamList-publish"></a>}}
+\if{latex}{\out{\hypertarget{method-ParamList-publish}{}}}
 \subsection{Method \code{publish()}}{
 Turn the mutable object into a list
 \subsection{Usage}{
@@ -90,8 +90,8 @@ Turn the mutable object into a list
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-describe"></a>}}
-\if{latex}{\out{\hypertarget{method-describe}{}}}
+\if{html}{\out{<a id="method-ParamList-describe"></a>}}
+\if{latex}{\out{\hypertarget{method-ParamList-describe}{}}}
 \subsection{Method \code{describe()}}{
 Get a text description of what the setting is, and what value it currently takes.
 \subsection{Usage}{
@@ -107,8 +107,8 @@ Get a text description of what the setting is, and what value it currently takes
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-clone}{}}}
+\if{html}{\out{<a id="method-ParamList-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-ParamList-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{
