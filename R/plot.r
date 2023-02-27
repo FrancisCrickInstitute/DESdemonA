@@ -84,7 +84,7 @@ qc_heatmap <- function(dds, pc_x=1, pc_y=2, family="norm", title="QC Visualisati
   ### PCA
   pc <- as.matrix(colData(dds)$.PCA)
   percentVar <- metadata(colData(dds)$.PCA)$percentVar
-  is_vary <- sapply(colData(dds)[vars$fixed], function(v) length(unique(v))!=1)
+  is_vary <- sapply(colDat[vars$fixed], function(v) length(unique(v))!=1)
   #fml <- as.formula(paste0("~", paste(metadata(dds)$labels[is_vary], collapse="+")))
   
   

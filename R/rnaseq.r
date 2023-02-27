@@ -109,7 +109,7 @@ build_dds_list <- function(dds, spec) {
     default_palette <- spec$settings$palette
   } else {
     default_palette<- DESdemonA:::df2colorspace(
-      colData(dds)[, intersect(modelled_terms, colnames(colData(dds))),drop=FALSE],
+      data.frame(colData(dds))[, intersect(modelled_terms, colnames(data.frame(colData(dds)))),drop=FALSE],
       spec$settings$palette
     )
   }
@@ -230,7 +230,7 @@ add_dim_reduct  <-  function(dds, n=Inf, family="norm", batch=~1) {
 fit_models <- function(dds, ...) {
   model_comp <- lapply(
     metadata(dds)$models,
-    function(mdl) fit_model(mdl, dds)
+    function(mdl) DESdemonA:::fit_model(mdl, dds, ...)
   )
   model_comp <- model_comp[sapply(model_comp, length)!=0]
   model_comp <- imap(model_comp, function(obj, mname) {
@@ -239,7 +239,7 @@ fit_models <- function(dds, ...) {
   model_comp
 }
 
-fit_model <- function(mdl, dds) {
+fit_model <- function(mdl, dds, ...) {
   this_dds <- dds
   design(this_dds) <- mdl$design
   metadata(this_dds)$model <- mdl

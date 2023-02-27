@@ -78,6 +78,10 @@ if (any(not_here)) {
   sample_sheet <- sample_sheet[!not_here,]
 }
 
+onames <- data.frame(original=names(sample_sheet),
+                     new=make.names(names(sample_sheet)))
+names(sample_sheet) <- onames$new
+
 txi <- tximport(tx_path, type="rsem")
 txi$length[txi$length==0] <- 1
 
@@ -92,6 +96,7 @@ organism <- list(org=params$org_package)
 metadata(dds)$organism <- organism
 metadata(dds)$template_git <- packageDescription("DESdemonA")$git_last_commit
 metadata(dds)$count_source <- params$count_source
+metadata(mcols(dds))$init <- onames
 
 library(organism$org, character.only=TRUE)
 
